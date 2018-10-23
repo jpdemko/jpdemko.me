@@ -1,13 +1,10 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
-import Weather from './weather/Weather'
+
+import 'normalize.css'
+
 import registerServiceWorker from './registerServiceWorker'
+import Weather from './weather/Weather'
 
-const App = () => (
-  <React.Fragment>
-    <Weather />
-  </React.Fragment>
-)
-
-ReactDOM.render(<App />, document.getElementById('root'))
+ReactDOM.render(<Weather />, document.getElementById('root'))
 registerServiceWorker()

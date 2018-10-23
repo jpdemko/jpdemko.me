@@ -16,7 +16,9 @@ class Hourly extends React.Component {
     return <div>{localeTime}</div>
   }
 
-  render() {}
+  render() {
+    return 'need to figure this out'
+  }
 }
 
 export default Hourly
