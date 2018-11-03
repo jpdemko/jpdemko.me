@@ -1,45 +1,43 @@
 import NodeGeocoder from 'node-geocoder'
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 
 const geocoder = NodeGeocoder({
   provider: 'google',
   apiKey: process.env.REACT_APP_GOOGLE_API_KEY
 })
 
-class Weather extends React.Component {
-  constructor(props) {
-    super(props)
-    let forecastString = localStorage.getItem('forecast')
-    console.log(forecastString ? JSON.parse(forecastString) : forecastString)
-    this.state = {
-      forecast: forecastString ? JSON.parse(forecastString) : undefined,
-      loading: false
-    }
-  }
+function useLocalStorage(key, callback) {
+  let storedValue = localStorage.getItem(key)
+  if (storedValue && callback) storedValue = callback(storedValue)
+  return useState(storedValue)
+}
 
-  reset = () => {
+export default function Weather() {
+  const [forecast, setForecast] = useLocalStorage('forecast', JSON.parse)
+  const [loading, setLoading] = useState(false)
+
+  function reset() {
     localStorage.clear()
-    this.setState({ forecast: undefined })
+    setForecast(undefined)
   }
 
-  forecastIsRecent = () => {
-    let { forecast } = this.state
+  function recentForecast() {
     if (!forecast) return false
 
-    // gets current time in ms (new Date().getTime()) -> convert to seconds (/1000)
-    // get elapsed time by subtracting previous forecast time -> convert to minutes (/60)
+    // gets current time in ms 'new Date().getTime()' -> convert to seconds '/1000'
+    // get elapsed time by subtracting previous forecast time -> convert to minutes '/60
     let lastUpdate = Math.round((new Date().getTime() / 1000 - forecast.currently.time) / 60)
-    return lastUpdate >= 30 ? false : true
+    return lastUpdate >= 45 ? false : true
   }
 
-  fetchCity = (lat, long) => {
+  function fetchCity(lat, long) {
     return geocoder
       .reverse({ lat: lat, lon: long })
       .then(json => json[0].city)
       .catch(err => Promise.reject(`Reverse geocode error: ${err.message}`))
   }
 
-  fetchForecast = (lat, long) => {
+  function fetchForecast(lat, long) {
     let corsProxy = 'https://cors-anywhere.herokuapp.com'
     let skyAPI = 'https://api.darksky.net/forecast'
     let params = 'exclude=minutely,flags'
@@ -53,41 +51,40 @@ class Weather extends React.Component {
       .catch(err => Promise.reject(`Forecast retrieval error: ${err.message}`))
   }
 
-  getData = () => {
-    // if (this.forecastIsRecent()) return
+  function getData() {
+    if (recentForecast()) return
 
-    this.setState({ loading: true })
+    setLoading(true)
+
     navigator.geolocation.getCurrentPosition(
       position => {
         let { latitude: lat, longitude: long } = position.coords
 
-        Promise.all([this.fetchCity(lat, long), this.fetchForecast(lat, long)])
+        Promise.all([fetchCity(lat, long), fetchForecast(lat, long)])
           .then(data => {
             let finalForecast = { city: data[0], ...data[1] }
             localStorage.setItem('forecast', JSON.stringify(finalForecast))
-            this.setState({
-              forecast: finalForecast,
-              loading: false
-            })
+            setForecast(finalForecast)
+            setLoading(false)
           })
           .catch(err => {
             console.log(err)
-            this.setState({ loading: false })
+            setLoading(false)
           })
       },
       err => {
         let msg = `Geolocation error: ${err.message}`
         console.log(msg)
-        this.setState({ loading: false })
+        setLoading(false)
       },
       { enableHighAccuracy: true }
     )
   }
 
-  render() {
-    let { forecast } = this.state
-    return <section>{/* todo */}</section>
-  }
+  return (
+    <section>
+      <button onClick={getData}>GET FORECAST</button>
+      <button onClick={reset}>RESET</button>
+    </section>
+  )
 }
-
-export default Weather
