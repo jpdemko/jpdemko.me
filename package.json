@@ -12,8 +12,8 @@
     "gsap": "^2.0.2",
     "node-geocoder": "^3.22.0",
     "normalize.css": "^8.0.0",
-    "react": "^16.7.0-alpha.0",
-    "react-dom": "^16.7.0-alpha.0",
+    "react": "16.7.0-alpha.0",
+    "react-dom": "16.7.0-alpha.0",
     "react-scripts": "^2.1.0",
     "styled-components": "^4.0.3"
   },

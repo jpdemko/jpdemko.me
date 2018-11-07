@@ -1,25 +1,15 @@
 import NodeGeocoder from 'node-geocoder'
 import React, { useState, useEffect } from 'react'
+import { useLocalStorage } from '../util/customHooks'
 
 const geocoder = NodeGeocoder({
   provider: 'google',
   apiKey: process.env.REACT_APP_GOOGLE_API_KEY
 })
 
-function useLocalStorage(key, callback) {
-  let storedValue = localStorage.getItem(key)
-  if (storedValue && callback) storedValue = callback(storedValue)
-  return useState(storedValue)
-}
-
 export default function Weather() {
-  const [forecast, setForecast] = useLocalStorage('forecast', JSON.parse)
+  const forecast = useLocalStorage('forecast', JSON.parse)
   const [loading, setLoading] = useState(false)
-
-  function reset() {
-    localStorage.clear()
-    setForecast(undefined)
-  }
 
   function recentForecast() {
     if (!forecast) return false
@@ -55,7 +45,6 @@ export default function Weather() {
     if (recentForecast()) return
 
     setLoading(true)
-
     navigator.geolocation.getCurrentPosition(
       position => {
         let { latitude: lat, longitude: long } = position.coords
@@ -63,8 +52,7 @@ export default function Weather() {
         Promise.all([fetchCity(lat, long), fetchForecast(lat, long)])
           .then(data => {
             let finalForecast = { city: data[0], ...data[1] }
-            localStorage.setItem('forecast', JSON.stringify(finalForecast))
-            setForecast(finalForecast)
+            forecast.set(finalForecast, JSON.stringify)
             setLoading(false)
           })
           .catch(err => {
@@ -84,7 +72,7 @@ export default function Weather() {
   return (
     <section>
       <button onClick={getData}>GET FORECAST</button>
-      <button onClick={reset}>RESET</button>
+      <button onClick={() => forecast.reset()}>RESET</button>
     </section>
   )
 }
