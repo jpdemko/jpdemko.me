@@ -1,31 +1,25 @@
 import { useState } from 'react'
+import { stringify } from './helpers'
 
-function tryCallback(value, callback) {
-  try {
-    value = callback(value)
-  } catch (error) {
-    console.log(error)
-  }
-  return value
-}
-
-export function useLocalStorage(key, callback) {
+export function useLocalStorage(key, initValue) {
   const [value, setValue] = useState(() => {
-    let returnValue = localStorage.getItem(key)
-    if (callback) returnValue = tryCallback(returnValue, callback)
-    return returnValue
+    if (initValue) {
+      let convInitValue = stringify(initValue)
+      localStorage.setItem(key, convInitValue)
+      return convInitValue
+    }
+    let item = localStorage.getItem(key)
+    try {
+      return item ? JSON.parse(item) : item
+    } catch {
+      return item
+    }
   })
 
-  function set(item, callback) {
-    if (callback) item = tryCallback(item, callback)
-    localStorage.setItem(key, item)
-    setValue(item)
+  function set(value) {
+    localStorage.setItem(key, stringify(value))
+    setValue(value)
   }
 
-  function reset() {
-    localStorage.removeItem(key)
-    value = undefined
-  }
-
-  return { value, set, reset }
+  return [value, set]
 }

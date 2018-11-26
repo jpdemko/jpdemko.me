@@ -1,14 +1,9 @@
-import NodeGeocoder from 'node-geocoder'
 import React, { useState, useEffect } from 'react'
 import { useLocalStorage } from '../util/customHooks'
-
-const geocoder = NodeGeocoder({
-  provider: 'google',
-  apiKey: process.env.REACT_APP_GOOGLE_API_KEY
-})
+import { simplerFetch } from '../util/helpers'
 
 export default function Weather() {
-  const forecast = useLocalStorage('forecast', JSON.parse)
+  const [forecast, setForecast] = useLocalStorage('forecast')
   const [loading, setLoading] = useState(false)
 
   function recentForecast() {
@@ -20,25 +15,25 @@ export default function Weather() {
     return lastUpdate >= 45 ? false : true
   }
 
-  function fetchCity(lat, long) {
-    return geocoder
-      .reverse({ lat: lat, lon: long })
-      .then(json => json[0].city)
-      .catch(err => Promise.reject(`Reverse geocode error: ${err.message}`))
+  function fetchLocation(latLong) {
+    let gAPI = 'https://maps.googleapis.com/maps/api/geocode/json?latlng='
+
+    return simplerFetch(
+      `${gAPI}${latLong}&key=${process.env.REACT_APP_GOOGLE_API_KEY}`,
+      'reverse geocode'
+    ).then(geo => geo.plus_code.compound_code.replace(/\S+\s/, ''))
   }
 
-  function fetchForecast(lat, long) {
+  function fetchForecast(latLong) {
     let corsProxy = 'https://cors-anywhere.herokuapp.com'
     let skyAPI = 'https://api.darksky.net/forecast'
     let params = 'exclude=minutely,flags'
     let skyKey = process.env.REACT_APP_DARKSKY_API_KEY
 
-    return fetch(`${corsProxy}/${skyAPI}/${skyKey}/${lat},${long}?${params}`)
-      .then(res => {
-        if (!res.ok) throw Error('Recieved bad response.')
-        return res.json()
-      })
-      .catch(err => Promise.reject(`Forecast retrieval error: ${err.message}`))
+    return simplerFetch(
+      `${corsProxy}/${skyAPI}/${skyKey}/${latLong}?${params}`,
+      'forecast retrieval'
+    )
   }
 
   function getData() {
@@ -46,13 +41,12 @@ export default function Weather() {
 
     setLoading(true)
     navigator.geolocation.getCurrentPosition(
-      position => {
-        let { latitude: lat, longitude: long } = position.coords
-
-        Promise.all([fetchCity(lat, long), fetchForecast(lat, long)])
+      ({ coords }) => {
+        let latLong = `${coords.latitude},${coords.longitude}`
+        Promise.all([fetchLocation(latLong), fetchForecast(latLong)])
           .then(data => {
-            let finalForecast = { city: data[0], ...data[1] }
-            forecast.set(finalForecast, JSON.stringify)
+            let finalForecast = { location: data[0], ...data[1] }
+            setForecast(finalForecast)
             setLoading(false)
           })
           .catch(err => {
@@ -72,7 +66,8 @@ export default function Weather() {
   return (
     <section>
       <button onClick={getData}>GET FORECAST</button>
-      <button onClick={() => forecast.reset()}>RESET</button>
+      <button onClick={() => setForecast(undefined)}>RESET</button>
+      <button onClick={() => console.log(forecast)}>LOG FORECAST</button>
     </section>
   )
 }

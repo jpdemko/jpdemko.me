@@ -1,7 +1,7 @@
 import React from 'react'
 
-class Hourly extends React.Component {
-  getHour = time => {
+export default function Hourly() {
+  function getHour(time) {
     let date = new Date(time * 1000)
     let localeTime = date.toLocaleTimeString().replace(/:\d+/g, '')
     if (localeTime.includes('AM') || localeTime.includes('PM')) {
@@ -16,9 +16,5 @@ class Hourly extends React.Component {
     return <div>{localeTime}</div>
   }
 
-  render() {
-    return 'need to figure this out'
-  }
+  return 'need to figure this out'
 }
-
-export default Hourly
