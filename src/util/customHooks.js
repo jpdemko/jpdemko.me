@@ -1,10 +1,28 @@
-import { useState } from 'react'
-import { stringify } from './helpers'
+import { useState, useEffect } from 'react'
+
+export function useMedia(queries, values, defaultValue) {
+  const mediaQueryLists = queries.map(q => window.matchMedia(q))
+
+  const getValue = () => {
+    const index = mediaQueryLists.findIndex(mql => mql.matches)
+    return typeof values[index] !== 'undefined' ? values[index] : defaultValue
+  }
+
+  const [value, setValue] = useState(getValue)
+
+  useEffect(() => {
+    const handler = () => setValue(getValue)
+    mediaQueryLists.forEach(mql => mql.addListener(handler))
+    return () => mediaQueryLists.forEach(mql => mql.removeListener(handler))
+  }, [])
+
+  return value
+}
 
 export function useLocalStorage(key, initValue) {
   const [value, setValue] = useState(() => {
     if (initValue) {
-      let convInitValue = stringify(initValue)
+      let convInitValue = JSON.stringify(initValue)
       localStorage.setItem(key, convInitValue)
       return convInitValue
     }
@@ -17,7 +35,7 @@ export function useLocalStorage(key, initValue) {
   })
 
   function set(value) {
-    localStorage.setItem(key, stringify(value))
+    localStorage.setItem(key, JSON.stringify(value))
     setValue(value)
   }
 

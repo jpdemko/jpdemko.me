@@ -1,0 +1,95 @@
+$min-size: 200px;
+.window {
+  position: absolute;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-width: $min-size;
+  min-height: $min-size;
+  width: 640px;
+  height: 480px;
+  // border: 1px solid black;
+  filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.5));
+}
+
+.window-bar {
+  height: 20px;
+  background: skyblue;
+}
+
+.content-overflow-fix {
+  overflow-y: auto;
+}
+
+.content {
+  height: 100%;
+  overflow-y: auto;
+  background: white;
+}
+
+$corner-size: 10px;
+$corner-offset: $corner-size / 2;
+.corner {
+  position: absolute;
+  height: $corner-size;
+  width: $corner-size;
+  // background: rgba(223, 68, 68, 0.493);
+}
+
+.nw-corner {
+  left: -#{$corner-offset};
+  top: -#{$corner-offset};
+  cursor: nw-resize !important;
+}
+
+.ne-corner {
+  right: -#{$corner-offset};
+  top: -#{$corner-offset};
+  cursor: ne-resize !important;
+}
+
+.se-corner {
+  right: -#{$corner-offset};
+  bottom: -#{$corner-offset};
+  cursor: se-resize !important;
+}
+
+.sw-corner {
+  left: -#{$corner-offset};
+  bottom: -#{$corner-offset};
+  cursor: sw-resize !important;
+}
+
+.side {
+  position: absolute;
+  // background: rgba(21, 255, 0, 0.5);
+}
+
+$side-size: 6px;
+$side-offset: $side-size / 2;
+.n-side {
+  height: $side-size;
+  width: 100%;
+  top: -#{$side-offset};
+  left: 0;
+}
+
+.e-side {
+  height: 100%;
+  width: $side-size;
+  right: -#{$side-offset};
+  top: 0;
+}
+
+.s-side {
+  height: $side-size;
+  width: 100%;
+  bottom: -#{$side-offset};
+  left: 0;
+}
+
+.w-side {
+  height: 100%;
+  width: $side-size;
+  left: -#{$side-offset};
+  top: 0;
+}

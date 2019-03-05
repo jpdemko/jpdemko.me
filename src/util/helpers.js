@@ -1,17 +1,20 @@
-export function stringify(value) {
-  if (typeof value === 'object') return JSON.stringify(value)
-  return value + ''
+const Helpers = {
+  simplerFetch: function(url, action) {
+    return fetch(url)
+      .then(res => {
+        if (!res.ok) throw Error(`bad response --> code ${res.status}`)
+        return res.json()
+      })
+      .catch(err => {
+        let output = `${action} error: ${err.message}`
+        console.log(output)
+        Promise.reject(output)
+      })
+  },
+  getStyleProperty: function(ele, prop, parseValue = false) {
+    const styleProp = window.getComputedStyle(ele).getPropertyValue(prop)
+    return parseValue ? parseInt(styleProp, 10) : styleProp
+  }
 }
 
-export function simplerFetch(url, action) {
-  return fetch(url)
-    .then(res => {
-      if (!res.ok) throw Error(`bad response --> code ${res.status}`)
-      return res.json()
-    })
-    .catch(err => {
-      let output = `${action} error: ${err.message}`
-      console.log(output)
-      Promise.reject(output)
-    })
-}
+export default Helpers

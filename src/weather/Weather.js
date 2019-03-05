@@ -30,10 +30,7 @@ export default function Weather() {
     let params = 'exclude=minutely,flags'
     let skyKey = process.env.REACT_APP_DARKSKY_API_KEY
 
-    return simplerFetch(
-      `${corsProxy}/${skyAPI}/${skyKey}/${latLong}?${params}`,
-      'forecast retrieval'
-    )
+    return simplerFetch(`${corsProxy}/${skyAPI}/${skyKey}/${latLong}?${params}`, 'forecast retrieval')
   }
 
   function getData() {
