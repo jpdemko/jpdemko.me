@@ -1,4 +1,8 @@
-const Helpers = {
+const Util = {
+  getStyleProperty: function(ele, prop, parseValue = false) {
+    const styleProp = window.getComputedStyle(ele).getPropertyValue(prop)
+    return parseValue ? parseInt(styleProp, 10) : styleProp
+  },
   simplerFetch: function(url, action) {
     return fetch(url)
       .then(res => {
@@ -10,11 +14,7 @@ const Helpers = {
         console.log(output)
         Promise.reject(output)
       })
-  },
-  getStyleProperty: function(ele, prop, parseValue = false) {
-    const styleProp = window.getComputedStyle(ele).getPropertyValue(prop)
-    return parseValue ? parseInt(styleProp, 10) : styleProp
   }
 }
 
-export default Helpers
+export default Util

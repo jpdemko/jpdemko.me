@@ -7,8 +7,8 @@ $min-size: 200px;
   min-height: $min-size;
   width: 640px;
   height: 480px;
-  // border: 1px solid black;
-  filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.5));
+  border: 1px solid black;
+  // filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.5));
 }
 
 .window-bar {
