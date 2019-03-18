@@ -8,7 +8,7 @@ import React from 'react'
 const isChrome = !!window.chrome && (!!window.chrome.webstore || !!window.chrome.runtime)
 
 // GSAP's Draggable has a built in z-index updater, but we disable it and update z-index
-// manually since it doesn't do exactly what we want.
+// manually since it doesn't update as much as we want.
 let zIndexLeader = 999
 
 const animationsDuration = 0.4
@@ -73,8 +73,8 @@ export default class Window extends React.Component {
     ]
   }
 
-  shouldComponentUpdate(nextProps) {
-    return this.props.isMobile !== nextProps.isMobile
+  shouldComponentUpdate(nextProps, nextState) {
+    return this.props.isMobile !== nextProps.isMobile || this.state.zIndex !== nextState.zIndex
   }
 
   componentWillUnmount() {
@@ -143,10 +143,6 @@ export default class Window extends React.Component {
         <div id={`window-bar-${id}`} className="window-bar" />
         <div className="content-overflow-fix">
           <div className="content" onClick={this.zIndexUpdate}>
-            <button onClick={() => console.log(this.windowDraggable)}>print draggable info</button>
-            <button onClick={() => console.log(this.windowRef.getBoundingClientRect())}>
-              print bound rect
-            </button>
             {this.props.children}
             <p>
               Lorem ipsum dolor sit amet consectetur adipisicing elit. Vitae sed dolore debitis amet,
