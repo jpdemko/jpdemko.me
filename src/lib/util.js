@@ -14,6 +14,9 @@ const Util = {
         console.log(output)
         Promise.reject(output)
       })
+  },
+  queryBreakpoints: {
+    desktop: 768
   }
 }
 

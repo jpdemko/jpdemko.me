@@ -1,5 +1,5 @@
 import './window.scss'
-import Util from '../lib/util'
+import Util from '../lib/Util'
 import { Draggable, TweenLite } from 'gsap/all'
 import React from 'react'
 
@@ -11,10 +11,12 @@ const isChrome = !!window.chrome && (!!window.chrome.webstore || !!window.chrome
 // manually since it doesn't update as much as we want.
 let zIndexLeader = 999
 
-const animationsDuration = 0.4
+const animationDuration = 0.4
 
 export default class Window extends React.Component {
-  state = { zIndex: ++zIndexLeader }
+  state = {
+    zIndex: ++zIndexLeader
+  }
 
   componentDidMount() {
     const id = this.props.id
@@ -73,28 +75,12 @@ export default class Window extends React.Component {
     ]
   }
 
-  shouldComponentUpdate(nextProps, nextState) {
-    return this.props.isMobile !== nextProps.isMobile || this.state.zIndex !== nextState.zIndex
-  }
-
   componentWillUnmount() {
     this.dragInstances.forEach(i => i.kill())
   }
 
   componentDidUpdate() {
     this.updateLayout()
-  }
-
-  setLastPosition = () => {
-    const { width, height } = this.windowRef.getBoundingClientRect()
-    this.lastPosition = {
-      top: Util.getStyleProperty(this.windowRef, 'top', true),
-      left: Util.getStyleProperty(this.windowRef, 'left', true),
-      x: this.windowDraggable.x,
-      y: this.windowDraggable.y,
-      width,
-      height
-    }
   }
 
   updateLayout = () => {
@@ -107,7 +93,7 @@ export default class Window extends React.Component {
 
   maximize = () => {
     this.setLastPosition()
-    TweenLite.to(this.windowRef, animationsDuration, {
+    TweenLite.to(this.windowRef, animationDuration, {
       top: 0,
       left: 0,
       x: 0,
@@ -118,7 +104,7 @@ export default class Window extends React.Component {
   }
 
   restore = () => {
-    TweenLite.to(this.windowRef, animationsDuration, {
+    TweenLite.to(this.windowRef, animationDuration, {
       top: this.lastPosition.top,
       left: this.lastPosition.left,
       width: this.lastPosition.width,
@@ -126,6 +112,18 @@ export default class Window extends React.Component {
       x: this.lastPosition.x,
       y: this.lastPosition.y
     })
+  }
+
+  setLastPosition = () => {
+    const { width, height } = this.windowRef.getBoundingClientRect()
+    this.lastPosition = {
+      top: Util.getStyleProperty(this.windowRef, 'top', true),
+      left: Util.getStyleProperty(this.windowRef, 'left', true),
+      x: this.windowDraggable.x,
+      y: this.windowDraggable.y,
+      width,
+      height
+    }
   }
 
   zIndexUpdate = () => {
@@ -144,20 +142,6 @@ export default class Window extends React.Component {
         <div className="content-overflow-fix">
           <div className="content" onClick={this.zIndexUpdate}>
             {this.props.children}
-            <p>
-              Lorem ipsum dolor sit amet consectetur adipisicing elit. Vitae sed dolore debitis amet,
-              quibusdam molestiae blanditiis. Numquam aut inventore laudantium repellendus commodi eaque
-              est eveniet odio illo nam labore molestiae laboriosam ducimus vero architecto esse rem,
-              nihil atque sunt molestias.
-            </p>
-            <p>
-              Lorem ipsum dolor sit amet, consectetur adipisicing elit. Quidem molestiae, maiores
-              deserunt eligendi saepe similique. Laudantium, iure. Alias consectetur ipsum recusandae
-              velit, voluptas hic eos vel, reprehenderit, blanditiis laboriosam beatae soluta vero
-              nesciunt. Accusantium repellendus sit quisquam laudantium! Tenetur non, quod fuga, esse,
-              sunt incidunt perspiciatis impedit nemo sed quaerat fugiat illum quam dolore voluptatem id
-              nulla? Perferendis, ut libero?
-            </p>
           </div>
         </div>
         <div id={`n-side-${id}`} className="side n-side" />
