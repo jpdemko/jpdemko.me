@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import CustomHooks from '../lib/customHooks'
-import Util from '../lib/util'
+
+import CustomHooks from '../../shared/customHooks'
+import Helpers from '../../shared/helpers'
 
 export default function Weather() {
   const [forecast, setForecast] = CustomHooks.useLocalStorage('forecast')
@@ -9,8 +10,8 @@ export default function Weather() {
   function recentForecast() {
     if (!forecast) return false
 
-    // gets current time in ms 'new Date().getTime()' -> convert to seconds '/1000'
-    // get elapsed time by subtracting previous forecast time -> convert to minutes '/60
+    // Gets current time in ms 'new Date().getTime()' -> convert to seconds '/1000'.
+    // Get elapsed time by subtracting previous forecast time -> convert to minutes '/60'.
     let lastUpdate = Math.round((new Date().getTime() / 1000 - forecast.currently.time) / 60)
     return lastUpdate >= 45 ? false : true
   }
@@ -18,7 +19,7 @@ export default function Weather() {
   function fetchLocation(latLong) {
     let gAPI = 'https://maps.googleapis.com/maps/api/geocode/json?latlng='
 
-    return Util.simplerFetch(
+    return Helpers.simplerFetch(
       `${gAPI}${latLong}&key=${process.env.REACT_APP_GOOGLE_API_KEY}`,
       'reverse geocode'
     ).then(geo => geo.plus_code.compound_code.replace(/\S+\s/, ''))
@@ -30,7 +31,7 @@ export default function Weather() {
     let params = 'exclude=minutely,flags'
     let skyKey = process.env.REACT_APP_DARKSKY_API_KEY
 
-    return Util.simplerFetch(
+    return Helpers.simplerFetch(
       `${corsProxy}/${skyAPI}/${skyKey}/${latLong}?${params}`,
       'forecast retrieval'
     )

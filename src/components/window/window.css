@@ -1,38 +1,19 @@
-$min-size: 200px;
-.window {
-  position: absolute;
-  display: grid;
-  grid-template-rows: auto 1fr;
-  min-width: $min-size;
-  min-height: $min-size;
-  width: 640px;
-  height: 480px;
-  border: 1px solid black;
-  // filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.5));
-}
-
-.window-bar {
-  height: 20px;
-  background: skyblue;
-}
-
 .content-overflow-fix {
   overflow-y: auto;
+  flex: 1;
 }
 
 .content {
   height: 100%;
-  overflow-y: auto;
   background: white;
 }
 
-$corner-size: 10px;
+/* $corner-size: 0.5rem;
 $corner-offset: $corner-size / 2;
 .corner {
   position: absolute;
   height: $corner-size;
   width: $corner-size;
-  // background: rgba(223, 68, 68, 0.493);
 }
 
 .nw-corner {
@@ -61,10 +42,9 @@ $corner-offset: $corner-size / 2;
 
 .side {
   position: absolute;
-  // background: rgba(21, 255, 0, 0.5);
 }
 
-$side-size: 6px;
+$side-size: 0.25rem;
 $side-offset: $side-size / 2;
 .n-side {
   height: $side-size;
@@ -92,4 +72,4 @@ $side-offset: $side-size / 2;
   width: $side-size;
   left: -#{$side-offset};
   top: 0;
-}
+} */
