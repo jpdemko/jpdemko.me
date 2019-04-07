@@ -1,0 +1,107 @@
+@import '../../shared/_shared.scss';
+
+.window {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+
+  @media (min-width: $media-desktop) {
+    border: 0.1rem solid rgba(0, 0, 0, 0.5);
+    /* Filter looks great, but seems to cause performance issues w/ lots of windows open... */
+    /* filter: drop-shadow(0 0 0.2rem rgba(0, 0, 0, 0.5)); */
+  }
+}
+
+.window-title-bar {
+  background: coral;
+  display: none;
+
+  @media (min-width: $media-desktop) {
+    display: flex;
+  }
+
+  > * {
+    flex: 0 0;
+  }
+}
+
+.window-buttons {
+  margin-left: auto;
+  display: flex;
+
+  > * {
+    flex: 1;
+  }
+}
+
+.content-overflow-fix {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.content {
+  height: 100%;
+  background: white;
+}
+
+$corner-size: 0.5rem;
+$corner-offset: $corner-size / 2;
+.corner {
+  position: absolute;
+  height: $corner-size;
+  width: $corner-size;
+
+  .nw {
+    left: -#{$corner-offset};
+    top: -#{$corner-offset};
+    cursor: nw-resize !important;
+  }
+
+  .ne {
+    right: -#{$corner-offset};
+    top: -#{$corner-offset};
+    cursor: ne-resize !important;
+  }
+
+  .se {
+    right: -#{$corner-offset};
+    bottom: -#{$corner-offset};
+    cursor: se-resize !important;
+  }
+
+  .sw {
+    left: -#{$corner-offset};
+    bottom: -#{$corner-offset};
+    cursor: sw-resize !important;
+  }
+}
+
+$side-size: 0.25rem;
+$side-offset: $side-size / 2;
+.side {
+  position: absolute;
+
+  .n {
+    height: $side-size;
+    width: 100%;
+    top: -#{$side-offset};
+  }
+
+  .e {
+    height: 100%;
+    width: $side-size;
+    right: -#{$side-offset};
+  }
+
+  .s {
+    height: $side-size;
+    width: 100%;
+    bottom: -#{$side-offset};
+  }
+
+  .w {
+    height: 100%;
+    width: $side-size;
+    left: -#{$side-offset};
+  }
+}

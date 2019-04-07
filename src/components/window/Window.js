@@ -1,31 +1,9 @@
-import './window.css'
+import './window.scss'
 
 import React from 'react'
-import styled from 'styled-components/macro'
 import { Draggable, TweenLite } from 'gsap/all'
 
-import QueryBreakpoints from '../../shared/QueryBreakpoints'
-import WindowTitleBar from './children/WindowTitleBar'
 import { getStyleProperty } from '../../shared/helpers'
-
-// <-- START of STYLED-COMPONENTS -->
-const Window = styled.div`
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-
-  @media (min-width: ${QueryBreakpoints.desktop}px) {
-    border: 0.1rem solid rgba(0, 0, 0, 0.5);
-    /* Filter looks great, but seems to cause performance issues w/ lots of windows open */
-    /* filter: drop-shadow(0 0 0.2rem rgba(0, 0, 0, 0.5)); */
-  }
-`
-
-const ContentWrap = styled.div`
-  overflow-y: auto;
-  flex: 1;
-`
-// <-- END of STYLED-COMPONENTS -->
 
 // Chrome WebKit bug causes blurry text/images on child elements upon parent 3D transform.
 // This is a flag to disable 3D transforms in Chrome for Window components.
@@ -72,28 +50,28 @@ export default class extends React.Component {
     this.dragInstances = [
       this.windowDraggable,
       genResizeDraggable(document.createElement('div'), {
-        trigger: `#n-side-${id}, #nw-corner-${id}, #ne-corner-${id}`,
+        trigger: `#side-n${id}, #corner-nw${id}, #corner-ne${id}`,
         cursor: 'n-resize',
         onDrag: function() {
           TweenLite.set(windowRef, { height: `-=${this.deltaY}`, y: `+=${this.deltaY}` })
         }
       }),
       genResizeDraggable(document.createElement('div'), {
-        trigger: `#e-side-${id}, #ne-corner-${id}, #se-corner-${id}`,
+        trigger: `#side-e${id}, #corner-ne${id}, #corner-se${id}`,
         cursor: 'e-resize',
         onDrag: function(e) {
           TweenLite.set(windowRef, { width: `+=${this.deltaX}` })
         }
       }),
       genResizeDraggable(document.createElement('div'), {
-        trigger: `#s-side-${id}, #sw-corner-${id}, #se-corner-${id}`,
+        trigger: `#side-s${id}, #corner-sw${id}, #corner-se${id}`,
         cursor: 's-resize',
         onDrag: function() {
           TweenLite.set(windowRef, { height: `+=${this.deltaY}` })
         }
       }),
       genResizeDraggable(document.createElement('div'), {
-        trigger: `#w-side-${id}, #nw-corner-${id}, #sw-corner-${id}`,
+        trigger: `#side-w${id}, #corner-nw${id}, #corner-sw${id}`,
         cursor: 'w-resize',
         onDrag: function() {
           TweenLite.set(windowRef, { width: `-=${this.deltaX}`, x: `+=${this.deltaX}` })
@@ -182,30 +160,37 @@ export default class extends React.Component {
   render() {
     const { id, title, isMobile, xOrigin, yOrigin, close } = this.props
     return (
-      <Window id={`window-${id}`} style={{ zIndex: this.state.zIndex, left: xOrigin, top: yOrigin }}>
-        <WindowTitleBar
-          id={id}
-          title={title}
-          isMaximized={this.state.isMaximized}
-          minimize={this.minimize}
-          restore={this.restore}
-          maximize={this.maximize}
-          close={close}
-        />
+      <div
+        id={`window-${id}`}
+        className="window"
+        style={{ zIndex: this.state.zIndex, left: xOrigin, top: yOrigin }}
+      >
+        <div id={`window-title-bar-${id}`} className="window-title-bar">
+          <div className="window-title">{title}</div>
+          <div className="window-buttons">
+            <button onClick={this.minimize}>-</button>
+            {this.state.isMaximized ? (
+              <button onClick={this.restore}>[[]</button>
+            ) : (
+              <button onClick={this.maximize}>[]</button>
+            )}
+            <button onClick={() => close(id)}>X</button>
+          </div>
+        </div>
         <div className="content-overflow-fix">
           <div className="content" onClick={this.zIndexUpdate}>
             {this.props.children}
           </div>
         </div>
-        <div id={`n-side-${id}`} className="side n-side" />
-        <div id={`e-side-${id}`} className="side e-side" />
-        <div id={`s-side-${id}`} className="side s-side" />
-        <div id={`w-side-${id}`} className="side w-side" />
-        <div id={`nw-corner-${id}`} className="corner nw-corner" />
-        <div id={`ne-corner-${id}`} className="corner ne-corner" />
-        <div id={`se-corner-${id}`} className="corner se-corner" />
-        <div id={`sw-corner-${id}`} className="corner sw-corner" />
-      </Window>
+        <div id={`side-n${id}`} className="side n" />
+        <div id={`side-e${id}`} className="side e" />
+        <div id={`side-s${id}`} className="side s" />
+        <div id={`side-w${id}`} className="side w" />
+        <div id={`corner-nw${id}`} className="corner nw" />
+        <div id={`corner-ne${id}`} className="corner ne" />
+        <div id={`corner-se${id}`} className="corner se" />
+        <div id={`corner-sw${id}`} className="corner sw" />
+      </div>
     )
   }
 }

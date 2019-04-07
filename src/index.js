@@ -1,31 +1,14 @@
-import 'normalize.css'
 import 'react-app-polyfill/ie11'
+import 'normalize.css'
+import './index.scss'
 
 import React, { useState } from 'react'
 import ReactDOM from 'react-dom'
-import { createGlobalStyle } from 'styled-components/macro'
 
-import { useMedia } from './shared/customHooks'
-import QueryBreakpoints from './shared/QueryBreakpoints'
 import registerServiceWorker from './registerServiceWorker'
+import { useMedia } from './shared/customHooks'
+import { mediaSizes } from './shared/shared'
 import Window from './components/window/Window'
-
-const GlobalStyle = createGlobalStyle`
-	html {
-		box-sizing: border-box;
-		font-size: 20px;
-	}
-
-	*, *::before, *::after {
-		box-sizing: inherit;
-	}
-
-	.display {
-		height: 100vh;
-		position: relative;
-		overflow: hidden;
-	}
-`
 
 const Placeholder = props => (
   <>
@@ -50,7 +33,7 @@ let windowInstances = 0
 
 function App() {
   const [apps, setApps] = useState([])
-  const isMobile = useMedia([`(min-width: ${QueryBreakpoints.desktop}px)`], [false], true)
+  const isMobile = useMedia([`(min-width: ${mediaSizes.desktop}px)`], [false], true)
 
   const openApp = (e, title, jsx) => {
     const xOrigin = e.clientX
@@ -62,7 +45,6 @@ function App() {
 
   return (
     <>
-      <GlobalStyle />
       <div className="display">
         <button onClick={e => openApp(e, 'BUTTON1', <Placeholder />)}>ADD TOMATO</button>
         <div style={{ marginTop: '50vh' }}>
