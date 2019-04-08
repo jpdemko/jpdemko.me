@@ -19,7 +19,7 @@ const animationDuration = 0.4
 export default class extends React.Component {
   state = {
     zIndex: ++zIndexLeader,
-    isMaximized: this.props.isMobile,
+    isMaximized: false,
     isMinimized: false
   }
 
@@ -50,28 +50,28 @@ export default class extends React.Component {
     this.dragInstances = [
       this.windowDraggable,
       genResizeDraggable(document.createElement('div'), {
-        trigger: `#side-n${id}, #corner-nw${id}, #corner-ne${id}`,
+        trigger: `#side-n-${id}, #corner-nw-${id}, #corner-ne-${id}`,
         cursor: 'n-resize',
         onDrag: function() {
           TweenLite.set(windowRef, { height: `-=${this.deltaY}`, y: `+=${this.deltaY}` })
         }
       }),
       genResizeDraggable(document.createElement('div'), {
-        trigger: `#side-e${id}, #corner-ne${id}, #corner-se${id}`,
+        trigger: `#side-e-${id}, #corner-ne-${id}, #corner-se-${id}`,
         cursor: 'e-resize',
         onDrag: function(e) {
           TweenLite.set(windowRef, { width: `+=${this.deltaX}` })
         }
       }),
       genResizeDraggable(document.createElement('div'), {
-        trigger: `#side-s${id}, #corner-sw${id}, #corner-se${id}`,
+        trigger: `#side-s-${id}, #corner-sw-${id}, #corner-se-${id}`,
         cursor: 's-resize',
         onDrag: function() {
           TweenLite.set(windowRef, { height: `+=${this.deltaY}` })
         }
       }),
       genResizeDraggable(document.createElement('div'), {
-        trigger: `#side-w${id}, #corner-nw${id}, #corner-sw${id}`,
+        trigger: `#side-w-${id}, #corner-nw-${id}, #corner-sw-${id}`,
         cursor: 'w-resize',
         onDrag: function() {
           TweenLite.set(windowRef, { width: `-=${this.deltaX}`, x: `+=${this.deltaX}` })
@@ -182,14 +182,14 @@ export default class extends React.Component {
             {this.props.children}
           </div>
         </div>
-        <div id={`side-n${id}`} className="side n" />
-        <div id={`side-e${id}`} className="side e" />
-        <div id={`side-s${id}`} className="side s" />
-        <div id={`side-w${id}`} className="side w" />
-        <div id={`corner-nw${id}`} className="corner nw" />
-        <div id={`corner-ne${id}`} className="corner ne" />
-        <div id={`corner-se${id}`} className="corner se" />
-        <div id={`corner-sw${id}`} className="corner sw" />
+        <div id={`side-n-${id}`} className="side n" />
+        <div id={`side-e-${id}`} className="side e" />
+        <div id={`side-s-${id}`} className="side s" />
+        <div id={`side-w-${id}`} className="side w" />
+        <div id={`corner-nw-${id}`} className="corner nw" />
+        <div id={`corner-ne-${id}`} className="corner ne" />
+        <div id={`corner-se-${id}`} className="corner se" />
+        <div id={`corner-sw-${id}`} className="corner sw" />
       </div>
     )
   }

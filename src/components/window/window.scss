@@ -50,58 +50,58 @@ $corner-offset: $corner-size / 2;
   position: absolute;
   height: $corner-size;
   width: $corner-size;
+}
 
-  .nw {
-    left: -#{$corner-offset};
-    top: -#{$corner-offset};
-    cursor: nw-resize !important;
-  }
+.nw {
+  left: -#{$corner-offset};
+  top: -#{$corner-offset};
+  cursor: nw-resize !important;
+}
 
-  .ne {
-    right: -#{$corner-offset};
-    top: -#{$corner-offset};
-    cursor: ne-resize !important;
-  }
+.ne {
+  right: -#{$corner-offset};
+  top: -#{$corner-offset};
+  cursor: ne-resize !important;
+}
 
-  .se {
-    right: -#{$corner-offset};
-    bottom: -#{$corner-offset};
-    cursor: se-resize !important;
-  }
+.se {
+  right: -#{$corner-offset};
+  bottom: -#{$corner-offset};
+  cursor: se-resize !important;
+}
 
-  .sw {
-    left: -#{$corner-offset};
-    bottom: -#{$corner-offset};
-    cursor: sw-resize !important;
-  }
+.sw {
+  left: -#{$corner-offset};
+  bottom: -#{$corner-offset};
+  cursor: sw-resize !important;
 }
 
 $side-size: 0.25rem;
 $side-offset: $side-size / 2;
 .side {
   position: absolute;
+}
 
-  .n {
-    height: $side-size;
-    width: 100%;
-    top: -#{$side-offset};
-  }
+.n {
+  height: $side-size;
+  width: 100%;
+  top: -#{$side-offset};
+}
 
-  .e {
-    height: 100%;
-    width: $side-size;
-    right: -#{$side-offset};
-  }
+.e {
+  height: 100%;
+  width: $side-size;
+  right: -#{$side-offset};
+}
 
-  .s {
-    height: $side-size;
-    width: 100%;
-    bottom: -#{$side-offset};
-  }
+.s {
+  height: $side-size;
+  width: 100%;
+  bottom: -#{$side-offset};
+}
 
-  .w {
-    height: 100%;
-    width: $side-size;
-    left: -#{$side-offset};
-  }
+.w {
+  height: 100%;
+  width: $side-size;
+  left: -#{$side-offset};
 }

@@ -35,10 +35,16 @@ function App() {
   const [apps, setApps] = useState([])
   const isMobile = useMedia([`(min-width: ${mediaSizes.desktop}px)`], [false], true)
 
-  const openApp = (e, title, jsx) => {
-    const xOrigin = e.clientX
-    const yOrigin = e.clientY
-    setApps(prevApps => [...prevApps, { id: ++windowInstances, title, jsx, xOrigin, yOrigin }])
+  const openApp = ({ clientX, clientY }, jsx) => {
+    setApps(prevApps => [
+      ...prevApps,
+      {
+        id: ++windowInstances,
+        jsx,
+        xOrigin: isMobile ? 0 : clientX,
+        yOrigin: isMobile ? 0 : clientY
+      }
+    ])
   }
 
   const closeApp = id => setApps(prevApps => prevApps.filter(app => app.id !== id))
@@ -46,15 +52,14 @@ function App() {
   return (
     <>
       <div className="display">
-        <button onClick={e => openApp(e, 'BUTTON1', <Placeholder />)}>ADD TOMATO</button>
+        <button onClick={e => openApp(e, <Placeholder />)}>ADD TOMATO</button>
         <div style={{ marginTop: '50vh' }}>
-          <button onClick={e => openApp(e, 'BUTTON2', <Placeholder />)}>ADD STEAK</button>
+          <button onClick={e => openApp(e, <Placeholder />)}>ADD STEAK</button>
         </div>
         {apps.map(app => (
           <Window
             key={app.id}
             id={app.id}
-            title={app.title}
             isMobile={isMobile}
             xOrigin={app.xOrigin}
             yOrigin={app.yOrigin}
