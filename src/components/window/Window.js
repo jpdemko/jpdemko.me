@@ -19,12 +19,11 @@ const animationDuration = 0.4
 export default class extends React.Component {
   state = {
     zIndex: ++zIndexLeader,
-    isMaximized: false,
-    isMinimized: false
+    isMaximized: false
   }
 
   componentDidMount() {
-    const id = this.props.id
+    const id = this.props.appData.id
     const windowRef = document.getElementById(`window-${id}`)
     this.windowRef = windowRef
 
@@ -78,58 +77,59 @@ export default class extends React.Component {
         }
       })
     ]
-    this.updateLayout()
+    if (this.props.isMobile) this.maximize()
   }
 
   componentWillUnmount() {
     this.dragInstances.forEach(i => i.kill())
   }
 
-  componentDidUpdate(prevProps) {
-    if (prevProps.isMobile !== this.props.isMobile) this.updateLayout()
+  shouldComponentUpdate(nextProps, nextState) {
+    const layoutChange = nextProps.isMobile !== this.props.isMobile
+    const minimizeChange = nextProps.isMinimized !== this.props.isMinimized
+    const maximizeChange = nextState.isMaximized !== this.state.isMaximized
+    return layoutChange || minimizeChange || maximizeChange
   }
 
-  updateLayout = () => {
-    if (this.props.isMobile) {
-      if (!this.state.isMaximized) this.maximize()
-      this.dragInstances.forEach(i => i.disable())
-    } else if (!this.props.isMobile) {
-      if (this.lastProperties) this.restore()
-      this.dragInstances.forEach(i => i.enable())
+  componentDidUpdate(prevProps) {
+    if (prevProps.isMobile !== this.props.isMobile) {
+      if (this.props.isMobile) this.maximize()
+      else this.restore()
+    }
+    if (prevProps.isMinimized !== this.props.isMinimized) {
+      if (this.props.isMinimized) this.minimize()
+      else this.restore()
     }
   }
 
   minimize = () => {
-    if (!this.state.isMaximized) this.setLastProperties()
+    this.setProperties()
     TweenLite.to(this.windowRef, animationDuration, {
-      top: this.props.yOrigin - this.lastProperties.height / 2,
-      left: this.props.xOrigin - this.lastProperties.width / 2,
+      top: this.props.appData.origin.y - this.prevStyle.height / 2,
+      left: this.props.appData.origin.x - this.prevStyle.width / 2,
       x: 0,
       y: 0,
-      scale: 0,
+      scale: 0.25,
       onComplete: () => TweenLite.set(this.windowRef, { display: 'none' })
     })
-    this.setState({ isMinimized: true })
   }
 
   restore = () => {
+    TweenLite.set(this.windowRef, { display: 'flex' })
     TweenLite.to(this.windowRef, animationDuration, {
-      top: this.lastProperties.top,
-      left: this.lastProperties.left,
-      width: this.lastProperties.width,
-      height: this.lastProperties.height,
-      x: this.lastProperties.x,
-      y: this.lastProperties.y,
+      top: this.prevStyle.top,
+      left: this.prevStyle.left,
+      width: this.prevStyle.width,
+      height: this.prevStyle.height,
+      x: this.prevStyle.x,
+      y: this.prevStyle.y,
       scale: 1
     })
-    const flags = {}
-    if (this.state.isMaximized && !this.state.isMinimized) flags.isMaximized = false
-    if (this.state.isMinimized) flags.isMinimized = false
-    if (Object.keys(flags).length > 0) this.setState(flags)
+    if (this.state.isMaximized) this.setState({ isMaximized: false })
   }
 
   maximize = () => {
-    this.setLastProperties()
+    this.setProperties()
     TweenLite.to(this.windowRef, animationDuration, {
       top: 0,
       left: 0,
@@ -141,9 +141,9 @@ export default class extends React.Component {
     this.setState({ isMaximized: true })
   }
 
-  setLastProperties = () => {
+  setProperties = () => {
     const { width, height } = this.windowRef.getBoundingClientRect()
-    this.lastProperties = {
+    this.prevStyle = {
       top: getStyleProperty(this.windowRef, 'top', true),
       left: getStyleProperty(this.windowRef, 'left', true),
       x: this.windowDraggable.x,
@@ -158,23 +158,23 @@ export default class extends React.Component {
   }
 
   render() {
-    const { id, title, isMobile, xOrigin, yOrigin, close } = this.props
+    const { appData, toggleMinimize, closeApp } = this.props
     return (
       <div
-        id={`window-${id}`}
+        id={`window-${appData.id}`}
         className="window"
-        style={{ zIndex: this.state.zIndex, left: xOrigin, top: yOrigin }}
+        style={{ zIndex: this.state.zIndex, left: appData.origin.x, top: appData.origin.y }}
       >
-        <div id={`window-title-bar-${id}`} className="window-title-bar">
-          <div className="window-title">{title}</div>
+        <div id={`window-title-bar-${appData.id}`} className="window-title-bar">
+          <div className="window-title">{appData.component.title}</div>
           <div className="window-buttons">
-            <button onClick={this.minimize}>-</button>
+            <button onClick={() => toggleMinimize(appData.id)}>-</button>
             {this.state.isMaximized ? (
               <button onClick={this.restore}>[[]</button>
             ) : (
               <button onClick={this.maximize}>[]</button>
             )}
-            <button onClick={() => close(id)}>X</button>
+            <button onClick={() => closeApp(appData.id)}>X</button>
           </div>
         </div>
         <div className="content-overflow-fix">
@@ -182,14 +182,14 @@ export default class extends React.Component {
             {this.props.children}
           </div>
         </div>
-        <div id={`side-n-${id}`} className="side n" />
-        <div id={`side-e-${id}`} className="side e" />
-        <div id={`side-s-${id}`} className="side s" />
-        <div id={`side-w-${id}`} className="side w" />
-        <div id={`corner-nw-${id}`} className="corner nw" />
-        <div id={`corner-ne-${id}`} className="corner ne" />
-        <div id={`corner-se-${id}`} className="corner se" />
-        <div id={`corner-sw-${id}`} className="corner sw" />
+        <div id={`side-n-${appData.id}`} className="side n" />
+        <div id={`side-e-${appData.id}`} className="side e" />
+        <div id={`side-s-${appData.id}`} className="side s" />
+        <div id={`side-w-${appData.id}`} className="side w" />
+        <div id={`corner-nw-${appData.id}`} className="corner nw" />
+        <div id={`corner-ne-${appData.id}`} className="corner ne" />
+        <div id={`corner-se-${appData.id}`} className="corner se" />
+        <div id={`corner-sw-${appData.id}`} className="corner sw" />
       </div>
     )
   }

@@ -2,3 +2,8 @@
 export const mediaSizes = {
   desktop: 768
 }
+
+// All durations are in seconds
+export const durations = {
+  window: 0.5
+}

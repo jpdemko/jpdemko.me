@@ -14,3 +14,15 @@ html {
   position: relative;
   overflow: hidden;
 }
+
+.shortcuts {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.navigation {
+  position: fixed;
+  bottom: 0;
+  z-index: 5000;
+}

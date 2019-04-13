@@ -7,12 +7,12 @@ import ReactDOM from 'react-dom'
 
 import registerServiceWorker from './registerServiceWorker'
 import { useMedia } from './shared/customHooks'
-import { mediaSizes } from './shared/shared'
+import { mediaSizes, durations } from './shared/shared'
 import Window from './components/window/Window'
+import Weather from './components/weather/Weather'
 
 const Placeholder = props => (
   <>
-    <div>{`content#${props.id} isMobile: ${props.isMobile}`}</div>
     <div>
       Lorem ipsum, dolor sit amet consectetur adipisicing elit. Dolore, totam beatae error praesentium,
       enim molestiae laudantium dolores cupiditate nam adipisci perspiciatis odit maiores tenetur.
@@ -29,45 +29,77 @@ const Placeholder = props => (
   </>
 )
 
-let windowInstances = 0
+Placeholder.title = 'Placeholder'
+
+const installedApps = [Placeholder, Weather]
+let uniqueID = 0
 
 function App() {
-  const [apps, setApps] = useState([])
+  const [openedApps, setOpenedApps] = useState([])
   const isMobile = useMedia([`(min-width: ${mediaSizes.desktop}px)`], [false], true)
 
-  const openApp = ({ clientX, clientY }, jsx) => {
-    setApps(prevApps => [
+  const openApp = (e, App) => {
+    const origin = { x: isMobile ? 0 : e.clientX, y: isMobile ? 0 : e.clientY }
+    setOpenedApps(prevApps => [
       ...prevApps,
       {
-        id: ++windowInstances,
-        jsx,
-        xOrigin: isMobile ? 0 : clientX,
-        yOrigin: isMobile ? 0 : clientY
+        id: ++uniqueID,
+        component: App,
+        isMinimized: false,
+        origin
       }
     ])
   }
 
-  const closeApp = id => setApps(prevApps => prevApps.filter(app => app.id !== id))
+  const closeApp = id => setOpenedApps(prevApps => prevApps.filter(app => app.id !== id))
+
+  const toggleMinimize = id =>
+    setOpenedApps(prevApps => {
+      const nextApps = [...prevApps]
+      const app = nextApps.find(appData => appData.id === id)
+      app.isMinimized = !app.isMinimized
+      return nextApps
+    })
+
+  const toggleDesktop = () =>
+    setOpenedApps(prevApps => {
+      const nextApps = [...prevApps]
+      const numMinimized = nextApps.reduce((acc, appData) => acc + (appData.isMinimized ? 1 : 0), 0)
+      const majority = numMinimized <= nextApps.length / numMinimized
+      nextApps.forEach(appData => (appData.isMinimized = majority))
+      return nextApps
+    })
 
   return (
     <>
       <div className="display">
-        <button onClick={e => openApp(e, <Placeholder />)}>ADD TOMATO</button>
-        <div style={{ marginTop: '50vh' }}>
-          <button onClick={e => openApp(e, <Placeholder />)}>ADD STEAK</button>
+        <div className="shortcuts">
+          {installedApps.map(component => (
+            <button key={component.title} onClick={e => openApp(e, component)}>
+              {component.title}
+            </button>
+          ))}
         </div>
-        {apps.map(app => (
+        {openedApps.map(appData => (
           <Window
-            key={app.id}
-            id={app.id}
+            key={appData.id}
+            appData={appData}
+            isMinimized={appData.isMinimized}
             isMobile={isMobile}
-            xOrigin={app.xOrigin}
-            yOrigin={app.yOrigin}
-            close={closeApp}
+            toggleMinimize={toggleMinimize}
+            closeApp={closeApp}
           >
-            {React.cloneElement(app.jsx, { id: app.id, isMobile })}
+            <appData.component />
           </Window>
         ))}
+        <div className="navigation">
+          <button onClick={toggleDesktop}>desktop</button>
+          {openedApps.map(appData => (
+            <button key={appData.id} onClick={() => toggleMinimize(appData.id)}>
+              {appData.component.title}
+            </button>
+          ))}
+        </div>
       </div>
     </>
   )
