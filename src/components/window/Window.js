@@ -1,7 +1,7 @@
 import './window.scss'
 
 import React from 'react'
-import { Draggable, TweenLite } from 'gsap/all'
+import { Draggable, TweenMax } from 'gsap/all'
 
 import { getStyleProperty } from '../../shared/helpers'
 
@@ -13,22 +13,20 @@ const isChrome = !!window.chrome && (!!window.chrome.webstore || !!window.chrome
 // doesn't update in every circumstance we want, so we update z-index ourselves.
 let zIndexLeader = 999
 
-// Duration (in seconds) of TweenLite animations for the Window component.
-const animationDuration = 0.4
-
-export default class extends React.Component {
+export default class Window extends React.Component {
   state = {
     zIndex: ++zIndexLeader,
+    isMinimized: false,
     isMaximized: false
   }
 
   componentDidMount() {
-    const id = this.props.appData.id
+    const id = this.props.app.id
     const windowRef = document.getElementById(`window-${id}`)
     this.windowRef = windowRef
 
     this.windowDraggable = new Draggable(windowRef, {
-      // force3D: isChrome ? false : true,
+      force3D: isChrome ? false : true,
       bounds: '.display',
       edgeResistance: 0.5,
       trigger: `#window-title-bar-${id}`,
@@ -52,85 +50,72 @@ export default class extends React.Component {
         trigger: `#side-n-${id}, #corner-nw-${id}, #corner-ne-${id}`,
         cursor: 'n-resize',
         onDrag: function() {
-          TweenLite.set(windowRef, { height: `-=${this.deltaY}`, y: `+=${this.deltaY}` })
+          TweenMax.set(windowRef, { height: `-=${this.deltaY}`, y: `+=${this.deltaY}` })
         }
       }),
       genResizeDraggable(document.createElement('div'), {
         trigger: `#side-e-${id}, #corner-ne-${id}, #corner-se-${id}`,
         cursor: 'e-resize',
         onDrag: function(e) {
-          TweenLite.set(windowRef, { width: `+=${this.deltaX}` })
+          TweenMax.set(windowRef, { width: `+=${this.deltaX}` })
         }
       }),
       genResizeDraggable(document.createElement('div'), {
         trigger: `#side-s-${id}, #corner-sw-${id}, #corner-se-${id}`,
         cursor: 's-resize',
         onDrag: function() {
-          TweenLite.set(windowRef, { height: `+=${this.deltaY}` })
+          TweenMax.set(windowRef, { height: `+=${this.deltaY}` })
         }
       }),
       genResizeDraggable(document.createElement('div'), {
         trigger: `#side-w-${id}, #corner-nw-${id}, #corner-sw-${id}`,
         cursor: 'w-resize',
         onDrag: function() {
-          TweenLite.set(windowRef, { width: `-=${this.deltaX}`, x: `+=${this.deltaX}` })
+          TweenMax.set(windowRef, { width: `-=${this.deltaX}`, x: `+=${this.deltaX}` })
         }
       })
     ]
-    if (this.props.isMobile) this.maximize()
   }
 
   componentWillUnmount() {
     this.dragInstances.forEach(i => i.kill())
   }
 
-  shouldComponentUpdate(nextProps, nextState) {
-    const layoutChange = nextProps.isMobile !== this.props.isMobile
-    const minimizeChange = nextProps.isMinimized !== this.props.isMinimized
-    const maximizeChange = nextState.isMaximized !== this.state.isMaximized
-    return layoutChange || minimizeChange || maximizeChange
-  }
-
-  componentDidUpdate(prevProps) {
-    if (prevProps.isMobile !== this.props.isMobile) {
-      if (this.props.isMobile) this.maximize()
-      else this.restore()
-    }
-    if (prevProps.isMinimized !== this.props.isMinimized) {
-      if (this.props.isMinimized) this.minimize()
-      else this.restore()
-    }
+  toggle = () => {
+    if (this.state.isMinimized) {
+      this.restore()
+      this.zIndexUpdate()
+    } else this.minimize()
   }
 
   minimize = () => {
-    this.setProperties()
-    TweenLite.to(this.windowRef, animationDuration, {
-      top: this.props.appData.origin.y - this.prevStyle.height / 2,
-      left: this.props.appData.origin.x - this.prevStyle.width / 2,
+    const { width, height } = this.windowRef.getBoundingClientRect()
+    this.animate({
+      top: this.props.app.origin.y - height / 2,
+      left: this.props.app.origin.x - width / 2,
       x: 0,
       y: 0,
       scale: 0.25,
-      onComplete: () => TweenLite.set(this.windowRef, { display: 'none' })
+      opacity: 0,
+      onComplete: () => TweenMax.set(this.windowRef, { display: 'none' })
     })
+
+    this.setState({ isMinimized: true })
   }
 
   restore = () => {
-    TweenLite.set(this.windowRef, { display: 'flex' })
-    TweenLite.to(this.windowRef, animationDuration, {
-      top: this.prevStyle.top,
-      left: this.prevStyle.left,
-      width: this.prevStyle.width,
-      height: this.prevStyle.height,
-      x: this.prevStyle.x,
-      y: this.prevStyle.y,
-      scale: 1
-    })
-    if (this.state.isMaximized) this.setState({ isMaximized: false })
+    if (this.state.isMinimized && this.state.isMaximized) {
+      this.maximize()
+      return
+    }
+
+    this.animate(this.windowedStyle)
+    this.setState({ isMinimized: false, isMaximized: false })
   }
 
   maximize = () => {
-    this.setProperties()
-    TweenLite.to(this.windowRef, animationDuration, {
+    this.animate({
+      ...this.windowedStyle,
       top: 0,
       left: 0,
       width: '100%',
@@ -138,18 +123,31 @@ export default class extends React.Component {
       x: 0,
       y: 0
     })
-    this.setState({ isMaximized: true })
+
+    this.setState({ isMinimized: false, isMaximized: true })
   }
 
-  setProperties = () => {
+  animate = vars => {
+    const clonedVars = { ...vars }
+    this.setWindowedStyle()
+    TweenMax.to(this.windowRef, 0.4, clonedVars)
+  }
+
+  setWindowedStyle = () => {
+    if (this.state.isMaximized || this.state.isMinimized || TweenMax.isTweening(this.windowRef)) return
+    this.windowDraggable.update()
+
     const { width, height } = this.windowRef.getBoundingClientRect()
-    this.prevStyle = {
+    this.windowedStyle = {
       top: getStyleProperty(this.windowRef, 'top', true),
       left: getStyleProperty(this.windowRef, 'left', true),
       x: this.windowDraggable.x,
       y: this.windowDraggable.y,
       width,
-      height
+      height,
+      scale: 1,
+      opacity: 1,
+      display: 'flex'
     }
   }
 
@@ -158,23 +156,23 @@ export default class extends React.Component {
   }
 
   render() {
-    const { appData, toggleMinimize, closeApp } = this.props
+    const { app, closeApp } = this.props
     return (
       <div
-        id={`window-${appData.id}`}
+        id={`window-${app.id}`}
         className="window"
-        style={{ zIndex: this.state.zIndex, left: appData.origin.x, top: appData.origin.y }}
+        style={{ zIndex: this.state.zIndex, left: app.origin.x, top: app.origin.y }}
       >
-        <div id={`window-title-bar-${appData.id}`} className="window-title-bar">
-          <div className="window-title">{appData.component.title}</div>
+        <div id={`window-title-bar-${app.id}`} className="window-title-bar">
+          <div className="window-title">{app.component.title}</div>
           <div className="window-buttons">
-            <button onClick={() => toggleMinimize(appData.id)}>-</button>
+            <button onClick={this.minimize}>-</button>
             {this.state.isMaximized ? (
               <button onClick={this.restore}>[[]</button>
             ) : (
               <button onClick={this.maximize}>[]</button>
             )}
-            <button onClick={() => closeApp(appData.id)}>X</button>
+            <button onClick={() => closeApp(app.id)}>X</button>
           </div>
         </div>
         <div className="content-overflow-fix">
@@ -182,14 +180,14 @@ export default class extends React.Component {
             {this.props.children}
           </div>
         </div>
-        <div id={`side-n-${appData.id}`} className="side n" />
-        <div id={`side-e-${appData.id}`} className="side e" />
-        <div id={`side-s-${appData.id}`} className="side s" />
-        <div id={`side-w-${appData.id}`} className="side w" />
-        <div id={`corner-nw-${appData.id}`} className="corner nw" />
-        <div id={`corner-ne-${appData.id}`} className="corner ne" />
-        <div id={`corner-se-${appData.id}`} className="corner se" />
-        <div id={`corner-sw-${appData.id}`} className="corner sw" />
+        <div id={`side-n-${app.id}`} className="side n" />
+        <div id={`side-e-${app.id}`} className="side e" />
+        <div id={`side-s-${app.id}`} className="side s" />
+        <div id={`side-w-${app.id}`} className="side w" />
+        <div id={`corner-nw-${app.id}`} className="corner nw" />
+        <div id={`corner-ne-${app.id}`} className="corner ne" />
+        <div id={`corner-se-${app.id}`} className="corner se" />
+        <div id={`corner-sw-${app.id}`} className="corner sw" />
       </div>
     )
   }
