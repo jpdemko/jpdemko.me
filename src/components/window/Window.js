@@ -81,14 +81,9 @@ export default class Window extends React.Component {
     this.dragInstances.forEach(i => i.kill())
   }
 
-  toggle = () => {
-    if (this.state.isMinimized) {
-      this.restore()
-      this.zIndexUpdate()
-    } else this.minimize()
-  }
-
   minimize = () => {
+    if (this.state.isMinimized) return
+
     const { width, height } = this.windowRef.getBoundingClientRect()
     this.animate({
       top: this.props.app.origin.y - height / 2,
@@ -99,11 +94,11 @@ export default class Window extends React.Component {
       opacity: 0,
       onComplete: () => TweenMax.set(this.windowRef, { display: 'none' })
     })
-
     this.setState({ isMinimized: true })
   }
 
   restore = () => {
+    if (!this.state.isMinimized && !this.state.isMaximized) return
     if (this.state.isMinimized && this.state.isMaximized) {
       this.maximize()
       return
@@ -123,7 +118,6 @@ export default class Window extends React.Component {
       x: 0,
       y: 0
     })
-
     this.setState({ isMinimized: false, isMaximized: true })
   }
 
@@ -152,7 +146,9 @@ export default class Window extends React.Component {
   }
 
   zIndexUpdate = () => {
-    if (this.state.zIndex !== zIndexLeader) this.setState({ zIndex: ++zIndexLeader })
+    const update = this.state.zIndex !== zIndexLeader
+    if (update) this.setState({ zIndex: ++zIndexLeader })
+    return update
   }
 
   render() {

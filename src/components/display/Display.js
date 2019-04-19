@@ -53,15 +53,15 @@ class Display extends React.Component {
     if (app.window.current.state.isMinimized) {
       app.window.current.restore()
       app.window.current.zIndexUpdate()
-    } else app.window.current.minimize()
+    } else if (!app.window.current.zIndexUpdate()) app.window.current.minimize()
   }
 
   toggleDesktop = () => {
     const numMinimized = this.state.openedApps.reduce(
-      (acc, app) => (acc + app.window.current.state.isMinimized ? 1 : 0),
+      (acc, app) => acc + (app.window.current.state.isMinimized ? 1 : 0),
       0
     )
-    const method = numMinimized > this.state.openedApps.length / numMinimized ? 'restore' : 'minimize'
+    const method = numMinimized > this.state.openedApps.length / 2 ? 'restore' : 'minimize'
     this.state.openedApps.forEach(app => app.window.current[method]())
   }
 
