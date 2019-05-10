@@ -1,6 +1,6 @@
 export function getStyleProperty(ele, prop, parseValue = false) {
   const styleProp = window.getComputedStyle(ele).getPropertyValue(prop)
-  return parseValue ? styleProp.match(/\d+\.?\d*/)[0] : styleProp
+  return parseValue ? parseFloat(styleProp.match(/\d+\.?\d*/)[0]) : styleProp
 }
 
 export function simplerFetch(url, action) {

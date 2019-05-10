@@ -10,12 +10,12 @@
   },
   "dependencies": {
     "gsap": "^2.1.2",
-    "node-sass": "^4.11.0",
-    "normalize.css": "^8.0.1",
     "react": "^16.8.6",
-    "react-app-polyfill": "0.2.2",
+    "react-app-polyfill": "^1.0.0",
     "react-dom": "^16.8.6",
-    "react-scripts": "^2.1.8"
+    "react-scripts": "^3.0.0",
+    "sanitize.css": "^8.0.0",
+    "styled-components": "^4.2.0"
   },
   "browserslist": [
     ">0.2%",
