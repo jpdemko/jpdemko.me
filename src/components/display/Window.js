@@ -15,11 +15,11 @@ const isChrome = !!window.chrome && (!!window.chrome.webstore || !!window.chrome
 // ...update in every circumstance we want, so we update z-index ourselves.
 let zIndexLeader = 999
 
-const Window = styled.div.attrs(({ app, zIndex }) => {
+const Window = styled.div.attrs(({ app }) => {
   const { top, left } = app.origins.shortcut.getBoundingClientRect()
   return {
     style: {
-      zIndex,
+      zIndex: ++zIndexLeader,
       top: `${top}px`,
       left: `${left}px`,
       transform: isChrome ? 'matrix(0.25, 0, 0, 0.25, 0, 0)' : 'scale(0.25, 0.25)',
@@ -119,19 +119,18 @@ export default class extends React.Component {
       display: 'flex',
     }
     this.state = {
-      zIndex: ++zIndexLeader,
       isMinimized: false,
       isMaximized: false,
       isWindowed: true,
     }
-    this.windowRef = React.createRef()
+    this.elementRef = React.createRef()
   }
 
   componentDidMount() {
     const id = this.props.app.id
-    const localWindowRef = this.windowRef.current
+    const windowElement = this.elementRef.current
 
-    this.windowDraggable = new Draggable(localWindowRef, {
+    this.windowDraggable = new Draggable(windowElement, {
       force3D: !isChrome,
       bounds: '#display',
       edgeResistance: 0.5,
@@ -162,7 +161,7 @@ export default class extends React.Component {
           const preventLowering = height <= windowCSS.minHeight && this.deltaY > 0
           const deltaY = preventLowering ? 0 : this.deltaY
           height -= deltaY
-          TweenMax.set(localWindowRef, {
+          TweenMax.set(windowElement, {
             height,
             y: `+=${deltaY}`,
           })
@@ -175,7 +174,7 @@ export default class extends React.Component {
           const preventLowering = width <= windowCSS.minWidth && this.deltaX < 0
           const deltaX = preventLowering ? 0 : this.deltaX
           width += deltaX
-          TweenMax.set(localWindowRef, { width })
+          TweenMax.set(windowElement, { width })
         },
       }),
       genResizeDraggable(document.createElement('div'), {
@@ -185,7 +184,7 @@ export default class extends React.Component {
           const preventLowering = height <= windowCSS.minHeight && this.deltaY < 0
           const deltaY = preventLowering ? 0 : this.deltaY
           height += deltaY
-          TweenMax.set(localWindowRef, { height })
+          TweenMax.set(windowElement, { height })
         },
       }),
       genResizeDraggable(document.createElement('div'), {
@@ -195,16 +194,14 @@ export default class extends React.Component {
           const preventLowering = width <= windowCSS.minWidth && this.deltaX > 0
           const deltaX = preventLowering ? 0 : this.deltaX
           width -= deltaX
-          TweenMax.set(localWindowRef, { width, x: `+=${deltaX}` })
+          TweenMax.set(windowElement, { width, x: `+=${deltaX}` })
         },
       }),
     ]
 
     // GROSS - Have to skip `setLastStyle()` on initial opening, can't think of an easier way to do this.
-    // Creating flag param. for maximize() and animate() just for this seems wrong.
-    const skipSetLastStyle = true
-    if (this.props.isMobile) this.maximize(skipSetLastStyle)
-    else this.animate(this.lastStyle, skipSetLastStyle)
+    if (this.props.isMobile) this.maximize(['skipSetLastStyle'])
+    else this.animate(this.lastStyle, ['skipSetLastStyle'])
   }
 
   componentWillUnmount() {
@@ -224,44 +221,49 @@ export default class extends React.Component {
     this.setState(nextState)
   }
 
-  minimize = () => {
-    const { top, left } = this.props.app.origins.navigation.current.getBoundingClientRect()
-    const { width } = this.windowRef.current.getBoundingClientRect()
-    this.animate({
-      top,
-      left: left - width / 2,
-      x: 0,
-      y: 0,
-      scale: 0.2,
-      opacity: 0,
-      display: 'none',
-    })
-    this.props.focusWindowBelow(this)
+  log = msg => {
+    console.log(`window#${this.props.app.id} - ${msg}`)
+  }
+
+  minimize = (options = []) => {
+    this.log('minimize()')
+
+    const { top, left } = this.props.app.origins.navigationRef.current.getBoundingClientRect()
+    const { width } = this.elementRef.current.getBoundingClientRect()
+    this.animate(
+      {
+        top,
+        left: left - width / 2,
+        x: 0,
+        y: 0,
+        scale: 0.2,
+        opacity: 0,
+        display: 'none',
+      },
+      options,
+    )
+    if (!options.includes('skipFocusBelowWindow')) this.props.focusBelowWindow(this)
     this.updateState({ isMinimized: true })
   }
 
   toggleMinimize = () => {
-    if (this.state.isMinimized) {
-      this.moveOnTop()
-      this.restore()
-    } else if (!this.moveOnTop()) this.minimize()
+    this.log('toggleMin()')
+    if (this.state.isMinimized) this.restore()
+    else if (!this.moveOnTop()) this.minimize()
   }
 
-  restore = () => {
+  restore = options => {
     if (this.state.isMinimized && this.state.isMaximized) {
       this.maximize()
       return
     }
-
-    this.animate(this.lastStyle)
+    this.log('restore()')
+    this.animate(this.lastStyle, options)
     this.updateState({ isMinimized: false, isMaximized: false })
   }
 
-  /**
-   * @param {boolean} skipSetLastStyle See bottom of `cDM()` for why this exists.
-   */
-  maximize = (skipSetLastStyle = false) => {
-    this.moveOnTop()
+  maximize = options => {
+    this.log('maximize()')
     this.animate(
       {
         ...this.lastStyle,
@@ -272,7 +274,7 @@ export default class extends React.Component {
         x: 0,
         y: 0,
       },
-      skipSetLastStyle,
+      options,
     )
     this.updateState({ isMinimized: false, isMaximized: true })
   }
@@ -282,25 +284,22 @@ export default class extends React.Component {
     else this.maximize()
   }
 
-  /**
-   * @param {object} vars
-   * @param {boolean} skipSetLastStyle See bottom of `cDM()` for why this exists.
-   */
-  animate = (vars, skipSetLastStyle = false) => {
-    // Have to clone 'vars' parameter since TweenMax will alter object reference otherwise...
-    const clonedVars = { ...vars }
-    if (!skipSetLastStyle) this.setLastStyle()
-    TweenMax.to(this.windowRef.current, 0.4, clonedVars)
+  animate = (tweenVars, options = []) => {
+    if (!options.includes('skipSetLastStyle')) this.setLastStyle()
+    if (!options.includes('skipMoveOnTop')) this.moveOnTop()
+    // Have to clone 'tweenVars' parameter since TweenMax will alter object reference otherwise...
+    const clonedVars = { ...tweenVars }
+    TweenMax.to(this.elementRef.current, 0.4, clonedVars)
   }
 
   setLastStyle = () => {
-    if (!this.state.isWindowed || TweenMax.isTweening(this.windowRef.current)) return
+    if (!this.state.isWindowed || TweenMax.isTweening(this.elementRef.current)) return
     this.windowDraggable.update()
 
-    const { width, height } = this.windowRef.current.getBoundingClientRect()
+    const { width, height } = this.elementRef.current.getBoundingClientRect()
     this.lastStyle = {
-      top: getStyleProperty(this.windowRef.current, 'top', true),
-      left: getStyleProperty(this.windowRef.current, 'left', true),
+      top: getStyleProperty(this.elementRef.current, 'top', true),
+      left: getStyleProperty(this.elementRef.current, 'left', true),
       x: this.windowDraggable.x,
       y: this.windowDraggable.y,
       width,
@@ -311,22 +310,24 @@ export default class extends React.Component {
     }
   }
 
-  isOnTop = () => this.state.zIndex === zIndexLeader
+  isOnTop = () => getStyleProperty(this.elementRef.current, 'z-index', true) === zIndexLeader
 
   moveOnTop = () => {
-    const isOnTop = this.isOnTop()
-    if (!isOnTop) this.setState({ zIndex: ++zIndexLeader })
-    return !isOnTop
+    this.log('focus()')
+    if (!this.isOnTop()) {
+      TweenMax.set(this.elementRef.current, { zIndex: ++zIndexLeader })
+      return true
+    } else return false
   }
 
   render() {
     const { app, closeApp, isMobile } = this.props
-    const { zIndex, isMaximized } = this.state
+    const { isMaximized } = this.state
     return (
       <Window
-        ref={this.windowRef}
+        id={`window-${app.id}`}
+        ref={this.elementRef}
         app={app}
-        zIndex={zIndex}
         isMaximized={isMaximized}
         isMobile={isMobile}
       >
@@ -335,11 +336,11 @@ export default class extends React.Component {
             {app.component.title}#{app.id}
           </span>
           <div style={{ float: 'right' }}>
-            <button onClick={this.minimize}>-</button>
+            <button onClick={() => this.minimize()}>-</button>
             {isMaximized ? (
-              <button onClick={this.restore}>[[]</button>
+              <button onClick={() => this.restore()}>[[]</button>
             ) : (
-              <button onClick={this.maximize}>[]</button>
+              <button onClick={() => this.maximize()}>[]</button>
             )}
             <button onClick={() => closeApp(app.id)}>X</button>
           </div>

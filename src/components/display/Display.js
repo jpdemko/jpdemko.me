@@ -4,9 +4,10 @@
 import React from 'react'
 import styled from 'styled-components/macro'
 
-import Window from '../window/Window'
+import Window from './Window'
 import Weather from '../weather/Weather'
 import { windowCSS } from '../../shared/variables'
+import { getStyleProperty } from '../../shared/helpers'
 
 const Display = styled.div`
   height: 100vh;
@@ -46,30 +47,34 @@ let uniqueID = 0
 
 export default class extends React.Component {
   state = { openedApps: [] }
+  recentlyMinimizedApps = []
 
   componentDidUpdate(prevProps) {
     if (prevProps.isMobile !== this.props.isMobile) {
       this.state.openedApps.forEach(app => {
         // MAYBE - Possibly save state of Window to go back to on layout return?
-        const wdow = app.window.current
-        if (this.props.isMobile) wdow[wdow.isOnTop() ? 'maximize' : 'minimize']()
-        else wdow.restore()
+        const wdow = app.windowRef.current
+        if (this.props.isMobile) {
+          if (wdow.isOnTop()) wdow.maximize()
+          else wdow.minimize(['skipFocusBelowWindow'])
+        } else wdow.restore()
       })
     }
   }
 
   openApp = (e, component) => {
-    // SyntheticEvent will be reused (properties will be set to null) so I need to copy the desired value or use `e.persist()`.
+    // SyntheticEvent will be reused (properties will be set to null), so I need to copy the desired...
+    // ...value or use `e.persist()`.
     const shortcut = e.target
     this.setState(prevState => ({
       openedApps: [
         ...prevState.openedApps,
         {
           id: ++uniqueID,
-          window: React.createRef(),
+          windowRef: React.createRef(),
           component,
           // GROSS - Having to use different syntax for each button element origin. Is there a better way?
-          origins: { shortcut, navigation: React.createRef() },
+          origins: { shortcut, navigationRef: React.createRef() },
         },
       ],
     }))
@@ -79,22 +84,30 @@ export default class extends React.Component {
     this.setState(prevState => ({ openedApps: prevState.openedApps.filter(app => app.id !== id) }))
   }
 
+  // Mimics Win10 desktop toggle.
   toggleDesktop = () => {
-    const numMinimized = this.state.openedApps.reduce(
-      (acc, app) => acc + (app.window.current.state.isMinimized ? 1 : 0),
-      0,
-    )
-    const method = numMinimized > this.state.openedApps.length / 2 ? 'restore' : 'minimize'
-    this.state.openedApps.forEach(app => app.window.current[method]())
+    if (this.recentlyMinimizedApps.length > 0) {
+      this.recentlyMinimizedApps.forEach(app => app.windowRef.current.restore(['skipMoveOnTop']))
+      this.recentlyMinimizedApps = []
+    } else {
+      this.state.openedApps.forEach(app => {
+        if (!app.windowRef.current.state.isMinimized) {
+          this.recentlyMinimizedApps.push(app)
+          app.windowRef.current.minimize(['skipFocusBelowWindow', 'skipMoveOnTop'])
+        }
+      })
+    }
   }
 
-  focusWindowBelow = curApp => {
-    const belowApp = this.state.openedApps.reduce((acc, cur) => {
-      const accZ = acc.window.current.state.zIndex
-      const curZ = cur.window.current.state.zIndex
-      return curZ > accZ && curZ < curApp.state.zIndex ? cur : acc
+  focusBelowWindow = curApp => {
+    if (this.state.openedApps.length < 1) return
+    const curZ = getStyleProperty(curApp.elementRef.current, 'z-index', true)
+    const belowApp = this.state.openedApps.reduce((acc, next) => {
+      const accZ = getStyleProperty(acc.windowRef.current.elementRef.current, 'z-index', true)
+      const nextZ = getStyleProperty(next.windowRef.current.elementRef.current, 'z-index', true)
+      return nextZ > accZ && nextZ < curZ ? next : acc
     })
-    belowApp.window.current.moveOnTop()
+    belowApp.windowRef.current.moveOnTop()
   }
 
   render() {
@@ -102,9 +115,9 @@ export default class extends React.Component {
       <>
         <Display id="display">
           <Shortcuts>
-            {installedApps.map(component => (
-              <button key={component.title} onClick={e => this.openApp(e, component)}>
-                {component.title}
+            {installedApps.map(app => (
+              <button key={app.title} onClick={e => this.openApp(e, app)}>
+                {app.title}
               </button>
             ))}
           </Shortcuts>
@@ -113,8 +126,8 @@ export default class extends React.Component {
             {this.state.openedApps.map(app => (
               <button
                 key={app.id}
-                ref={app.origins.navigation}
-                onClick={() => app.window.current.toggleMinimize()}
+                ref={app.origins.navigationRef}
+                onClick={() => app.windowRef.current.toggleMinimize()}
               >
                 {app.component.title}
               </button>
@@ -124,11 +137,11 @@ export default class extends React.Component {
           {this.state.openedApps.map(app => (
             <Window
               key={app.id}
-              ref={app.window}
+              ref={app.windowRef}
               app={app}
               closeApp={this.closeApp}
               isMobile={this.props.isMobile}
-              focusWindowBelow={this.focusWindowBelow}
+              focusBelowWindow={this.focusBelowWindow}
             >
               <app.component />
             </Window>
