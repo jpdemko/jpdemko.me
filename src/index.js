@@ -1,6 +1,6 @@
-import 'react-app-polyfill/ie11'
-import 'react-app-polyfill/stable'
 import 'sanitize.css'
+import 'sanitize.css/typography.css'
+import 'sanitize.css/forms.css'
 
 import React from 'react'
 import ReactDOM from 'react-dom'
@@ -8,25 +8,37 @@ import { createGlobalStyle } from 'styled-components/macro'
 
 import registerServiceWorker from './registerServiceWorker'
 import { useMedia } from './shared/customHooks'
-import { mediaBreakpoints } from './shared/variables'
+import { sharedCSS } from './shared/variables'
 import Display from './components/display/Display'
+import Weather from './components/weather/Weather'
 
 const GlobalStyle = createGlobalStyle`
 	html {
-		font-size: 20px;
+		font-size: 16px;
+	}
+
+	body {
+		color: #333;
+	}
+
+	svg {
+		width: 1.5em;
+		height: 1.5em;
 	}
 `
 
-function App() {
-  const isMobile = useMedia([`(min-width: ${mediaBreakpoints.desktop}px)`], [false], true)
+const mountableApps = [Weather]
 
-  return (
-    <>
-      <GlobalStyle />
-      <Display isMobile={isMobile} />
-    </>
-  )
+function FakeOS() {
+	const isMobile = useMedia([`(min-width: ${sharedCSS.media.desktop}px)`], [false], true)
+
+	return (
+		<>
+			<GlobalStyle />
+			<Display isMobile={isMobile} mountableApps={mountableApps} />
+		</>
+	)
 }
 
-ReactDOM.render(<App />, document.getElementById('root'))
+ReactDOM.render(<FakeOS />, document.getElementById('root'))
 registerServiceWorker()

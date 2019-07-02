@@ -1,153 +1,175 @@
-// TODO - Figure out how to make navigation that works in mobile/desktop.
-// Also add a way to close apps from navigation in both mobile/desktop.
-
 import React from 'react'
 import styled from 'styled-components/macro'
 
 import Window from './Window'
-import Weather from '../weather/Weather'
-import { windowCSS } from '../../shared/variables'
-import { getStyleProperty } from '../../shared/helpers'
+import Navigation from './Navigation'
+import Button from '../ui/Button'
 
-const Display = styled.div`
-  height: 100vh;
-  position: relative;
-  overflow: hidden;
+const DisplayRoot = styled.div`
+	height: 100vh;
+	position: relative;
+	overflow: hidden;
+	padding: 1em;
 `
+
+// Only shared between Display/Window, doesn't really belong in 'variables.js' file, which is used everywhere.
+const windowCSS = {
+	minWidth: 480,
+	minHeight: 320,
+}
 
 // Actual Window components use this wireframe's calculated px dimensions for their opening animation.
 // Trying to animate the actual Windows when they have set % CSS applied doesn't give the desired resizing effect.
 const WindowWireframe = styled.div`
-  position: absolute;
-  z-index: -5000;
-  top: 50%;
-  left: 50%;
-  opacity: 0;
-  transform: translate(-50%, -50%);
-  min-width: ${windowCSS.minWidth}px;
-  width: 70%;
-  min-height: ${windowCSS.minHeight}px;
-  height: 50%;
+	position: absolute;
+	z-index: -5000;
+	top: 50%;
+	left: 50%;
+	opacity: 0;
+	transform: translate(-50%, -50%);
+	min-width: ${windowCSS.minWidth}px;
+	width: 70%;
+	min-height: ${windowCSS.minHeight}px;
+	height: 50%;
 `
 
 const Shortcuts = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
 `
 
-const Navigation = styled.div`
-  position: fixed;
-  bottom: 0;
-  z-index: 5000;
+const ShortcutButton = styled(Button)`
+	font-size: 2em;
 `
 
-const installedApps = [Weather]
 let uniqueID = 0
 
-export default class extends React.Component {
-  state = { openedApps: [] }
-  recentlyMinimizedApps = []
+export default class Display extends React.Component {
+	state = {
+		// GSAP's Draggable has a shared z-index updater across all instances, however it doesn't update
+		// in every circumstance we need it to.
+		zIndexLeader: 999,
+		openedApps: [],
+	}
+	recentlyMinimizedApps = []
 
-  componentDidUpdate(prevProps) {
-    if (prevProps.isMobile !== this.props.isMobile) {
-      this.state.openedApps.forEach(app => {
-        // MAYBE - Possibly save state of Window to go back to on layout return?
-        const wdow = app.windowRef.current
-        if (this.props.isMobile) {
-          if (wdow.isOnTop()) wdow.maximize()
-          else wdow.minimize(['skipFocusBelowWindow'])
-        } else wdow.restore()
-      })
-    }
-  }
+	componentDidUpdate(prevProps) {
+		if (prevProps.isMobile !== this.props.isMobile) {
+			this.state.openedApps.forEach((app) => {
+				const wdow = app.windowRef.current
+				if (this.props.isMobile) {
+					app.stateFromPrevLayout = wdow.state
+					if (wdow.isOnTop() && !wdow.state.isMinimized) wdow.maximize()
+					else wdow.minimize(['skipFocusBelowWindow', 'skipMoveOnTop'])
+				} else {
+					const { isMaximized: wasMax, isWindowed: wasWindow } = app.stateFromPrevLayout
+					if (wasMax) wdow.maximize(['skipMoveOnTop'])
+					else if (wasWindow) wdow.restore(['skipMoveOnTop'])
+				}
+			})
+		}
+	}
 
-  openApp = (e, component) => {
-    // SyntheticEvent will be reused (properties will be set to null), so I need to copy the desired...
-    // ...value or use `e.persist()`.
-    const shortcut = e.target
-    this.setState(prevState => ({
-      openedApps: [
-        ...prevState.openedApps,
-        {
-          id: ++uniqueID,
-          windowRef: React.createRef(),
-          component,
-          // GROSS - Having to use different syntax for each button element origin. Is there a better way?
-          origins: { shortcut, navigationRef: React.createRef() },
-        },
-      ],
-    }))
-  }
+	openApp = (app) => {
+		this.setState((prevState) => ({
+			openedApps: [
+				...prevState.openedApps,
+				{
+					id: ++uniqueID,
+					windowRef: React.createRef(),
+					class: app,
+					stateFromPrevLayout: {
+						isMinimized: false,
+						isMaximized: false,
+						isWindowed: true,
+					},
+				},
+			],
+		}))
+	}
 
-  closeApp = id => {
-    this.setState(prevState => ({ openedApps: prevState.openedApps.filter(app => app.id !== id) }))
-  }
+	closeApp = (curApp) => {
+		this.setState(
+			(prevState) => ({
+				openedApps: prevState.openedApps.filter((app) => app.id !== curApp.id),
+			}),
+			this.focusBelowWindow(curApp),
+		)
+	}
 
-  // Mimics Win10 desktop toggle.
-  toggleDesktop = () => {
-    if (this.recentlyMinimizedApps.length > 0) {
-      this.recentlyMinimizedApps.forEach(app => app.windowRef.current.restore(['skipMoveOnTop']))
-      this.recentlyMinimizedApps = []
-    } else {
-      this.state.openedApps.forEach(app => {
-        if (!app.windowRef.current.state.isMinimized) {
-          this.recentlyMinimizedApps.push(app)
-          app.windowRef.current.minimize(['skipFocusBelowWindow', 'skipMoveOnTop'])
-        }
-      })
-    }
-  }
+	// Mimics Win10 desktop toggle.
+	toggleDesktop = () => {
+		if (this.recentlyMinimizedApps.length > 0) {
+			this.recentlyMinimizedApps.forEach((app) => app.windowRef.current.restore(['skipMoveOnTop']))
+			this.recentlyMinimizedApps = []
+		} else {
+			this.state.openedApps.forEach((app) => {
+				if (!app.windowRef.current.state.isMinimized) {
+					this.recentlyMinimizedApps.push(app)
+					app.windowRef.current.minimize(['skipFocusBelowWindow', 'skipMoveOnTop'])
+				}
+			})
+		}
+	}
 
-  focusBelowWindow = curApp => {
-    if (this.state.openedApps.length < 1) return
-    const curZ = getStyleProperty(curApp.elementRef.current, 'z-index', true)
-    const belowApp = this.state.openedApps.reduce((acc, next) => {
-      const accZ = getStyleProperty(acc.windowRef.current.elementRef.current, 'z-index', true)
-      const nextZ = getStyleProperty(next.windowRef.current.elementRef.current, 'z-index', true)
-      return nextZ > accZ && nextZ < curZ ? next : acc
-    })
-    belowApp.windowRef.current.moveOnTop()
-  }
+	focusBelowWindow = (curApp) => {
+		if (this.state.openedApps.length < 2) return
+		const curZ = curApp.windowRef.current.state.zIndex
+		let belowApp = null
+		this.state.openedApps.forEach((app, i) => {
+			const appZ = app.windowRef.current.state.zIndex
+			if (app.windowRef.current.state.isMinimized) return
+			else if (!belowApp && appZ < curZ) belowApp = app
+			else if (belowApp) {
+				const belowAppZ = belowApp.windowRef.current.state.zIndex
+				belowApp = appZ > belowAppZ && appZ < curZ ? app : belowApp
+			}
+		})
+		belowApp.windowRef.current.moveOnTop()
+	}
 
-  render() {
-    return (
-      <>
-        <Display id="display">
-          <Shortcuts>
-            {installedApps.map(app => (
-              <button key={app.title} onClick={e => this.openApp(e, app)}>
-                {app.title}
-              </button>
-            ))}
-          </Shortcuts>
-          <Navigation>
-            <button onClick={this.toggleDesktop}>desktop</button>
-            {this.state.openedApps.map(app => (
-              <button
-                key={app.id}
-                ref={app.origins.navigationRef}
-                onClick={() => app.windowRef.current.toggleMinimize()}
-              >
-                {app.component.title}
-              </button>
-            ))}
-          </Navigation>
-          <WindowWireframe id="window-wireframe" />
-          {this.state.openedApps.map(app => (
-            <Window
-              key={app.id}
-              ref={app.windowRef}
-              app={app}
-              closeApp={this.closeApp}
-              isMobile={this.props.isMobile}
-              focusBelowWindow={this.focusBelowWindow}
-            >
-              <app.component />
-            </Window>
-          ))}
-        </Display>
-      </>
-    )
-  }
+	getNewZ = () => {
+		const { zIndexLeader } = this.state
+		this.setState({ zIndexLeader: zIndexLeader + 1 })
+		return zIndexLeader + 1
+	}
+
+	render() {
+		const { mountableApps, isMobile } = this.props
+		const { openedApps, zIndexLeader } = this.state
+		return (
+			<DisplayRoot id='display'>
+				<Shortcuts>
+					{mountableApps.map((mountableApp) => (
+						<ShortcutButton
+							variant='fancy'
+							color='blue'
+							key={mountableApp.shared.title}
+							id={`sc-${mountableApp.shared.title}`}
+							onClick={() => this.openApp(mountableApp)}
+							SVG={mountableApp.shared.logo}
+						/>
+					))}
+				</Shortcuts>
+				<Navigation openedApps={openedApps} isMobile={isMobile} toggleDesktop={this.toggleDesktop} />
+				<WindowWireframe id='window-wireframe' />
+				{openedApps.map((app) => (
+					<Window
+						key={app.id}
+						ref={app.windowRef}
+						app={app}
+						closeApp={this.closeApp}
+						isMobile={isMobile}
+						focusBelowWindow={this.focusBelowWindow}
+						zIndexLeader={zIndexLeader}
+						getNewZ={this.getNewZ}
+						windowCSS={windowCSS}
+					>
+						<app.class />
+					</Window>
+				))}
+			</DisplayRoot>
+		)
+	}
 }
