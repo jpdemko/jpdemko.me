@@ -1,15 +1,20 @@
 import React from 'react'
 import styled from 'styled-components/macro'
+import { TransitionGroup } from 'react-transition-group'
 
+import Button from '../ui/Button'
 import Window from './Window'
 import Navigation from './Navigation'
-import Button from '../ui/Button'
 
 const DisplayRoot = styled.div`
 	height: 100vh;
 	position: relative;
 	overflow: hidden;
 	padding: 1em;
+	/* background-image: url('https://w.wallhaven.cc/full/r2/wallhaven-r27qy1.jpg');
+	background-size: cover;
+	background-repeat: no-repeat;
+	background-position: center center; */
 `
 
 // Only shared between Display/Window, doesn't really belong in 'variables.js' file, which is used everywhere.
@@ -28,8 +33,8 @@ const WindowWireframe = styled.div`
 	opacity: 0;
 	transform: translate(-50%, -50%);
 	min-width: ${windowCSS.minWidth}px;
-	width: 70%;
 	min-height: ${windowCSS.minHeight}px;
+	width: 70%;
 	height: 50%;
 `
 
@@ -41,6 +46,7 @@ const Shortcuts = styled.div`
 
 const ShortcutButton = styled(Button)`
 	font-size: 2em;
+	margin: 0.5em;
 `
 
 let uniqueID = 0
@@ -53,6 +59,7 @@ export default class Display extends React.Component {
 		openedApps: [],
 	}
 	recentlyMinimizedApps = []
+	skipRestore = true
 
 	componentDidUpdate(prevProps) {
 		if (prevProps.isMobile !== this.props.isMobile) {
@@ -72,6 +79,7 @@ export default class Display extends React.Component {
 	}
 
 	openApp = (app) => {
+		const { isMobile } = this.props
 		this.setState((prevState) => ({
 			openedApps: [
 				...prevState.openedApps,
@@ -81,27 +89,28 @@ export default class Display extends React.Component {
 					class: app,
 					stateFromPrevLayout: {
 						isMinimized: false,
-						isMaximized: false,
-						isWindowed: true,
+						isMaximized: isMobile ? true : false,
+						isWindowed: isMobile ? false : true,
 					},
 				},
 			],
 		}))
+		this.skipRestoreToggleDesktop()
 	}
 
 	closeApp = (curApp) => {
-		this.setState(
-			(prevState) => ({
-				openedApps: prevState.openedApps.filter((app) => app.id !== curApp.id),
-			}),
-			this.focusBelowWindow(curApp),
-		)
+		this.setState((prevState) => ({
+			openedApps: prevState.openedApps.filter((app) => app.id !== curApp.id),
+		}))
+		this.focusBelowWindow(curApp)
 	}
 
-	// Mimics Win10 desktop toggle.
+	// Mimics Win10 desktop toggle or iOS/Android home button.
 	toggleDesktop = () => {
-		if (this.recentlyMinimizedApps.length > 0) {
-			this.recentlyMinimizedApps.forEach((app) => app.windowRef.current.restore(['skipMoveOnTop']))
+		if (!this.props.isMobile && !this.skipRestore && this.recentlyMinimizedApps.length > 0) {
+			this.recentlyMinimizedApps.forEach((app) => {
+				if (app) app.windowRef.current.restore(['skipMoveOnTop'])
+			})
 			this.recentlyMinimizedApps = []
 		} else {
 			this.state.openedApps.forEach((app) => {
@@ -110,7 +119,12 @@ export default class Display extends React.Component {
 					app.windowRef.current.minimize(['skipFocusBelowWindow', 'skipMoveOnTop'])
 				}
 			})
+			this.skipRestore = false
 		}
+	}
+
+	skipRestoreToggleDesktop = () => {
+		this.skipRestore = true
 	}
 
 	focusBelowWindow = (curApp) => {
@@ -126,7 +140,7 @@ export default class Display extends React.Component {
 				belowApp = appZ > belowAppZ && appZ < curZ ? app : belowApp
 			}
 		})
-		belowApp.windowRef.current.moveOnTop()
+		if (belowApp) belowApp.windowRef.current.moveOnTop()
 	}
 
 	getNewZ = () => {
@@ -143,32 +157,35 @@ export default class Display extends React.Component {
 				<Shortcuts>
 					{mountableApps.map((mountableApp) => (
 						<ShortcutButton
-							variant='fancy'
-							color='blue'
 							key={mountableApp.shared.title}
 							id={`sc-${mountableApp.shared.title}`}
 							onClick={() => this.openApp(mountableApp)}
 							SVG={mountableApp.shared.logo}
+							variant='fancy'
+							size='large'
 						/>
 					))}
 				</Shortcuts>
 				<Navigation openedApps={openedApps} isMobile={isMobile} toggleDesktop={this.toggleDesktop} />
 				<WindowWireframe id='window-wireframe' />
-				{openedApps.map((app) => (
-					<Window
-						key={app.id}
-						ref={app.windowRef}
-						app={app}
-						closeApp={this.closeApp}
-						isMobile={isMobile}
-						focusBelowWindow={this.focusBelowWindow}
-						zIndexLeader={zIndexLeader}
-						getNewZ={this.getNewZ}
-						windowCSS={windowCSS}
-					>
-						<app.class />
-					</Window>
-				))}
+				<TransitionGroup>
+					{openedApps.map((app) => (
+						<Window
+							key={app.id}
+							ref={app.windowRef}
+							app={app}
+							closeApp={this.closeApp}
+							isMobile={isMobile}
+							focusBelowWindow={this.focusBelowWindow}
+							zIndexLeader={zIndexLeader}
+							getNewZ={this.getNewZ}
+							windowCSS={windowCSS}
+							skipRestoreToggleDesktop={this.skipRestoreToggleDesktop}
+						>
+							<app.class />
+						</Window>
+					))}
+				</TransitionGroup>
 			</DisplayRoot>
 		)
 	}
