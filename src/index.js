@@ -30,14 +30,14 @@ const GlobalStyle = createGlobalStyle`
 const mountableApps = [Weather]
 
 function FakeOS() {
-	const isMobile = useMedia([`(min-width: ${sharedCSS.media.desktop}px)`], [false], true)
+  const isMobile = useMedia([`(min-width: ${sharedCSS.media.desktop}px)`], [false], true)
 
-	return (
-		<>
-			<GlobalStyle />
-			<Display isMobile={isMobile} mountableApps={mountableApps} />
-		</>
-	)
+  return (
+    <>
+      <GlobalStyle />
+      <Display isMobile={isMobile} mountableApps={mountableApps} />
+    </>
+  )
 }
 
 ReactDOM.render(<FakeOS />, document.getElementById('root'))

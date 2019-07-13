@@ -1,12 +1,12 @@
 import React, { useState } from 'react'
 
 export default function Navigation({ openedApps, isMobile, toggleDesktop }) {
-	const [mobileNavOpened, setMobileNavOpened] = useState(false)
+  const [mobileNavOpened, setMobileNavOpened] = useState(false)
 
-	function handleClick(app) {
-		app.windowRef.current.toggleMinimize()
-		setMobileNavOpened(false)
-	}
+  function handleClick(app) {
+    app.windowRef.current.toggleMinimize()
+    setMobileNavOpened(false)
+  }
 
-	return <></>
+  return <></>
 }
