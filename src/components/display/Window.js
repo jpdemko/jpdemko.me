@@ -337,11 +337,10 @@ export default class Window extends React.Component {
 						</div>
 						<div style={{ display: 'flex', marginLeft: 'auto' }}>
 							<Button onClick={() => this.minimize()} SVG={MinimizeSVG} />
-							{isMaximized ? (
-								<Button onClick={() => this.restore()} SVG={FullscreenExitSVG} />
-							) : (
-								<Button onClick={() => this.maximize()} SVG={FullscreenSVG} />
-							)}
+							<Button
+								onClick={this.toggleMaximize}
+								SVG={isMaximized ? FullscreenExitSVG : FullscreenSVG}
+							/>
 							<Button onClick={() => closeApp(id)} SVG={CloseSVG} />
 						</div>
 					</TitleBar>
