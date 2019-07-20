@@ -20,7 +20,8 @@
 		"styled-components": "^4.3.2"
 	},
 	"devDependencies": {
-		"lodash": "^4.17.14",
+		"lodash": "^4.17.15",
+		"lodash.template": "^4.5.0",
 		"typescript": "^3.5.3"
 	},
 	"browserslist": [
