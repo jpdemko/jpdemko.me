@@ -4,17 +4,23 @@ import React from 'react'
 import { TweenMax, Draggable } from 'gsap/all'
 import styled, { css } from 'styled-components/macro'
 import { Transition } from 'react-transition-group'
+import { transparentize } from 'polished'
 
-import { ReactComponent as CloseSVG } from '../../shared/icons/material-icons/close.svg'
-import { ReactComponent as MinimizeSVG } from '../../shared/icons/material-icons/minimize.svg'
-import { ReactComponent as FullscreenSVG } from '../../shared/icons/material-icons/fullscreen.svg'
-import { ReactComponent as FullscreenExitSVG } from '../../shared/icons/material-icons/fullscreen-exit.svg'
+import { ReactComponent as CloseSVG } from '../../shared/assets/material-icons/close.svg'
+import { ReactComponent as MinimizeSVG } from '../../shared/assets/material-icons/minimize.svg'
+import { ReactComponent as FullscreenSVG } from '../../shared/assets/material-icons/fullscreen.svg'
+import { ReactComponent as FullscreenExitSVG } from '../../shared/assets/material-icons/fullscreen-exit.svg'
 import Button from '../ui/Button'
 import { getStyleProperty, getRect } from '../../shared/helpers'
 import { sharedCSS, sharedFlags } from '../../shared/variables'
 
 // Time in seconds for all GSAP Window Tweens.
 const windowAnimDuration = 0.4
+
+// Destructuring different color themes since they're used so much.
+const {
+	themes: { dark, light, blue },
+} = sharedCSS
 
 const WindowRoot = styled.div`
 	position: absolute;
@@ -23,17 +29,14 @@ const WindowRoot = styled.div`
 	max-width: 100vw;
 	max-height: 100vh;
 	${({ windowCSS, zIndex, isFocused, isMobile, isMaximized }) => css`
+		z-index: ${zIndex};
 		${!isMobile &&
 			css`
 				min-height: ${windowCSS.minHeight}px;
 				min-width: ${windowCSS.minWidth}px;
 			`}
-		z-index: ${zIndex};
-		border: ${
-			isMaximized
-				? 'none'
-				: `1px solid ${isFocused ? sharedCSS.themes.blue.mainColor : sharedCSS.themes.mono.mainColor}`
-		};
+		border: ${isMaximized ? 'none' : `1px solid ${isFocused ? blue.mainColor : dark.mainColor}`};
+		filter: ${isFocused ? `drop-shadow(0 1px 12px ${transparentize(0.7, blue.mainColor)})` : 'none'};
 	`}
 `
 
@@ -44,17 +47,13 @@ const TitleBar = styled.div`
 	align-items: center;
 	${({ isMobile, isFocused }) => css`
 		display: ${isMobile ? 'none' : 'flex'};
-		background-color: ${isFocused ? sharedCSS.themes.blue.altColor : sharedCSS.themes.mono.altColor};
-		${isFocused && sharedCSS.themes.blue.gradient}
-		div, button {
-			color: ${isFocused ? 'white' : sharedCSS.themes.mono.mainColor};
-		}
+		${isFocused ? blue.gradient : dark.gradient}
 	`}
 `
 
 const Content = styled.div`
 	height: 100%;
-	background: white;
+	background: ${light.mainColor};
 `
 
 // Change this to control proportions of offset and the Corner styled-component!
@@ -139,6 +138,8 @@ export default class Window extends React.Component {
 				left: wireframe.left,
 				width: wireframe.width,
 				height: wireframe.height,
+				x: 0,
+				y: 0,
 			},
 			maximized: {
 				top: 0,
@@ -185,9 +186,8 @@ export default class Window extends React.Component {
 				allowContextMenu: true,
 			})
 
-		// Get starting snapshot of the bounds from #window-wireframe.
-		// Interactable pieces of the Window use these to prevent resizing <= min CSS values.
-		// These may also be used for the end of the opening animation (bottom of cDM()).
+		// Grab rect of #window-wireframe which is used as opening location.
+		// Interactable pieces of the Window (sides/corners) use these to prevent resizing <= min CSS values.
 		let { width, height } = getRect('window-wireframe')
 
 		this.dragInstances = [
@@ -251,8 +251,10 @@ export default class Window extends React.Component {
 	}
 
 	toggleMinimize = () => {
-		if (this.state.isMinimized) this.restore()
-		else if (!this.props.focusApp(this.props.id)) this.minimize()
+		if (this.state.isMinimized) {
+			if (this.props.isMobile) this.maximize()
+			else this.restore()
+		} else if (!this.props.focusApp(this.props.id)) this.minimize()
 	}
 
 	restore = (options) => {
@@ -307,14 +309,15 @@ export default class Window extends React.Component {
 		const { isMaximized } = this.state
 		return (
 			<Transition
-				unmountOnExit={true}
+				unmountOnExit
 				timeout={windowAnimDuration * 1000}
 				in={show}
 				onEnter={(node) => {
 					const { minimized, windowed, maximized } = this.difStatesCSS
-					if (isMobile) TweenMax.fromTo(node, windowAnimDuration, minimized, maximized)
-					else TweenMax.fromTo(node, windowAnimDuration, minimized, windowed)
+					if (isMobile) TweenMax.fromTo(node, windowAnimDuration, { ...minimized }, { ...maximized })
+					else TweenMax.fromTo(node, windowAnimDuration, { ...minimized }, { ...windowed })
 				}}
+				onEntered={this.enableDrag}
 				onExit={() => this.minimize()}
 			>
 				<WindowRoot
@@ -329,19 +332,20 @@ export default class Window extends React.Component {
 					<TitleBar
 						id={`title-bar-${id}`}
 						isFocused={isFocused}
-						isMobile={false}
+						isMobile={isMobile}
 						onDoubleClick={this.toggleMaximize}
 					>
-						<div>
+						<div style={{ color: `${light.mainColor}` }}>
 							{title}#{id}
 						</div>
 						<div style={{ display: 'flex', marginLeft: 'auto' }}>
-							<Button onClick={() => this.minimize()} SVG={MinimizeSVG} />
+							<Button theme='light' onClick={() => this.minimize()} SVG={MinimizeSVG} />
 							<Button
+								theme='light'
 								onClick={this.toggleMaximize}
 								SVG={isMaximized ? FullscreenExitSVG : FullscreenSVG}
 							/>
-							<Button onClick={() => closeApp(id)} SVG={CloseSVG} />
+							<Button theme='light' onClick={() => closeApp(id)} SVG={CloseSVG} />
 						</div>
 					</TitleBar>
 					<div id='content-overflow-fix' style={{ overflowY: 'auto', flex: 1 }}>

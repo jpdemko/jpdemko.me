@@ -2,6 +2,8 @@ import React from 'react'
 import styled from 'styled-components/macro'
 import { TransitionGroup } from 'react-transition-group'
 
+import { sharedCSS } from '../../shared/variables'
+import TopographySVG from '../../shared/assets/backgrounds/topography.svg'
 import Button from '../ui/Button'
 import Window from './Window'
 import Navigation from './Navigation'
@@ -11,10 +13,17 @@ const DisplayRoot = styled.div`
 	position: relative;
 	overflow: hidden;
 	padding: 1em;
-	/* background-image: url('https://w.wallhaven.cc/full/r2/wallhaven-r27qy1.jpg');
-	background-size: cover;
-	background-repeat: no-repeat;
-	background-position: center center; */
+	background: ${sharedCSS.themes.light.mainColor};
+`
+
+const Background = styled.div`
+	position: absolute;
+	top: 0;
+	left: 0;
+	height: 100vh;
+	width: 100vw;
+	opacity: 0.8;
+	background-image: url(${TopographySVG});
 `
 
 // Only shared between Display/Window, doesn't really belong in 'variables.js' file, which is used everywhere.
@@ -39,6 +48,8 @@ const WindowWireframe = styled.div`
 `
 
 const Shortcuts = styled.div`
+	position: relative;
+	z-index: 10; /* Need this because of absolute positioned Background div */
 	display: flex;
 	flex-direction: column;
 	align-items: flex-start;
@@ -70,7 +81,7 @@ export default class Display extends React.Component {
 				const wdow = app.windowRef.current
 				if (!app.stateBeforeLayoutChange) app.stateBeforeLayoutChange = wdow.state
 				if (this.props.isMobile) {
-					if (wdow.isOnTop() && !wdow.state.isMinimized) wdow.maximize()
+					if (app.isFocused) wdow.maximize()
 					else wdow.minimize(['skipFocusBelowApp', 'skipFocusApp'])
 				} else {
 					const { isMaximized: wasMax, isWindowed: wasWindow } = app.stateBeforeLayoutChange
@@ -158,6 +169,7 @@ export default class Display extends React.Component {
 		const { openedApps } = this.state
 		return (
 			<DisplayRoot id='display'>
+				<Background />
 				<Shortcuts>
 					{mountableApps.map((mountableApp) => (
 						<ShortcutButton
