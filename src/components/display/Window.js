@@ -11,7 +11,7 @@ import { ReactComponent as MinimizeSVG } from '../../shared/assets/material-icon
 import { ReactComponent as FullscreenSVG } from '../../shared/assets/material-icons/fullscreen.svg'
 import { ReactComponent as FullscreenExitSVG } from '../../shared/assets/material-icons/fullscreen-exit.svg'
 import Button from '../ui/Button'
-import { getStyleProperty, getRect } from '../../shared/helpers'
+import { getStyleProperty, getRect, isDoubleTouch } from '../../shared/helpers'
 import { sharedCSS, sharedFlags } from '../../shared/variables'
 
 // Time in seconds for all GSAP Window Tweens.
@@ -162,10 +162,12 @@ export default class Window extends React.Component {
 	}
 
 	componentDidMount() {
-		const { id, focusApp, windowCSS } = this.props
+		const { id, focusApp, windowCSS, isMobile } = this.props
 		const windowElement = this.rootRef.current
 
 		this.windowDraggable = new Draggable(windowElement, {
+			activeCursor: 'grabbing',
+			cursor: 'grab',
 			force3D: !sharedFlags.isChrome,
 			bounds: '#display',
 			edgeResistance: 0.5,
@@ -236,17 +238,25 @@ export default class Window extends React.Component {
 				},
 			}),
 		]
+		if (isMobile) this.dragInstances.forEach((i) => i.disable())
 	}
 
 	componentWillUnmount() {
 		this.dragInstances.forEach((i) => i.kill())
 	}
 
+	componentDidUpdate(prevProps, prevState) {
+		if (prevProps.isMobile !== this.props.isMobile) {
+			this.dragInstances.forEach((i) => i.enabled(!this.props.isMobile))
+		}
+	}
+
 	minimize = (options = []) => {
 		if (this.state.isMinimized) return
 
-		this.animate(this.difStatesCSS.minimized, options)
-		if (!options.includes('skipFocusBelowApp')) this.props.focusBelowApp(this.props.id)
+		const { isFocused, focusBelowApp, zIndex } = this.props
+		this.animate(this.difStatesCSS.minimized, [...options, 'skipFocusApp'])
+		if (!options.includes('skipFocusBelowApp') && isFocused) focusBelowApp(zIndex)
 		this.setState({ isMinimized: true })
 	}
 
@@ -259,7 +269,7 @@ export default class Window extends React.Component {
 
 	restore = (options) => {
 		if (this.state.isMinimized && this.state.isMaximized) {
-			this.maximize()
+			this.maximize(options)
 			return
 		}
 
@@ -282,12 +292,15 @@ export default class Window extends React.Component {
 		if (!options.includes('skipFocusApp')) this.props.focusApp(this.props.id)
 		this.props.skipRestoreToggleDesktop()
 		// Clone non-const vars so GSAP doesn't alter them...
-		TweenMax.to(this.rootRef.current, windowAnimDuration, { ...tweenVars })
+		TweenMax.to(this.rootRef.current, windowAnimDuration, {
+			...tweenVars,
+			onComplete: () => this.windowDraggable.update(true),
+		})
 	}
 
 	setLastWindowedCSS = () => {
 		if (!this.state.isWindowed || TweenMax.isTweening(this.rootRef.current)) return
-		this.windowDraggable.update()
+		this.windowDraggable.update(true)
 
 		const { width, height } = this.rootRef.current.getBoundingClientRect()
 		this.difStatesCSS.windowed = {
@@ -334,12 +347,16 @@ export default class Window extends React.Component {
 						isFocused={isFocused}
 						isMobile={isMobile}
 						onDoubleClick={this.toggleMaximize}
+						onTouchEnd={(e) => {
+							// 'onDoubleClick' doesn't work w/ touch events even though the normal 'onClick' does?
+							if (isDoubleTouch(e)) this.toggleMaximize()
+						}}
 					>
 						<div style={{ color: `${light.mainColor}` }}>
-							{title}#{id}
+							{title}#{id} -- zIndex: ${zIndex}
 						</div>
 						<div style={{ display: 'flex', marginLeft: 'auto' }}>
-							<Button theme='light' onClick={() => this.minimize()} SVG={MinimizeSVG} />
+							<Button theme='light' onClick={() => this.minimize()} SVG={MinimizeSVG} adjustSVG='0, -10%' />
 							<Button
 								theme='light'
 								onClick={this.toggleMaximize}

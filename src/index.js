@@ -21,9 +21,10 @@ const GlobalStyle = createGlobalStyle`
 		color: #333;
 	}
 
-	svg {
-		width: 1.5em;
+  /* For some reason GSAP Draggable doesn't work in Firefox if base 'svg' properties are set... */
+	div svg {
 		height: 1.5em;
+		width: 1.5em;
 	}
 `
 

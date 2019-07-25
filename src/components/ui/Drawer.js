@@ -16,9 +16,7 @@ const DrawerRoot = styled.div`
 	${({ isShown, animDuration, side }) => css`
 		${side}: 0;
 		transition: ${animDuration}s;
-		transform: ${isShown
-			? safeTranslate('0, 0')
-			: safeTranslate(`${side === 'left' ? '-' : ''}100%, 0`)};
+		transform: ${isShown ? safeTranslate('0, 0') : safeTranslate(`${side === 'left' ? '-' : ''}100%, 0`)};
 		opacity: ${isShown ? 1 : 0};
 	`}
 `
@@ -32,10 +30,10 @@ function Drawer({ isShown = false, onClose, animDuration = 0.5, side = 'left', c
 
 	return (
 		<>
+			<Backdrop isShown={isShown} animDuration={animDuration} />
 			<DrawerRoot ref={drawerRef} isShown={isShown} animDuration={animDuration} side={side} {...props}>
 				{children}
 			</DrawerRoot>
-			<Backdrop isShown={isShown} animDuration={animDuration} />
 		</>
 	)
 }

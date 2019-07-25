@@ -20,10 +20,9 @@ function Weather() {
 	function fetchLocation(latLong) {
 		let gAPI = 'https://maps.googleapis.com/maps/api/geocode/json?latlng='
 
-		return simplerFetch(
-			`${gAPI}${latLong}&key=${process.env.REACT_APP_GOOGLE_API_KEY}`,
-			'reverse geocode',
-		).then((geo) => geo.plus_code.compound_code.replace(/\S+\s/, ''))
+		return simplerFetch(`${gAPI}${latLong}&key=${process.env.REACT_APP_GOOGLE_API_KEY}`).then((geo) =>
+			geo.plus_code.compound_code.replace(/\S+\s/, ''),
+		)
 	}
 
 	function fetchForecast(latLong) {
@@ -32,7 +31,7 @@ function Weather() {
 		let params = 'exclude=minutely,flags'
 		let skyKey = process.env.REACT_APP_DARKSKY_API_KEY
 
-		return simplerFetch(`${corsProxy}/${skyAPI}/${skyKey}/${latLong}?${params}`, 'forecast retrieval')
+		return simplerFetch(`${corsProxy}/${skyAPI}/${skyKey}/${latLong}?${params}`)
 	}
 
 	function getData() {

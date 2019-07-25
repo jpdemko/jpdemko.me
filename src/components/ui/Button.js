@@ -5,7 +5,7 @@ import { transparentize, mix } from 'polished'
 import { safeTranslate } from '../../shared/helpers'
 import { sharedCSS } from '../../shared/variables'
 
-const ButtonBase = styled.button.attrs(({ size = 1, variant, theme, SVG, themeOverride }) => {
+const ButtonBase = styled.button.attrs(({ size = 1, variant, theme, SVG, themeOverride, adjustSVG }) => {
 	let sizeModifier = 1
 	if (size) {
 		if (size === 'small') sizeModifier = 0.75

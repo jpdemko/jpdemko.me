@@ -18,8 +18,8 @@ const BottomNav = styled.div`
 	left: 0;
 	bottom: 0;
 	width: 100vw;
+	background: rgba(0, 0, 0, 0.8);
 	${({ isMobile }) => css`
-		background: rgba(0, 0, 0, ${isMobile ? 0 : 0.8});
 		flex-direction: ${isMobile ? 'row-reverse' : 'row'};
 	`}
 `
@@ -43,12 +43,12 @@ function Navigation({ openedApps, isMobile, toggleDesktop }) {
 	return (
 		<>
 			<BottomNav isMobile={isMobile}>
-				<NavButton SVG={HomeSVG} onClick={toggleDesktop} theme={isMobile ? 'dark' : 'light'} />
+				<NavButton SVG={HomeSVG} onClick={toggleDesktop} theme='light' />
 				{isMobile ? (
 					<NavButton
 						SVG={AppsSVG}
 						onClick={() => openedApps.length > 0 && setMobileDrawerOpened(true)}
-						theme={isMobile ? 'dark' : 'light'}
+						theme='light'
 					/>
 				) : (
 					openedApps.map((app) => (
@@ -65,7 +65,12 @@ function Navigation({ openedApps, isMobile, toggleDesktop }) {
 				)}
 			</BottomNav>
 			{isMobile && (
-				<Drawer isShown={mobileDrawerOpened} side='right' onClose={() => setMobileDrawerOpened(false)}>
+				<Drawer
+					animDuraton={0.25}
+					isShown={mobileDrawerOpened}
+					side='right'
+					onClose={() => setMobileDrawerOpened(false)}
+				>
 					<DrawerButtonsContainer isMobile={isMobile}>
 						{openedApps.map((app) => (
 							<NavButton
