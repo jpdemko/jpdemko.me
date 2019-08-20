@@ -1,10 +1,13 @@
 import React, { useState, useCallback } from 'react'
-import styled, { css } from 'styled-components/macro'
+import styled, { css, ThemeProvider } from 'styled-components/macro'
 
-import { ReactComponent as HomeSVG } from '../../shared/assets/material-icons/home.svg'
-import { ReactComponent as AppsSVG } from '../../shared/assets/material-icons/apps.svg'
+import { ReactComponent as svgApps } from '../../shared/assets/material-icons/apps.svg'
+import { ReactComponent as svgHome } from '../../shared/assets/material-icons/home.svg'
 import Button from '../ui/Button'
 import Drawer from '../ui/Drawer'
+import { themes } from '../../shared/variables'
+
+/* ---------------------------- STYLED-COMPONENTS --------------------------- */
 
 const NavButton = styled(Button)`
 	flex: 0 0 auto;
@@ -32,7 +35,9 @@ const DrawerButtonsContainer = styled.div`
 	`}
 `
 
-function Navigation({ openedApps, isMobile, toggleDesktop }) {
+/* -------------------------- NAVIGATION COMPONENT -------------------------- */
+
+const Navigation = ({ openedApps, isMobile, toggleDesktop }) => {
 	const [mobileDrawerOpened, setMobileDrawerOpened] = useState(false)
 
 	const appShortcutClicked = useCallback((app) => {
@@ -42,43 +47,36 @@ function Navigation({ openedApps, isMobile, toggleDesktop }) {
 
 	return (
 		<>
-			<BottomNav isMobile={isMobile}>
-				<NavButton SVG={HomeSVG} onClick={toggleDesktop} theme='light' />
-				{isMobile ? (
-					<NavButton
-						SVG={AppsSVG}
-						onClick={() => openedApps.length > 0 && setMobileDrawerOpened(true)}
-						theme='light'
-					/>
-				) : (
-					openedApps.map((app) => (
-						<NavButton
-							key={app.id}
-							onClick={() => appShortcutClicked(app)}
-							SVG={app.class.shared.logo}
-							isFocused={app.isFocused}
-							theme={app.isFocused ? 'blue' : 'light'}
-						>
-							{app.class.shared.title}#{app.id}
-						</NavButton>
-					))
-				)}
-			</BottomNav>
+			<ThemeProvider theme={themes.light}>
+				<BottomNav isMobile={isMobile}>
+					<NavButton svg={svgHome} onClick={toggleDesktop} />
+					{isMobile ? (
+						<NavButton svg={svgApps} onClick={() => openedApps.length > 0 && setMobileDrawerOpened(true)} />
+					) : (
+						openedApps.map((app) => (
+							<NavButton
+								key={app.id}
+								onClick={() => appShortcutClicked(app)}
+								svg={app.class.shared.logo}
+								isFocused={app.isFocused}
+								{...app.isFocused && { theme: themes.blue }}
+							>
+								{app.class.shared.title}#{app.id}
+							</NavButton>
+						))
+					)}
+				</BottomNav>
+			</ThemeProvider>
 			{isMobile && (
-				<Drawer
-					animDuraton={0.25}
-					isShown={mobileDrawerOpened}
-					side='right'
-					onClose={() => setMobileDrawerOpened(false)}
-				>
+				<Drawer animDuraton={0.25} isShown={mobileDrawerOpened} onClose={() => setMobileDrawerOpened(false)}>
 					<DrawerButtonsContainer isMobile={isMobile}>
 						{openedApps.map((app) => (
 							<NavButton
 								key={app.id}
 								onClick={() => appShortcutClicked(app)}
-								SVG={app.class.shared.logo}
+								svg={app.class.shared.logo}
 								isFocused={app.isFocused}
-								theme={app.isFocused ? 'blue' : 'dark'}
+								theme={app.isFocused ? themes.blue : themes.dark}
 							>
 								{app.class.shared.title}#{app.id}
 							</NavButton>

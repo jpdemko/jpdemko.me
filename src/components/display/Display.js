@@ -1,29 +1,33 @@
 import React from 'react'
-import styled from 'styled-components/macro'
+import styled, { css } from 'styled-components/macro'
 import { TransitionGroup } from 'react-transition-group'
 
-import TopographySVG from '../../shared/assets/backgrounds/topography.svg'
-import { sharedCSS } from '../../shared/variables'
+import svgTopography from '../../shared/assets/backgrounds/topography.svg'
 import Button from '../ui/Button'
 import Window from './Window'
 import Navigation from './Navigation'
+import { themes } from '../../shared/variables'
+
+/* ---------------------------- STYLED-COMPONENTS --------------------------- */
 
 const DisplayRoot = styled.div`
 	height: 100vh;
 	position: relative;
 	overflow: hidden;
 	padding: 1em;
-	background: ${sharedCSS.themes.light.mainColor};
 `
 
 const Background = styled.div`
 	position: absolute;
-	z-index: 5;
+	z-index: -1;
 	top: 0;
 	left: 0;
 	height: 100vh;
 	width: 100vw;
 	opacity: 0.8;
+	${({ theme }) => css`
+		background-color: ${theme.mainColor};
+	`}
 `
 
 // Only shared between Display/Window, doesn't really belong in 'variables.js' file, which is used everywhere.
@@ -59,6 +63,8 @@ const ShortcutButton = styled(Button)`
 	font-size: 2em;
 	margin: 0.5em;
 `
+
+/* ---------------------------- DISPLAY COMPONENT --------------------------- */
 
 // GSAP's Draggable has a shared z-index updater across all instances, however it doesn't update
 // in every circumstance we need it to.
@@ -166,24 +172,25 @@ export default class Display extends React.Component {
 	}
 
 	render() {
-		const { mountableApps, isMobile } = this.props
+		const { mountableApps, isMobile, children } = this.props
 		const { openedApps } = this.state
 		return (
 			<DisplayRoot id='display'>
-				{/* Image loaded inline because of styled-components Firefox bug which causes flickering... */}
-				<Background style={{ backgroundImage: `url(${TopographySVG})` }} />
+				{/* SVG pattern loaded inline because of styled-components Firefox bug which causes flickering? */}
+				<Background style={{ backgroundImage: `url(${svgTopography})` }} theme={themes.light} />
 				<Shortcuts>
 					{mountableApps.map((mountableApp) => (
 						<ShortcutButton
 							key={mountableApp.shared.title}
 							id={`sc-${mountableApp.shared.title}`}
 							onClick={() => this.openApp(mountableApp)}
-							SVG={mountableApp.shared.logo}
+							svg={mountableApp.shared.logo}
 							variant='fancy'
 							size='large'
 						/>
 					))}
 				</Shortcuts>
+				{children}
 				<Navigation openedApps={openedApps} isMobile={isMobile} toggleDesktop={this.toggleDesktop} />
 				<WindowWireframe id='window-wireframe' />
 				<TransitionGroup>

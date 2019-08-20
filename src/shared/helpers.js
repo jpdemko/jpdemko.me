@@ -1,4 +1,5 @@
 import { sharedFlags } from './variables'
+import { transparentize } from 'polished'
 
 /**
  * Shorter/cleaner way to get the computed style values of an element.
@@ -23,11 +24,7 @@ export function simplerFetch(url) {
 			if (!res.ok) throw Error(`bad response --> code ${res.status}`)
 			return res.json()
 		})
-		.catch((err) => {
-			const output = `${url}\nERROR: ${err.message}`
-			console.log(output)
-			Promise.reject(output)
-		})
+		.catch((err) => Promise.reject(err.message))
 }
 
 /**
@@ -66,6 +63,17 @@ export function isDoubleTouch(e) {
 	}
 	const isDoubleTouch =
 		lastTouch.target === curTouch.target && curTouch.time - lastTouch.time <= maxDoubleClickTime
+
 	lastTouch = curTouch
 	return isDoubleTouch
+}
+
+/**
+ * I keep using polished.js 'transparentize()' wrong thinking I'm setting the opacity rather than it actually
+ * subtracting the amount from the color. Just quicker to reason about when it works like normal CSS opacity.
+ * @param {string|number} opacityAmount
+ * @param {string} color
+ */
+export function opac(opacityAmount, color) {
+	return transparentize(1 - opacityAmount, color)
 }

@@ -4,23 +4,19 @@ import React from 'react'
 import { TweenMax, Draggable } from 'gsap/all'
 import styled, { css } from 'styled-components/macro'
 import { Transition } from 'react-transition-group'
-import { transparentize } from 'polished'
 
-import { ReactComponent as CloseSVG } from '../../shared/assets/material-icons/close.svg'
-import { ReactComponent as MinimizeSVG } from '../../shared/assets/material-icons/minimize.svg'
-import { ReactComponent as FullscreenSVG } from '../../shared/assets/material-icons/fullscreen.svg'
-import { ReactComponent as FullscreenExitSVG } from '../../shared/assets/material-icons/fullscreen-exit.svg'
+import { ReactComponent as svgClose } from '../../shared/assets/material-icons/close.svg'
+import { ReactComponent as svgMinimize } from '../../shared/assets/material-icons/minimize.svg'
+import { ReactComponent as svgFullscreenExit } from '../../shared/assets/material-icons/fullscreen-exit.svg'
+import { ReactComponent as svgFullscreen } from '../../shared/assets/material-icons/fullscreen.svg'
+import { getStyleProperty, getRect, isDoubleTouch, opac } from '../../shared/helpers'
+import { sharedFlags, themes, mediaBreakpoints } from '../../shared/variables'
 import Button from '../ui/Button'
-import { getStyleProperty, getRect, isDoubleTouch } from '../../shared/helpers'
-import { sharedCSS, sharedFlags } from '../../shared/variables'
+
+/* ---------------------------- STYLED-COMPONENTS --------------------------- */
 
 // Time in seconds for all GSAP Window Tweens.
 const windowAnimDuration = 0.4
-
-// Destructuring different color themes since they're used so much.
-const {
-	themes: { dark, light, blue },
-} = sharedCSS
 
 const WindowRoot = styled.div`
 	position: absolute;
@@ -28,15 +24,16 @@ const WindowRoot = styled.div`
 	flex-direction: column;
 	max-width: 100vw;
 	max-height: 100vh;
-	${({ windowCSS, zIndex, isFocused, isMobile, isMaximized }) => css`
+	${({ windowCSS, zIndex, isFocused, isMobile, isMaximized, theme }) => css`
 		z-index: ${zIndex};
 		${!isMobile &&
 			css`
 				min-height: ${windowCSS.minHeight}px;
 				min-width: ${windowCSS.minWidth}px;
 			`}
-		border: ${isMaximized ? 'none' : `1px solid ${isFocused ? blue.mainColor : dark.mainColor}`};
-		filter: ${isFocused ? `drop-shadow(0 1px 12px ${transparentize(0.7, blue.mainColor)})` : 'none'};
+		border: ${isMaximized ? 'none' : `1px solid ${theme.mixedColor}`};
+		/* Might have to take the shadow out because performance isn't that great w/ it... */
+		filter: ${isFocused ? `drop-shadow(0 1px 12px ${opac(0.3, theme.mixedColor)})` : 'none'};
 	`}
 `
 
@@ -45,15 +42,20 @@ const TitleBar = styled.div`
 	font-weight: 500;
 	opacity: 0.9;
 	align-items: center;
-	${({ isMobile, isFocused }) => css`
+	${({ isMobile, isFocused, theme }) => css`
+		color: ${theme.bgContrastColor};
 		display: ${isMobile ? 'none' : 'flex'};
-		${isFocused ? blue.gradient : dark.gradient}
+		${isFocused ? theme.gradient : theme.gradient}
 	`}
 `
 
 const Content = styled.div`
-	height: 100%;
-	background: ${light.mainColor};
+	flex: 1;
+	position: relative;
+	> div {
+		overflow-y: auto;
+		height: 100%;
+	}
 `
 
 // Change this to control proportions of offset and the Corner styled-component!
@@ -66,7 +68,7 @@ const Side = styled.div.attrs(({ position }) => ({
 }))`
 	position: absolute;
 	${({ position }) =>
-		['top', 'bottom'].indexOf(position) > -1
+		['top', 'bottom'].includes(position)
 			? css`
 					height: ${sideSize};
 					width: 100%;
@@ -108,12 +110,17 @@ const CornerSW = styled(Corner)`
 	cursor: sw-resize !important;
 `
 
+/* ---------------------------- WINDOW COMPONENT ---------------------------- */
+
+export const WindowSizeContext = React.createContext()
+
 export default class Window extends React.Component {
 	constructor(props) {
 		super(props)
 		this.state = {
 			isMinimized: false,
-			isMaximized: props.isMobile ? true : false,
+			isMaximized: props.isMobile,
+			isMobileSizedWindow: props.isMobile,
 		}
 
 		this.rootRef = React.createRef()
@@ -156,9 +163,8 @@ export default class Window extends React.Component {
 	}
 
 	static getDerivedStateFromProps(props, state) {
-		return {
-			isWindowed: !state.isMaximized && !state.isMinimized,
-		}
+		if (props.isMobile && !state.isMobileSizedWindow) return { isMobileSizedWindow: true }
+		return null
 	}
 
 	componentDidMount() {
@@ -189,8 +195,13 @@ export default class Window extends React.Component {
 			})
 
 		// Grab rect of #window-wireframe which is used as opening location.
-		// Interactable pieces of the Window (sides/corners) use these to prevent resizing <= min CSS values.
 		let { width, height } = getRect('window-wireframe')
+		// Interactable sides/corners use these values to prevent resizing <= min CSS values.
+		this.windowRect = { width, height }
+		this.checkMediaSize()
+		// Creating local references to prevent 'this' conflicts.
+		let windowRect = this.windowRect
+		const checkMediaSize = this.checkMediaSize
 
 		this.dragInstances = [
 			this.windowDraggable,
@@ -198,11 +209,11 @@ export default class Window extends React.Component {
 				trigger: `#side-top-${id}, #corner-nw-${id}, #corner-ne-${id}`,
 				cursor: 'n-resize',
 				onDrag: function() {
-					const preventLowering = height <= windowCSS.minHeight && this.deltaY > 0
+					const preventLowering = windowRect.height <= windowCSS.minHeight && this.deltaY > 0
 					const deltaY = preventLowering ? 0 : this.deltaY
-					height -= deltaY
+					windowRect.height -= deltaY
 					TweenMax.set(windowElement, {
-						height,
+						height: windowRect.height,
 						y: `+=${deltaY}`,
 					})
 				},
@@ -211,30 +222,32 @@ export default class Window extends React.Component {
 				trigger: `#side-right-${id}, #corner-ne-${id}, #corner-se-${id}`,
 				cursor: 'e-resize',
 				onDrag: function() {
-					const preventLowering = width <= windowCSS.minWidth && this.deltaX < 0
+					const preventLowering = windowRect.width <= windowCSS.minWidth && this.deltaX < 0
 					const deltaX = preventLowering ? 0 : this.deltaX
-					width += deltaX
-					TweenMax.set(windowElement, { width })
+					windowRect.width += deltaX
+					checkMediaSize()
+					TweenMax.set(windowElement, { width: windowRect.width })
 				},
 			}),
 			genResizeDraggable(document.createElement('div'), {
 				trigger: `#side-bottom-${id}, #corner-sw-${id}, #corner-se-${id}`,
 				cursor: 's-resize',
 				onDrag: function() {
-					const preventLowering = height <= windowCSS.minHeight && this.deltaY < 0
+					const preventLowering = windowRect.height <= windowCSS.minHeight && this.deltaY < 0
 					const deltaY = preventLowering ? 0 : this.deltaY
-					height += deltaY
-					TweenMax.set(windowElement, { height })
+					windowRect.height += deltaY
+					TweenMax.set(windowElement, { height: windowRect.height })
 				},
 			}),
 			genResizeDraggable(document.createElement('div'), {
 				trigger: `#side-left-${id}, #corner-nw-${id}, #corner-sw-${id}`,
 				cursor: 'w-resize',
 				onDrag: function() {
-					const preventLowering = width <= windowCSS.minWidth && this.deltaX > 0
+					const preventLowering = windowRect.width <= windowCSS.minWidth && this.deltaX > 0
 					const deltaX = preventLowering ? 0 : this.deltaX
-					width -= deltaX
-					TweenMax.set(windowElement, { width, x: `+=${deltaX}` })
+					windowRect.width -= deltaX
+					checkMediaSize()
+					TweenMax.set(windowElement, { width: windowRect.width, x: `+=${deltaX}` })
 				},
 			}),
 		]
@@ -249,6 +262,17 @@ export default class Window extends React.Component {
 		if (prevProps.isMobile !== this.props.isMobile) {
 			this.dragInstances.forEach((i) => i.enabled(!this.props.isMobile))
 		}
+		const { isMaximized, isMinimized, isWindowed } = this.state
+		if (isWindowed && (isMaximized || isMinimized)) this.setState({ isWindowed: false })
+		else if (!isWindowed && (!isMaximized && !isMinimized)) this.setState({ isWindowed: true })
+	}
+
+	checkMediaSize = () => {
+		const { isMobileSizedWindow } = this.state
+		if (!isMobileSizedWindow && this.windowRect.width < mediaBreakpoints.desktop)
+			this.setState({ isMobileSizedWindow: true })
+		else if (isMobileSizedWindow && this.windowRect.width >= mediaBreakpoints.desktop)
+			this.setState({ isMobileSizedWindow: false })
 	}
 
 	minimize = (options = []) => {
@@ -291,10 +315,18 @@ export default class Window extends React.Component {
 		if (!options.includes('skipSetLastWindowedCSS')) this.setLastWindowedCSS()
 		if (!options.includes('skipFocusApp')) this.props.focusApp(this.props.id)
 		this.props.skipRestoreToggleDesktop()
+		// Creating local references to prevent 'this' conflicts.
+		let windowRect = this.windowRect
+		const checkMediaSize = this.checkMediaSize
 		// Clone non-const vars so GSAP doesn't alter them...
 		TweenMax.to(this.rootRef.current, windowAnimDuration, {
 			...tweenVars,
 			onComplete: () => this.windowDraggable.update(true),
+			onUpdate: function() {
+				windowRect.width = this.target.offsetWidth
+				windowRect.height = this.target.offsetHeight
+				checkMediaSize()
+			},
 		})
 	}
 
@@ -341,6 +373,7 @@ export default class Window extends React.Component {
 					isMobile={isMobile}
 					windowCSS={windowCSS}
 					zIndex={zIndex}
+					theme={isFocused ? themes.blue : themes.dark}
 				>
 					<TitleBar
 						id={`title-bar-${id}`}
@@ -351,23 +384,26 @@ export default class Window extends React.Component {
 							// 'onDoubleClick' doesn't work w/ touch events even though the normal 'onClick' does?
 							if (isDoubleTouch(e)) this.toggleMaximize()
 						}}
+						theme={isFocused ? themes.blue : themes.dark}
 					>
-						<div style={{ color: `${light.mainColor}` }}>
-							{title}#{id} -- zIndex: ${zIndex}
+						<div>
+							{title}#{id} - zIndex: {zIndex}
 						</div>
 						<div style={{ display: 'flex', marginLeft: 'auto' }}>
-							<Button theme='light' onClick={() => this.minimize()} SVG={MinimizeSVG} adjustSVG='0, -10%' />
+							<Button theme={themes.light} onClick={() => this.minimize()} svg={svgMinimize} />
 							<Button
-								theme='light'
+								theme={themes.light}
 								onClick={this.toggleMaximize}
-								SVG={isMaximized ? FullscreenExitSVG : FullscreenSVG}
+								svg={isMaximized ? svgFullscreenExit : svgFullscreen}
 							/>
-							<Button theme='light' onClick={() => closeApp(id)} SVG={CloseSVG} />
+							<Button theme={themes.light} onClick={() => closeApp(id)} svg={svgClose} />
 						</div>
 					</TitleBar>
-					<div id='content-overflow-fix' style={{ overflowY: 'auto', flex: 1 }}>
-						<Content onClick={() => focusApp(id)}>{this.props.children}</Content>
-					</div>
+					<Content onClick={() => focusApp(id)}>
+						<WindowSizeContext.Provider value={this.state.isMobileSizedWindow}>
+							{this.props.children}
+						</WindowSizeContext.Provider>
+					</Content>
 					<Side position='top' id={`side-top-${id}`} />
 					<Side position='right' id={`side-right-${id}`} />
 					<Side position='bottom' id={`side-bottom-${id}`} />

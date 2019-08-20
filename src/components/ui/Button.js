@@ -1,11 +1,11 @@
 import React from 'react'
 import styled, { css } from 'styled-components/macro'
-import { transparentize, mix } from 'polished'
 
-import { safeTranslate } from '../../shared/helpers'
-import { sharedCSS } from '../../shared/variables'
+import { safeTranslate, opac } from '../../shared/helpers'
 
-const ButtonBase = styled.button.attrs(({ size = 1, variant, theme, SVG, themeOverride, adjustSVG }) => {
+/* ---------------------------- STYLED-COMPONENTS --------------------------- */
+
+export const ButtonBase = styled.button.attrs(({ size = 1, svg }) => {
 	let sizeModifier = 1
 	if (size) {
 		if (size === 'small') sizeModifier = 0.75
@@ -17,46 +17,14 @@ const ButtonBase = styled.button.attrs(({ size = 1, variant, theme, SVG, themeOv
 			fontSize: `calc(1em * ${sizeModifier})`,
 			sidePadding: `calc(0.6em * ${sizeModifier})`,
 			verticalPadding: `calc(0.25em * ${sizeModifier})`,
-			...sharedCSS.themes.dark,
 		},
 	}
 
-	if (themeOverride) {
+	if (svg) {
 		extraProps.buttonCSS = {
 			...extraProps.buttonCSS,
-			...(themeOverride[0] && { mainColor: themeOverride[0] }),
-			...(themeOverride[1] && { altColor: themeOverride[1] }),
-		}
-	}
-
-	if (variant === 'fancy') theme = 'blue'
-	if (theme === 'light') {
-		extraProps.buttonCSS = {
-			...extraProps.buttonCSS,
-			...sharedCSS.themes.light,
-		}
-	} else if (theme === 'blue') {
-		extraProps.buttonCSS = {
-			...extraProps.buttonCSS,
-			...sharedCSS.themes.blue,
-		}
-	} else if (theme === 'red') {
-		extraProps.buttonCSS = {
-			...extraProps.buttonCSS,
-			...sharedCSS.themes.red,
-		}
-	}
-
-	const {
-		buttonCSS: { mainColor, altColor, sidePadding, verticalPadding },
-	} = extraProps
-	extraProps.buttonCSS.mixedColor = mix(0.5, mainColor, altColor)
-
-	if (SVG) {
-		extraProps.buttonCSS = {
-			...extraProps.buttonCSS,
-			sidePadding: `calc(${sidePadding} / 2)`,
-			verticalPadding: `calc(${verticalPadding} / 2)`,
+			sidePadding: `calc(${extraProps.buttonCSS.sidePadding} / 2)`,
+			verticalPadding: `calc(${extraProps.buttonCSS.verticalPadding} / 2)`,
 		}
 	}
 
@@ -71,18 +39,21 @@ const ButtonBase = styled.button.attrs(({ size = 1, variant, theme, SVG, themeOv
 	transition: opacity 0.2s, background 0.15s, box-shadow 0.15s, outline 0.1s;
 	font-weight: 500;
 	outline: none;
-	${({ buttonCSS, disabled, adjustSVG }) => css`
-		box-shadow: 0 0 0 0px ${buttonCSS.mainColor};
+	${({ theme, buttonCSS, disabled, svgAdjust }) => css`
+		box-shadow: 0 0 0 0 ${theme.mainColor};
 		font-size: ${buttonCSS.fontSize};
 		padding: ${buttonCSS.verticalPadding} ${buttonCSS.sidePadding};
-		color: ${buttonCSS.mainColor};
+		color: ${theme.mainColor};
 		opacity: ${disabled ? 0.33 : 1};
 		cursor: ${disabled ? 'default' : 'pointer'};
 		&:active {
-			box-shadow: 0 0 0 3px ${buttonCSS.mainColor};
+			box-shadow: 0 0 0 3px ${theme.mainColor};
 		}
 		svg {
-			${adjustSVG && `transform: ${safeTranslate(adjustSVG)};`}
+			${svgAdjust &&
+				css`
+					transform: ${safeTranslate(svgAdjust)};
+				`}
 		}
 		svg + span {
 			margin: 0 ${buttonCSS.sidePadding};
@@ -91,64 +62,67 @@ const ButtonBase = styled.button.attrs(({ size = 1, variant, theme, SVG, themeOv
 `
 
 const BasicButton = styled(ButtonBase)`
-	${({ buttonCSS, isFocused }) => css`
-		background: ${isFocused ? transparentize(0.8, buttonCSS.mainColor) : 'none'};
+	${({ theme, isFocused }) => css`
+		background: ${isFocused ? opac(0.2, theme.mainColor) : 'none'};
 		&:focus {
-			background: ${transparentize(0.9, buttonCSS.mainColor)};
+			background: ${opac(0.1, theme.mainColor)};
 		}
 		&:hover {
-			background: ${transparentize(0.7, buttonCSS.mainColor)};
+			background: ${opac(0.3, theme.mainColor)};
 		}
 		&:active {
-			background: ${transparentize(0.6, buttonCSS.mainColor)};
+			background: ${opac(0.4, theme.mainColor)};
 		}
 	`}
 `
 
 const OutlinedButton = styled(BasicButton)`
 	margin: 1px;
-	${({ buttonCSS }) => css`
-		box-shadow: 0 0 0 1px ${buttonCSS.mainColor};
+	${({ theme }) => css`
+		box-shadow: 0 0 0 1px ${theme.mainColor};
 	`}
 `
 
 const FancyButton = styled(ButtonBase)`
 	margin: 1px;
 	color: white;
-	${({ buttonCSS, isFocused }) => css`
-		${buttonCSS.gradient}
-		box-shadow: 0 1px 13px 1px ${transparentize(0.6, buttonCSS.mixedColor)};
+	${({ theme, isFocused }) => css`
+		${theme.gradient}
+		box-shadow: 0 1px 13px 1px ${opac(0.4, theme.mixedColor)};
 		opacity: ${isFocused ? 0.85 : 1};
 		&:focus {
 			opacity: .85;
 		}
 		&:hover {
 			box-shadow:
-				0 1px 16px 2px ${transparentize(0.7, buttonCSS.mixedColor)},
-				0 0 0 1px ${buttonCSS.mixedColor};
+				0 1px 16px 2px ${opac(0.3, theme.mixedColor)},
+				0 0 0 1px ${theme.mixedColor};
 			opacity: .70;
 		}
 		&:active {
 			box-shadow:
-				0 1px 20px 2px ${transparentize(0.8, buttonCSS.mixedColor)},
-				0 0 0 3px ${buttonCSS.mixedColor};
+				0 1px 20px 2px ${opac(0.2, theme.mixedColor)},
+				0 0 0 3px ${theme.mixedColor};
 			opacity: 1;
 		}
 	`}
 `
 
-function Button(props) {
+/* ---------------------------- BUTTON COMPONENT ---------------------------- */
+
+const Button = ({ variant, children, ...props }) => {
 	let ButtonVariant = BasicButton
-	if (props.variant) {
-		if (props.variant.indexOf('outline') > -1) ButtonVariant = OutlinedButton
-		else if (props.variant === 'fancy') ButtonVariant = FancyButton
+	if (variant) {
+		if (variant.includes('outline')) ButtonVariant = OutlinedButton
+		else if (variant === 'fancy') ButtonVariant = FancyButton
 	}
 
 	return (
 		<ButtonVariant {...props}>
-			{props.SVG && <props.SVG />}
-			{props.children && <span>{props.children}</span>}
+			{props.svg && <props.svg />}
+			{children && <span>{children}</span>}
 		</ButtonVariant>
 	)
 }
+
 export default Button

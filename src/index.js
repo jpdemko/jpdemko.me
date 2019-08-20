@@ -4,11 +4,11 @@ import 'sanitize.css/forms.css'
 
 import React from 'react'
 import ReactDOM from 'react-dom'
-import { createGlobalStyle } from 'styled-components/macro'
+import { createGlobalStyle, ThemeProvider } from 'styled-components/macro'
 
 import registerServiceWorker from './registerServiceWorker'
 import { useMedia } from './shared/customHooks'
-import { sharedCSS } from './shared/variables'
+import { themes, mediaBreakpoints } from './shared/variables'
 import Display from './components/display/Display'
 import Weather from './components/weather/Weather'
 
@@ -18,7 +18,7 @@ const GlobalStyle = createGlobalStyle`
 	}
 
 	body {
-		color: #333;
+		color: ${themes.dark.mainColor};
 	}
 
   /* For some reason GSAP Draggable doesn't work in Firefox if base 'svg' properties are set... */
@@ -31,12 +31,14 @@ const GlobalStyle = createGlobalStyle`
 const mountableApps = [Weather]
 
 function FakeOS() {
-	const isMobile = useMedia([`(min-width: ${sharedCSS.media.desktop}px)`], [false], true)
+	const isMobile = useMedia([`(min-width: ${mediaBreakpoints.desktop}px)`], [false], true)
 
 	return (
 		<>
 			<GlobalStyle />
-			<Display isMobile={isMobile} mountableApps={mountableApps} />
+			<ThemeProvider theme={themes.blue}>
+				<Display isMobile={isMobile} mountableApps={mountableApps} />
+			</ThemeProvider>
 		</>
 	)
 }
