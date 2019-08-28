@@ -1,4 +1,4 @@
-import { linearGradient, mix } from 'polished'
+import { mix } from 'polished'
 
 export const sharedFlags = {
 	isIE: !!window.navigator.userAgent.match(/(MSIE|Trident)/),
@@ -12,28 +12,27 @@ export let themes = {
 	dark: {
 		mainColor: '#333',
 		altColor: '#666',
+		gradient: 'linear-gradient(45deg, #333 20%, #666 85%)',
 	},
 	light: {
 		mainColor: '#f9f9f9',
 		altColor: '#e0e0e0',
+		gradient: 'linear-gradient(45deg, #f9f9f9 20%, #e0e0e0 85%)',
 	},
 	blue: {
 		mainColor: '#1976d2',
 		altColor: '#21CBF3',
+		gradient: 'linear-gradient(45deg, #1976d2 20%, #21CBF3 85%)',
 	},
 	red: {
 		mainColor: '#e10050',
 		altColor: '#FF8E53',
+		gradient: 'linear-gradient(45deg, #e10050 20%, #FF8E53 85%)',
 	},
 }
 
-// Adding gradients, mixed main/alt color, and background safe text depending on the color.
+// Adding mixed main/alt color, and background safe text depending on the color.
 Object.keys(themes).forEach((key) => {
-	themes[key].gradient = linearGradient({
-		colorStops: [`${themes[key].mainColor} 20%`, `${themes[key].altColor} 85%`],
-		toDirection: 'to top right',
-		fallback: `${themes[key].mainColor}`,
-	})
 	themes[key].mixedColor = mix(0.5, themes[key].mainColor, themes[key].altColor)
 	themes[key].bgContrastColor = key !== 'light' ? themes.light.mainColor : themes.dark.mainColor
 })

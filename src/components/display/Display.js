@@ -2,7 +2,7 @@ import React from 'react'
 import styled, { css } from 'styled-components/macro'
 import { TransitionGroup } from 'react-transition-group'
 
-import svgTopography from '../../shared/assets/backgrounds/topography.svg'
+import TopographySVG from '../../shared/assets/backgrounds/topography.svg'
 import Button from '../ui/Button'
 import Window from './Window'
 import Navigation from './Navigation'
@@ -12,8 +12,14 @@ import { themes } from '../../shared/variables'
 
 const DisplayRoot = styled.div`
 	height: 100vh;
-	position: relative;
+	display: flex;
+	flex-direction: column;
 	overflow: hidden;
+`
+
+const AllowedDragArea = styled.div`
+	position: relative;
+	flex: 1;
 	padding: 1em;
 `
 
@@ -177,42 +183,44 @@ export default class Display extends React.Component {
 		return (
 			<DisplayRoot id='display'>
 				{/* SVG pattern loaded inline because of styled-components Firefox bug which causes flickering? */}
-				<Background style={{ backgroundImage: `url(${svgTopography})` }} theme={themes.light} />
-				<Shortcuts>
-					{mountableApps.map((mountableApp) => (
-						<ShortcutButton
-							key={mountableApp.shared.title}
-							id={`sc-${mountableApp.shared.title}`}
-							onClick={() => this.openApp(mountableApp)}
-							svg={mountableApp.shared.logo}
-							variant='fancy'
-							size='large'
-						/>
-					))}
-				</Shortcuts>
-				{children}
+				<Background style={{ backgroundImage: `url(${TopographySVG})` }} theme={themes.light} />
+				<AllowedDragArea>
+					<Shortcuts>
+						{mountableApps.map((mountableApp) => (
+							<ShortcutButton
+								key={mountableApp.shared.title}
+								id={`sc-${mountableApp.shared.title}`}
+								onClick={() => this.openApp(mountableApp)}
+								svg={mountableApp.shared.logo}
+								variant='fancy'
+								size='large'
+							/>
+						))}
+					</Shortcuts>
+					{children}
+					<WindowWireframe id='window-wireframe' />
+					<TransitionGroup>
+						{openedApps.map((app, i) => (
+							<Window
+								ref={app.windowRef}
+								key={app.id}
+								id={app.id}
+								isMobile={isMobile}
+								isFocused={app.isFocused}
+								title={app.class.shared.title}
+								windowCSS={windowCSS}
+								closeApp={this.closeApp}
+								focusApp={this.focusApp}
+								focusBelowApp={this.focusBelowApp}
+								skipRestoreToggleDesktop={this.resetToggleDesktop}
+								zIndex={app.zIndex}
+							>
+								<app.class />
+							</Window>
+						))}
+					</TransitionGroup>
+				</AllowedDragArea>
 				<Navigation openedApps={openedApps} isMobile={isMobile} toggleDesktop={this.toggleDesktop} />
-				<WindowWireframe id='window-wireframe' />
-				<TransitionGroup>
-					{openedApps.map((app, i) => (
-						<Window
-							ref={app.windowRef}
-							key={app.id}
-							id={app.id}
-							isMobile={isMobile}
-							isFocused={app.isFocused}
-							title={app.class.shared.title}
-							windowCSS={windowCSS}
-							closeApp={this.closeApp}
-							focusApp={this.focusApp}
-							focusBelowApp={this.focusBelowApp}
-							skipRestoreToggleDesktop={this.resetToggleDesktop}
-							zIndex={app.zIndex}
-						>
-							<app.class />
-						</Window>
-					))}
-				</TransitionGroup>
 			</DisplayRoot>
 		)
 	}

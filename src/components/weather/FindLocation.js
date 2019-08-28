@@ -3,17 +3,22 @@ import styled, { css } from 'styled-components/macro'
 import { TimelineLite } from 'gsap/all'
 import PlacesAutocomplete, { geocodeByAddress, getLatLng } from 'react-places-autocomplete'
 
-import { ReactComponent as svgLocation } from '../../shared/assets/material-icons/location.svg'
+import { ReactComponent as LocationSVG } from '../../shared/assets/material-icons/location.svg'
 import { themes } from '../../shared/variables'
 import Button from '../ui/Button'
 
 /* ---------------------------- STYLED-COMPONENTS --------------------------- */
 
+const animDuration = 0.15
+
 const FindLocationRoot = styled.div`
 	display: flex;
 	position: relative;
+	&& {
+		border-bottom: none;
+	}
 	${({ theme }) => css`
-		box-shadow: 0 0 0 1px ${theme.mainColor};
+		box-shadow: inset 0 -1px 0 0 ${theme.mainColor};
 	`}
 `
 
@@ -21,8 +26,15 @@ const AutocompleteInput = styled.input`
 	border: none;
 	outline: none;
 	flex: 1;
+	transition: ${animDuration}s;
 	${({ theme }) => css`
 		color: ${theme.mainColor};
+		&:hover {
+			box-shadow: inset 0 -2px 0 0 ${theme.mainColor};
+		}
+		&:active {
+			box-shadow: inset 0 -2px 0 0 ${theme.mainColor};
+		}
 	`}
 `
 
@@ -30,16 +42,17 @@ const AutocompleteResults = styled.div`
 	position: absolute;
 	display: flex;
 	flex-direction: column;
-	left: -1px;
 	top: 100%;
-	width: calc(100% + 2px);
-	${({ theme, hasSuggestions }) => css`
-		border: ${hasSuggestions ? `1px solid ${theme.mainColor}` : 'none'};
+	${({ theme }) => css`
+		background-color: ${theme.bgContrastColor};
 	`}
 `
 
 const Suggestion = styled(Button)`
-	display: block;
+	width: 100%;
+	${({ theme }) => css`
+		border-bottom: 1px solid ${theme.mainColor};
+	`}
 `
 
 /* ------------------------- FIND-LOCATION COMPONENT ------------------------ */
@@ -51,8 +64,8 @@ const FindLocation = ({ onLocationFound }) => {
 
 	useEffect(() => {
 		errorAnim.current = new TimelineLite({ paused: true })
-		errorAnim.current.to(rootRef.current, 0.1, {
-			boxShadow: `0 0 0 3px ${themes.red.mainColor}`,
+		errorAnim.current.to(rootRef.current, animDuration, {
+			boxShadow: `inset 0 -3px 0 0 ${themes.red.mainColor}`,
 			color: `${themes.red.mainColor}`,
 			onComplete: () => errorAnim.current.reverse(),
 		})
@@ -62,10 +75,17 @@ const FindLocation = ({ onLocationFound }) => {
 		if (!errorAnim.current.isActive()) errorAnim.current.play()
 	}
 
+	const handoffLocation = (lat, lng) => {
+		const decPlace = 10000
+		const roundLat = Math.round(lat * decPlace) / decPlace
+		const roundLng = Math.round(lng * decPlace) / decPlace
+		onLocationFound(roundLat, roundLng)
+	}
+
 	const onSelect = (address) => {
 		geocodeByAddress(address)
 			.then((results) => getLatLng(results[0]))
-			.then((coords) => onLocationFound(coords))
+			.then(({ lat, lng }) => handoffLocation(lat, lng))
 			.catch(console.log)
 		setInput('')
 	}
@@ -74,7 +94,7 @@ const FindLocation = ({ onLocationFound }) => {
 		navigator.geolocation.getCurrentPosition(
 			({ coords }) => {
 				setInput('')
-				onLocationFound({ lat: coords.latitude, lng: coords.longitude })
+				handoffLocation(coords.latitude, coords.longitude)
 			},
 			console.log,
 			{ enableHighAccuracy: true },
@@ -98,7 +118,7 @@ const FindLocation = ({ onLocationFound }) => {
 							placeholder: 'Add locations...',
 						})}
 					/>
-					<Button svg={svgLocation} onClick={onGeolocateCurrentPosition} />
+					<Button svg={LocationSVG} onClick={onGeolocateCurrentPosition} />
 					<AutocompleteResults hasSuggestions={suggestions.length > 0}>
 						{loading && <div>Loading...</div>}
 						{suggestions.map((s) => (

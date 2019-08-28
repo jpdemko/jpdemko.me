@@ -2,16 +2,11 @@ import { useState, useEffect } from 'react'
 
 export function useLocalStorage(key, initValue) {
 	const [value, setValue] = useState(() => {
-		if (initValue) {
-			const convInitValue = JSON.stringify(initValue)
-			localStorage.setItem(key, convInitValue)
-			return convInitValue
-		}
 		let item = localStorage.getItem(key)
-		try {
-			item = JSON.parse(item)
-		} catch {
-			item = null
+		if (item) item = JSON.parse(item)
+		else {
+			item = initValue
+			localStorage.setItem(key, JSON.stringify(item))
 		}
 		return item
 	})

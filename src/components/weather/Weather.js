@@ -1,87 +1,88 @@
-import React, { useContext } from 'react'
+import React, { useContext, useState } from 'react'
 import styled, { css, ThemeProvider } from 'styled-components/macro'
 import { DateTime, Interval } from 'luxon'
 
-import { ReactComponent as Logo } from '../../shared/assets/weather-icons/sunny.svg'
+import { ReactComponent as SunnySVG } from '../../shared/assets/weather-icons/sunny.svg'
+import { ReactComponent as CloseCircleSVG } from '../../shared/assets/material-icons/close-circle.svg'
 import { themes } from '../../shared/variables'
 import { simplerFetch } from '../../shared/helpers'
 import { useLocalStorage } from '../../shared/customHooks'
 import { WindowSizeContext } from '../display/Window'
+import Button from '../ui/Button'
 import FindLocation from './FindLocation'
+import Drawer from '../ui/Drawer'
 
 /* ---------------------------- STYLED-COMPONENTS --------------------------- */
 
-const WeatherRoot = styled.div.attrs(({ forecast }) => {
-	// Default background gradient which represents daytime (or if no forecast retrieved).
-	// The other two gradients are dusk/dawn & nighttime.
-	let bgGradient = css`
-		background: #7ab0cf;
-		background: linear-gradient(315deg, #7ab0cf 20%, #a8c7db 75%, #bfd0db 100%);
-	`
-	if (forecast) {
-		let { currently: cur, results: sun } = forecast
-		// Convert all sun data to luxon DateTimes for easy operations.
-		Object.keys(sun).forEach((key) => (sun[key] = DateTime.fromISO(sun[key])))
-		const { sunrise, sunset, nautical_twilight_begin, nautical_twilight_end } = sun
-
-		// Create time intervals where we can tell where the forecast retrieval time falls under.
-		const dawn = Interval.fromDateTimes(
-			nautical_twilight_begin,
-			sunrise.plus(sunrise.diff(nautical_twilight_begin)),
-		)
-		const dusk = Interval.fromDateTimes(
-			sunset.minus(nautical_twilight_end.diff(sunset)),
-			nautical_twilight_end,
-		)
-		const now = DateTime.fromSeconds(cur.time)
-
-		if (dawn.contains(now) || dusk.contains(now)) {
-			bgGradient = css`
-				background: #311f62;
-				background: linear-gradient(0deg, #311f62 10%, #8d5273 65%, #e8817f 100%);
-			`
-		} else if (dusk.isBefore(now)) {
-			bgGradient = css`
-				background: #2b2f77;
-				background: linear-gradient(0deg, #2b2f77 0%, #141852 65%, #070b34 100%);
-			`
-		}
-	}
-	return { bgGradient }
-})`
+const WeatherRoot = styled.div`
 	font-size: 1.1em;
 	height: 100%;
 	display: flex;
-	padding: 0.5em;
-	${({ theme, bgGradient }) => css`
-		${bgGradient}
+	${({ theme, weatherBG }) => css`
+		background-image: ${weatherBG};
 		color: ${theme.mainColor};
 	`}
-	> div {
-		margin: 0.5em;
-	}
 `
 
-const SideNav = styled.div`
-	flex: 0;
+const DesktopNav = styled.div`
+	flex: 1;
+`
+
+const NavContent = styled.div`
+	height: 100%;
+	${({ theme, isMobileSizedWindow }) => css`
+		${`border-${isMobileSizedWindow ? 'left' : 'right'}: 1px solid ${theme.mainColor};`}
+		background-color: ${theme.bgContrastColor};
+		> * {
+			border-bottom: 1px solid ${theme.mainColor};
+		}
+	`}
+`
+
+const NavLocation = styled.div`
+	display: flex;
+	${({ weatherBG }) => css`
+		background: ${weatherBG};
+	`}
+`
+
+const NavLocationData = styled(Button)`
+	flex: 1;
+	font-size: 0.8em;
+`
+
+const DataDisplay = styled.div`
+	flex: 2;
+	${({ weatherBG }) => css`
+		background-image: ${weatherBG};
+	`}
 `
 
 /* ---------------------------- WEATHER COMPONENT --------------------------- */
 
 const Weather = () => {
 	const isMobileSizedWindow = useContext(WindowSizeContext)
-	const [locations, setLocations] = useLocalStorage('locations')
+	const [locations, setLocations] = useLocalStorage('locations', [])
+	const [loadedLocationID, setLoadedLocationID] = useLocalStorage('loadedLocationID')
+	const [mobileDrawerOpened, setMobileDrawerOpened] = useState(false)
 
 	const fetchLocationData = (lat, lng) => {
 		const gAPI = 'https://maps.googleapis.com/maps/api/geocode/json'
 		const params = `?latlng=${lat},${lng}&key=${process.env.REACT_APP_GOOGLE_API_KEY}`
-		return simplerFetch(`${gAPI}${params}`).then((geo) => ({
+		return simplerFetch(gAPI + params).then((geo) => ({
 			locationName: geo.plus_code.compound_code.replace(/\S+\s/, ''),
 			coords: {
 				lat,
 				lng,
 			},
+			id: lat + lng,
 		}))
+	}
+
+	const fetchSunData = (lat, lng) => {
+		const sunAPI = 'https://api.sunrise-sunset.org/json'
+		const params = `?lat=${lat}&lng=${lng}&date=today&formatted=0`
+		return simplerFetch(sunAPI + params).then((res) => res.results)
 	}
 
 	const fetchWeatherData = (lat, lng) => {
@@ -90,11 +91,16 @@ const Weather = () => {
 		return Promise.all([
 			simplerFetch(`${owmAPI}weather${params}`),
 			simplerFetch(`${owmAPI}forecast${params}`),
+			fetchSunData(lat, lng),
 		])
-			.then(([current, forecast]) => ({
-				current: { ...current, dt: DateTime.fromSeconds(current.dt) },
-				forecast: sortForecast(forecast),
-			}))
+			.then(([current, forecast, sun]) => {
+				let data = {
+					current: { ...current, sun, dt: DateTime.fromSeconds(current.dt).toString() },
+					forecast: sortForecast(forecast),
+				}
+				data.current.weatherBG = getCurrentWeatherBG(data.current)
+				return data
+			})
 			.catch(console.log)
 	}
 
@@ -114,36 +120,95 @@ const Weather = () => {
 	}
 
 	const canUpdateLocation = (location) => {
-		const prevFetchDate = location.current.dt.toLocal()
+		const prevFetchDate = DateTime.fromISO(location.current.dt)
 		const preventFetchInterval = Interval.fromDateTimes(prevFetchDate, prevFetchDate.plus({ minutes: 30 }))
 		return !preventFetchInterval.contains(DateTime.local())
 	}
 
-	const addLocation = ({ lat, lng }) => {
-		const prevLocationIndex = locations
-			? locations.findIndex((loca) => {
-					const { lat: locaLat, lng: locaLng } = loca.coords
-					return lat === locaLat && lng === locaLng
-			  })
-			: -1
-		if (prevLocationIndex > -1 && !canUpdateLocation(locations[prevLocationIndex])) return
-		Promise.all([fetchLocationData(lat, lng), fetchWeatherData(lat, lng)])
-			.then(([locationData, weatherData]) => {
-				const finalData = {
-					...locationData,
-					...weatherData,
-				}
-				console.log(finalData)
-			})
+	const fetchData = (lat, lng) => {
+		return Promise.all([fetchLocationData(lat, lng), fetchWeatherData(lat, lng)])
+			.then(([locationData, weatherData]) => ({
+				...locationData,
+				...weatherData,
+			}))
 			.catch(console.log)
 	}
+
+	const loadLocation = async (lat, lng) => {
+		let newLocations = [...locations]
+		const locIdx = newLocations.findIndex((loc) => loc.id === lat + lng)
+		if (locIdx > -1) {
+			if (canUpdateLocation(newLocations[locIdx])) newLocations[locIdx] = await fetchData(lat, lng)
+			setLoadedLocationID(newLocations[locIdx].id)
+		} else {
+			const newLocation = await fetchData(lat, lng)
+			newLocations.push(newLocation)
+			setLoadedLocationID(newLocation.id)
+		}
+		setLocations(newLocations)
+	}
+
+	const removeLocation = (id) => {
+		const newLocations = locations.filter((loc) => loc.id !== id)
+		setLocations(newLocations)
+		setLoadedLocationID(newLocations.find((loc) => loc.id !== id))
+	}
+
+	const getCurrentWeatherBG = (curWeatherData) => {
+		let weatherBG = 'linear-gradient(315deg, #7ab0cf 20%, #a8c7db 75%, #bfd0db 100%)'
+		if (!curWeatherData) return weatherBG
+
+		const { dt: now } = curWeatherData
+		const { sunrise, sunset, nautical_twilight_begin, nautical_twilight_end } = curWeatherData.sun
+		// Create time intervals where we can tell where the weather data retrieval time falls under.
+		const dawn = Interval.fromDateTimes(
+			nautical_twilight_begin,
+			sunrise.plus(sunrise.diff(nautical_twilight_begin)),
+		)
+		const dusk = Interval.fromDateTimes(
+			sunset.minus(nautical_twilight_end.diff(sunset)),
+			nautical_twilight_end,
+		)
+
+		if (dawn.contains(now) || dusk.contains(now)) {
+			weatherBG = 'linear-gradient(0deg, #311f62 10%, #8d5273 65%, #e8817f 100%)'
+		} else if (dusk.isBefore(now)) {
+			weatherBG = 'linear-gradient(0deg, #2b2f77 0%, #141852 65%, #070b34 100%)'
+		}
+		return weatherBG
+	}
+
+	const navContent = (
+		<NavContent isMobileSizedWindow={isMobileSizedWindow}>
+			<FindLocation onLocationFound={loadLocation} />
+			{locations.map((loc) => (
+				<NavLocation key={loc.id} weatherBG={loc.current.weatherBG}>
+					<NavLocationData tag='div' onClick={() => loadLocation(loc.coords.lat, loc.coords.lng)}>
+						{loc.locationName}
+					</NavLocationData>
+					<Button svg={CloseCircleSVG} onClick={() => removeLocation(loc.id)} />
+				</NavLocation>
+			))}
+		</NavContent>
+	)
+
+	const loadedLocation = locations.find((loc) => loc.id === loadedLocationID)
 
 	return (
 		<ThemeProvider theme={themes.light}>
 			<WeatherRoot>
-				<SideNav>
-					<FindLocation onLocationFound={addLocation} />
-				</SideNav>
+				{isMobileSizedWindow ? (
+					<Drawer side='right' isShown={mobileDrawerOpened} onClose={() => setMobileDrawerOpened(false)}>
+						{navContent}
+					</Drawer>
+				) : (
+					<DesktopNav>{navContent}</DesktopNav>
+				)}
+				<DataDisplay weatherBG={loadedLocation ? loadedLocation.current.weatherBG : getCurrentWeatherBG()}>
+					{loadedLocation && <div>currently selected: {loadedLocation.locationName}</div>}
+					<Button onClick={() => setMobileDrawerOpened(true)}>open drawer</Button>
+					<Button onClick={() => console.log(locations, loadedLocation)}>log state</Button>
+				</DataDisplay>
 			</WeatherRoot>
 		</ThemeProvider>
 	)
@@ -151,7 +216,7 @@ const Weather = () => {
 
 Weather.shared = {
 	title: 'Weather',
-	logo: Logo,
+	logo: SunnySVG,
 }
 
 export default Weather

@@ -5,10 +5,10 @@ import { TweenMax, Draggable } from 'gsap/all'
 import styled, { css } from 'styled-components/macro'
 import { Transition } from 'react-transition-group'
 
-import { ReactComponent as svgClose } from '../../shared/assets/material-icons/close.svg'
-import { ReactComponent as svgMinimize } from '../../shared/assets/material-icons/minimize.svg'
-import { ReactComponent as svgFullscreenExit } from '../../shared/assets/material-icons/fullscreen-exit.svg'
-import { ReactComponent as svgFullscreen } from '../../shared/assets/material-icons/fullscreen.svg'
+import { ReactComponent as CloseSVG } from '../../shared/assets/material-icons/close.svg'
+import { ReactComponent as MinimizeSVG } from '../../shared/assets/material-icons/minimize.svg'
+import { ReactComponent as FullscreenExitSVG } from '../../shared/assets/material-icons/fullscreen-exit.svg'
+import { ReactComponent as FullscreenSVG } from '../../shared/assets/material-icons/fullscreen.svg'
 import { getStyleProperty, getRect, isDoubleTouch, opac } from '../../shared/helpers'
 import { sharedFlags, themes, mediaBreakpoints } from '../../shared/variables'
 import Button from '../ui/Button'
@@ -42,16 +42,17 @@ const TitleBar = styled.div`
 	font-weight: 500;
 	opacity: 0.9;
 	align-items: center;
-	${({ isMobile, isFocused, theme }) => css`
+	${({ isMobile, theme }) => css`
 		color: ${theme.bgContrastColor};
 		display: ${isMobile ? 'none' : 'flex'};
-		${isFocused ? theme.gradient : theme.gradient}
+		background-image: ${theme.gradient};
 	`}
 `
 
 const Content = styled.div`
 	flex: 1;
 	position: relative;
+	overflow: hidden;
 	> div {
 		overflow-y: auto;
 		height: 100%;
@@ -390,13 +391,13 @@ export default class Window extends React.Component {
 							{title}#{id} - zIndex: {zIndex}
 						</div>
 						<div style={{ display: 'flex', marginLeft: 'auto' }}>
-							<Button theme={themes.light} onClick={() => this.minimize()} svg={svgMinimize} />
+							<Button theme={themes.light} onClick={() => this.minimize()} svg={MinimizeSVG} />
 							<Button
 								theme={themes.light}
 								onClick={this.toggleMaximize}
-								svg={isMaximized ? svgFullscreenExit : svgFullscreen}
+								svg={isMaximized ? FullscreenExitSVG : FullscreenSVG}
 							/>
-							<Button theme={themes.light} onClick={() => closeApp(id)} svg={svgClose} />
+							<Button theme={themes.light} onClick={() => closeApp(id)} svg={CloseSVG} />
 						</div>
 					</TitleBar>
 					<Content onClick={() => focusApp(id)}>

@@ -1,7 +1,6 @@
 import React, { useCallback, useRef } from 'react'
 import styled, { css } from 'styled-components/macro'
 
-import { themes } from '../../shared/variables'
 import { safeTranslate } from '../../shared/helpers'
 import { useOnClickOutside } from '../../shared/customHooks'
 import Backdrop from './Backdrop'
@@ -13,10 +12,9 @@ const DrawerRoot = styled.div`
 	z-index: 5001;
 	top: 0;
 	bottom: 0;
-	min-width: 2em;
 	${({ isShown, animDuration, side, theme }) => css`
 		${side}: 0;
-		background: ${themes.light.mainColor};
+		background-color: ${theme.bgContrastColor};
 		transition: ${animDuration}s;
 		transform: ${isShown ? safeTranslate('0, 0') : safeTranslate(`${side === 'left' ? '-' : ''}100%, 0`)};
 		opacity: ${isShown ? 1 : 0};
@@ -34,10 +32,10 @@ const Drawer = ({ isShown = false, onClose, animDuration = 0.5, side = 'left', c
 
 	return (
 		<>
-			<Backdrop isShown={isShown} animDuration={animDuration} />
 			<DrawerRoot ref={drawerRef} isShown={isShown} animDuration={animDuration} side={side} {...props}>
 				{children}
 			</DrawerRoot>
+			<Backdrop isShown={isShown} animDuration={animDuration} />
 		</>
 	)
 }

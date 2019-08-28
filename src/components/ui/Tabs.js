@@ -34,11 +34,11 @@ const TabsHeader = styled.div`
 
 /* ----------------------------- TABS COMPONENT ----------------------------- */
 
-const Tabs = ({ children }) => {
+const Tabs = ({ children, ...props }) => {
 	const [content, setContent] = useState(children[0])
 
 	return (
-		<TabsRoot>
+		<TabsRoot {...props}>
 			<TabsHeader>
 				{children.map((ele) => (
 					<TabButton key={ele.props.title} isFocused={content === ele} onClick={() => setContent(ele)}>
