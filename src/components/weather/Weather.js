@@ -2,15 +2,17 @@ import React, { useContext, useState } from 'react'
 import styled, { css, ThemeProvider } from 'styled-components/macro'
 import { DateTime, Interval } from 'luxon'
 
-import { ReactComponent as SunnySVG } from '../../shared/assets/weather-icons/sunny.svg'
+import { ReactComponent as SunnySVG } from '../../shared/assets/weather-icons/wi-day-sunny.svg'
 import { ReactComponent as CloseCircleSVG } from '../../shared/assets/material-icons/close-circle.svg'
 import { themes } from '../../shared/variables'
 import { simplerFetch } from '../../shared/helpers'
 import { useLocalStorage } from '../../shared/customHooks'
 import { WindowSizeContext } from '../display/Window'
+import WeatherIcon from './WeatherIcon'
 import Button from '../ui/Button'
 import FindLocation from './FindLocation'
 import Drawer from '../ui/Drawer'
+import WeatherMap from './WeatherMap'
 
 /* ---------------------------- STYLED-COMPONENTS --------------------------- */
 
@@ -42,7 +44,7 @@ const NavContent = styled.div`
 const NavLocation = styled.div`
 	display: flex;
 	${({ weatherBG }) => css`
-		background: ${weatherBG};
+		background-image: ${weatherBG};
 	`}
 `
 
@@ -53,6 +55,11 @@ const NavLocationData = styled(Button)`
 
 const DataDisplay = styled.div`
 	flex: 2;
+	display: flex;
+	flex-direction: column;
+	> * {
+		flex: 1;
+	}
 	${({ weatherBG }) => css`
 		background-image: ${weatherBG};
 	`}
@@ -63,7 +70,7 @@ const DataDisplay = styled.div`
 const Weather = () => {
 	const isMobileSizedWindow = useContext(WindowSizeContext)
 	const [locations, setLocations] = useLocalStorage('locations', [])
-	const [loadedLocationID, setLoadedLocationID] = useLocalStorage('loadedLocationID')
+	const [loadedLocation, setLoadedLocation] = useLocalStorage('loadedLocation')
 	const [mobileDrawerOpened, setMobileDrawerOpened] = useState(false)
 
 	const fetchLocationData = (lat, lng) => {
@@ -71,11 +78,11 @@ const Weather = () => {
 		const params = `?latlng=${lat},${lng}&key=${process.env.REACT_APP_GOOGLE_API_KEY}`
 		return simplerFetch(gAPI + params).then((geo) => ({
 			locationName: geo.plus_code.compound_code.replace(/\S+\s/, ''),
+			id: lat + lng,
 			coords: {
 				lat,
 				lng,
 			},
-			id: lat + lng,
 		}))
 	}
 
@@ -86,88 +93,65 @@ const Weather = () => {
 	}
 
 	const fetchWeatherData = (lat, lng) => {
-		const owmAPI = 'http://api.openweathermap.org/data/2.5/'
-		const params = `?lat=${lat}&lon=${lng}&APPID=${process.env.REACT_APP_OPEN_WEATHER_API_KEY}`
-		return Promise.all([
-			simplerFetch(`${owmAPI}weather${params}`),
-			simplerFetch(`${owmAPI}forecast${params}`),
-			fetchSunData(lat, lng),
-		])
-			.then(([current, forecast, sun]) => {
-				let data = {
-					current: { ...current, sun, dt: DateTime.fromSeconds(current.dt).toString() },
-					forecast: sortForecast(forecast),
-				}
-				data.current.weatherBG = getCurrentWeatherBG(data.current)
-				return data
-			})
-			.catch(console.log)
-	}
-
-	// Grouping the forecast data into specific days of the month instead of its original 3hr interval list.
-	const sortForecast = (forecast) => {
-		let list = {}
-		for (let hour of forecast.list) {
-			hour.dt = DateTime.fromSeconds(hour.dt)
-			const day = `day${hour.dt.toLocal().day}`
-			if (day in list) list[day].push(hour)
-			else list[day] = [hour]
-		}
-		return {
-			...forecast,
-			list,
-		}
-	}
-
-	const canUpdateLocation = (location) => {
-		const prevFetchDate = DateTime.fromISO(location.current.dt)
-		const preventFetchInterval = Interval.fromDateTimes(prevFetchDate, prevFetchDate.plus({ minutes: 30 }))
-		return !preventFetchInterval.contains(DateTime.local())
+		const corsProxy = 'https://cors-anywhere.herokuapp.com/'
+		const darkskyAPI = 'https://api.darksky.net/forecast/'
+		const params = `${process.env.REACT_APP_DARK_SKY_API_KEY}/${lat},${lng}?exclude=minutely`
+		return simplerFetch(corsProxy + darkskyAPI + params).then((res) => res)
 	}
 
 	const fetchData = (lat, lng) => {
-		return Promise.all([fetchLocationData(lat, lng), fetchWeatherData(lat, lng)])
-			.then(([locationData, weatherData]) => ({
+		return Promise.all([fetchLocationData(lat, lng), fetchWeatherData(lat, lng), fetchSunData(lat, lng)])
+			.then(([locationData, weatherData, sunData]) => ({
 				...locationData,
-				...weatherData,
+				weatherBG: getCurrentWeatherBG(weatherData, sunData),
+				weatherData,
+				sunData,
 			}))
 			.catch(console.log)
 	}
 
+	const canUpdateLocation = (location) => {
+		const prevFetchDate = DateTime.fromSeconds(location.weatherData.currently.time).toLocal()
+		const preventFetchInterval = Interval.fromDateTimes(prevFetchDate, prevFetchDate.plus({ minutes: 30 }))
+		return !preventFetchInterval.contains(DateTime.local())
+	}
+
 	const loadLocation = async (lat, lng) => {
-		let newLocations = [...locations]
-		const locIdx = newLocations.findIndex((loc) => loc.id === lat + lng)
+		let nextLocations = [...locations]
+		const locIdx = nextLocations.findIndex((loc) => loc.id === lat + lng)
 		if (locIdx > -1) {
-			if (canUpdateLocation(newLocations[locIdx])) newLocations[locIdx] = await fetchData(lat, lng)
-			setLoadedLocationID(newLocations[locIdx].id)
+			if (canUpdateLocation(nextLocations[locIdx])) nextLocations[locIdx] = await fetchData(lat, lng)
+			setLoadedLocation(nextLocations[locIdx])
 		} else {
 			const newLocation = await fetchData(lat, lng)
-			newLocations.push(newLocation)
-			setLoadedLocationID(newLocation.id)
+			nextLocations.push(newLocation)
+			setLoadedLocation(newLocation)
 		}
-		setLocations(newLocations)
+		setLocations(nextLocations)
 	}
 
 	const removeLocation = (id) => {
 		const newLocations = locations.filter((loc) => loc.id !== id)
 		setLocations(newLocations)
-		setLoadedLocationID(newLocations.find((loc) => loc.id !== id))
+		setLoadedLocation(newLocations.find((loc) => loc.id !== id))
 	}
 
-	const getCurrentWeatherBG = (curWeatherData) => {
+	const getCurrentWeatherBG = (weatherData, sunData) => {
 		let weatherBG = 'linear-gradient(315deg, #7ab0cf 20%, #a8c7db 75%, #bfd0db 100%)'
-		if (!curWeatherData) return weatherBG
+		if (!weatherData || !sunData) return weatherBG
 
-		const { dt: now } = curWeatherData
-		const { sunrise, sunset, nautical_twilight_begin, nautical_twilight_end } = curWeatherData.sun
+		const now = DateTime.fromSeconds(weatherData.currently.time)
+		let sun = { ...sunData }
+		Object.keys(sun).forEach((key) => (sun[key] = DateTime.fromISO(sun[key])))
+
 		// Create time intervals where we can tell where the weather data retrieval time falls under.
 		const dawn = Interval.fromDateTimes(
-			nautical_twilight_begin,
-			sunrise.plus(sunrise.diff(nautical_twilight_begin)),
+			sun.nautical_twilight_begin,
+			sun.sunrise.plus(sun.sunrise.diff(sun.nautical_twilight_begin)),
 		)
 		const dusk = Interval.fromDateTimes(
-			sunset.minus(nautical_twilight_end.diff(sunset)),
-			nautical_twilight_end,
+			sun.sunset.minus(sun.nautical_twilight_end.diff(sun.sunset)),
+			sun.nautical_twilight_end,
 		)
 
 		if (dawn.contains(now) || dusk.contains(now)) {
@@ -182,7 +166,7 @@ const Weather = () => {
 		<NavContent isMobileSizedWindow={isMobileSizedWindow}>
 			<FindLocation onLocationFound={loadLocation} />
 			{locations.map((loc) => (
-				<NavLocation key={loc.id} weatherBG={loc.current.weatherBG}>
+				<NavLocation key={loc.id} weatherBG={loc.weatherBG}>
 					<NavLocationData tag='div' onClick={() => loadLocation(loc.coords.lat, loc.coords.lng)}>
 						{loc.locationName}
 					</NavLocationData>
@@ -191,8 +175,6 @@ const Weather = () => {
 			))}
 		</NavContent>
 	)
-
-	const loadedLocation = locations.find((loc) => loc.id === loadedLocationID)
 
 	return (
 		<ThemeProvider theme={themes.light}>
@@ -204,10 +186,18 @@ const Weather = () => {
 				) : (
 					<DesktopNav>{navContent}</DesktopNav>
 				)}
-				<DataDisplay weatherBG={loadedLocation ? loadedLocation.current.weatherBG : getCurrentWeatherBG()}>
-					{loadedLocation && <div>currently selected: {loadedLocation.locationName}</div>}
-					<Button onClick={() => setMobileDrawerOpened(true)}>open drawer</Button>
-					<Button onClick={() => console.log(locations, loadedLocation)}>log state</Button>
+				<DataDisplay weatherBG={loadedLocation ? loadedLocation.weatherBG : getCurrentWeatherBG()}>
+					{loadedLocation && (
+						<>
+							<div>currently selected: {loadedLocation.locationName}</div>
+							<WeatherMap loadedLocation={loadedLocation} />
+							zoneName: {DateTime.local().zoneName}
+						</>
+					)}
+					<div style={{ flex: 0 }}>
+						<Button onClick={() => setMobileDrawerOpened(true)}>open drawer</Button>
+						<Button onClick={() => console.log(locations, loadedLocation)}>log state</Button>
+					</div>
 				</DataDisplay>
 			</WeatherRoot>
 		</ThemeProvider>

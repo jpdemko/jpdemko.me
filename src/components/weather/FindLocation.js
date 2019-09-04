@@ -43,6 +43,7 @@ const AutocompleteResults = styled.div`
 	display: flex;
 	flex-direction: column;
 	top: 100%;
+	width: 100%;
 	${({ theme }) => css`
 		background-color: ${theme.bgContrastColor};
 	`}
