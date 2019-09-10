@@ -1,8 +1,7 @@
 import React, { useState } from 'react'
 import styled, { css } from 'styled-components/macro'
 
-import { opac } from '../../shared/helpers'
-import { themes } from '../../shared/variables'
+import { opac, themes } from '../../shared/shared'
 import { ButtonBase } from './Button'
 
 /* ---------------------------- STYLED-COMPONENTS --------------------------- */

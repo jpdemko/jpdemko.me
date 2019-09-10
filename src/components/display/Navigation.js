@@ -3,9 +3,9 @@ import styled, { css, ThemeProvider } from 'styled-components/macro'
 
 import { ReactComponent as AppsSVG } from '../../shared/assets/material-icons/apps.svg'
 import { ReactComponent as HomeSVG } from '../../shared/assets/material-icons/home.svg'
+import { themes } from '../../shared/shared'
 import Button from '../ui/Button'
 import Drawer from '../ui/Drawer'
-import { themes } from '../../shared/variables'
 
 /* ---------------------------- STYLED-COMPONENTS --------------------------- */
 

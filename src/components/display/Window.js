@@ -9,8 +9,7 @@ import { ReactComponent as CloseSVG } from '../../shared/assets/material-icons/c
 import { ReactComponent as MinimizeSVG } from '../../shared/assets/material-icons/minimize.svg'
 import { ReactComponent as FullscreenExitSVG } from '../../shared/assets/material-icons/fullscreen-exit.svg'
 import { ReactComponent as FullscreenSVG } from '../../shared/assets/material-icons/fullscreen.svg'
-import { getStyleProperty, getRect, isDoubleTouch, opac } from '../../shared/helpers'
-import { sharedFlags, themes, mediaBreakpoints } from '../../shared/variables'
+import { getStyleProperty, getRect, isDoubleTouch, opac, flags, themes, mediaBreakpoints } from '../../shared/shared'
 import Button from '../ui/Button'
 
 /* ---------------------------- STYLED-COMPONENTS --------------------------- */
@@ -175,7 +174,7 @@ export default class Window extends React.Component {
 		this.windowDraggable = new Draggable(windowElement, {
 			activeCursor: 'grabbing',
 			cursor: 'grab',
-			force3D: !sharedFlags.isChrome,
+			force3D: !flags.isChrome,
 			bounds: '#display',
 			edgeResistance: 0.5,
 			trigger: `#title-bar-${id}`,

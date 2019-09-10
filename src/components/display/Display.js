@@ -3,10 +3,10 @@ import styled, { css } from 'styled-components/macro'
 import { TransitionGroup } from 'react-transition-group'
 
 import TopographySVG from '../../shared/assets/backgrounds/topography.svg'
+import { themes } from '../../shared/shared'
 import Button from '../ui/Button'
 import Window from './Window'
 import Navigation from './Navigation'
-import { themes } from '../../shared/variables'
 
 /* ---------------------------- STYLED-COMPONENTS --------------------------- */
 

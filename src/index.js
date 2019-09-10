@@ -8,7 +8,7 @@ import { createGlobalStyle, ThemeProvider } from 'styled-components/macro'
 
 import registerServiceWorker from './registerServiceWorker'
 import { useMedia } from './shared/customHooks'
-import { themes, mediaBreakpoints } from './shared/variables'
+import { themes, mediaBreakpoints } from './shared/shared'
 import Display from './components/display/Display'
 import Weather from './components/weather/Weather'
 

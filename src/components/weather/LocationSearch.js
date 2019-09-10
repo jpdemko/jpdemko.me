@@ -4,14 +4,14 @@ import { TimelineLite } from 'gsap/all'
 import PlacesAutocomplete, { geocodeByAddress, getLatLng } from 'react-places-autocomplete'
 
 import { ReactComponent as LocationSVG } from '../../shared/assets/material-icons/location.svg'
-import { themes } from '../../shared/variables'
+import { themes, opac } from '../../shared/shared'
 import Button from '../ui/Button'
 
 /* ---------------------------- STYLED-COMPONENTS --------------------------- */
 
 const animDuration = 0.15
 
-const FindLocationRoot = styled.div`
+const LocationSearchRoot = styled.div`
 	display: flex;
 	position: relative;
 	&& {
@@ -52,13 +52,13 @@ const AutocompleteResults = styled.div`
 const Suggestion = styled(Button)`
 	width: 100%;
 	${({ theme }) => css`
-		border-bottom: 1px solid ${theme.mainColor};
+		border-bottom: 1px solid ${opac(0.5, theme.mainColor)};
 	`}
 `
 
 /* ------------------------- FIND-LOCATION COMPONENT ------------------------ */
 
-const FindLocation = ({ onLocationFound }) => {
+const LocationSearch = ({ onLocationFound }) => {
 	const [input, setInput] = useState('')
 	const rootRef = useRef()
 	const errorAnim = useRef()
@@ -113,7 +113,7 @@ const FindLocation = ({ onLocationFound }) => {
 			onError={playErrorAnim}
 		>
 			{({ getInputProps, suggestions, getSuggestionItemProps, loading }) => (
-				<FindLocationRoot ref={rootRef}>
+				<LocationSearchRoot ref={rootRef}>
 					<AutocompleteInput
 						{...getInputProps({
 							placeholder: 'Add locations...',
@@ -128,10 +128,10 @@ const FindLocation = ({ onLocationFound }) => {
 							</Suggestion>
 						))}
 					</AutocompleteResults>
-				</FindLocationRoot>
+				</LocationSearchRoot>
 			)}
 		</PlacesAutocomplete>
 	)
 }
 
-export default FindLocation
+export default LocationSearch

@@ -2,7 +2,7 @@ import React from 'react'
 import styled, { css } from 'styled-components/macro'
 import { Transition } from 'react-transition-group'
 
-import { themes } from '../../shared/variables'
+import { themes } from '../../shared/shared'
 
 /* ---------------------------- STYLED-COMPONENTS --------------------------- */
 

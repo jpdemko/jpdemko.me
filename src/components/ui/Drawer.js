@@ -1,7 +1,7 @@
 import React, { useCallback, useRef } from 'react'
 import styled, { css } from 'styled-components/macro'
 
-import { safeTranslate } from '../../shared/helpers'
+import { safeTranslate } from '../../shared/shared'
 import { useOnClickOutside } from '../../shared/customHooks'
 import Backdrop from './Backdrop'
 

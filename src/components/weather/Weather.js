@@ -4,15 +4,14 @@ import { DateTime, Interval } from 'luxon'
 
 import { ReactComponent as SunnySVG } from '../../shared/assets/weather-icons/wi-day-sunny.svg'
 import { ReactComponent as CloseCircleSVG } from '../../shared/assets/material-icons/close-circle.svg'
-import { themes } from '../../shared/variables'
-import { simplerFetch } from '../../shared/helpers'
+import { themes, simplerFetch } from '../../shared/shared'
 import { useLocalStorage } from '../../shared/customHooks'
 import { WindowSizeContext } from '../display/Window'
 import WeatherIcon from './WeatherIcon'
 import Button from '../ui/Button'
-import FindLocation from './FindLocation'
+import LocationSearch from './LocationSearch'
 import Drawer from '../ui/Drawer'
-import WeatherMap from './WeatherMap'
+import Radar from './Radar'
 
 /* ---------------------------- STYLED-COMPONENTS --------------------------- */
 
@@ -141,30 +140,34 @@ const Weather = () => {
 		if (!weatherData || !sunData) return weatherBG
 
 		const now = DateTime.fromSeconds(weatherData.currently.time)
+		console.log(now.toString())
 		let sun = { ...sunData }
-		Object.keys(sun).forEach((key) => (sun[key] = DateTime.fromISO(sun[key])))
+		Object.keys(sun).forEach((key) => {
+			sun[key] = DateTime.fromISO(sun[key])
+			console.log(sun[key].toString())
+		})
 
 		// Create time intervals where we can tell where the weather data retrieval time falls under.
-		const dawn = Interval.fromDateTimes(
-			sun.nautical_twilight_begin,
-			sun.sunrise.plus(sun.sunrise.diff(sun.nautical_twilight_begin)),
-		)
-		const dusk = Interval.fromDateTimes(
-			sun.sunset.minus(sun.nautical_twilight_end.diff(sun.sunset)),
-			sun.nautical_twilight_end,
-		)
+		// const dawn = Interval.fromDateTimes(
+		// 	sun.nautical_twilight_begin,
+		// 	sun.sunrise.plus(sun.sunrise.diff(sun.nautical_twilight_begin)),
+		// )
+		// const dusk = Interval.fromDateTimes(
+		// 	sun.sunset.minus(sun.nautical_twilight_end.diff(sun.sunset)),
+		// 	sun.nautical_twilight_end,
+		// )
 
-		if (dawn.contains(now) || dusk.contains(now)) {
-			weatherBG = 'linear-gradient(0deg, #311f62 10%, #8d5273 65%, #e8817f 100%)'
-		} else if (dusk.isBefore(now)) {
-			weatherBG = 'linear-gradient(0deg, #2b2f77 0%, #141852 65%, #070b34 100%)'
-		}
+		// if (dawn.contains(now) || dusk.contains(now)) {
+		// 	weatherBG = 'linear-gradient(0deg, #311f62 10%, #8d5273 65%, #e8817f 100%)'
+		// } else if (dusk.isBefore(now)) {
+		// 	weatherBG = 'linear-gradient(0deg, #2b2f77 0%, #141852 65%, #070b34 100%)'
+		// }
 		return weatherBG
 	}
 
 	const navContent = (
 		<NavContent isMobileSizedWindow={isMobileSizedWindow}>
-			<FindLocation onLocationFound={loadLocation} />
+			<LocationSearch onLocationFound={loadLocation} />
 			{locations.map((loc) => (
 				<NavLocation key={loc.id} weatherBG={loc.weatherBG}>
 					<NavLocationData tag='div' onClick={() => loadLocation(loc.coords.lat, loc.coords.lng)}>
@@ -190,14 +193,17 @@ const Weather = () => {
 					{loadedLocation && (
 						<>
 							<div>currently selected: {loadedLocation.locationName}</div>
-							<WeatherMap loadedLocation={loadedLocation} />
-							zoneName: {DateTime.local().zoneName}
 						</>
 					)}
 					<div style={{ flex: 0 }}>
-						<Button onClick={() => setMobileDrawerOpened(true)}>open drawer</Button>
-						<Button onClick={() => console.log(locations, loadedLocation)}>log state</Button>
+						<Button variant='outline' onClick={() => setMobileDrawerOpened(true)}>
+							open drawer
+						</Button>
+						<Button variant='outline' onClick={() => console.log(locations, loadedLocation)}>
+							log state
+						</Button>
 					</div>
+					<Radar loadedLocation={loadedLocation} />
 				</DataDisplay>
 			</WeatherRoot>
 		</ThemeProvider>

@@ -1,7 +1,7 @@
 import React from 'react'
 import styled, { css } from 'styled-components/macro'
 
-import { safeTranslate, opac } from '../../shared/helpers'
+import { safeTranslate, opac } from '../../shared/shared'
 
 /* ---------------------------- STYLED-COMPONENTS --------------------------- */
 
