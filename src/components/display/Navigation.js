@@ -7,7 +7,7 @@ import { themes } from '../../shared/shared'
 import Button from '../ui/Button'
 import Drawer from '../ui/Drawer'
 
-/* ---------------------------- STYLED-COMPONENTS --------------------------- */
+/* --------------------------------- STYLES --------------------------------- */
 
 const NavButton = styled(Button)`
 	flex: 0 0 auto;
@@ -22,9 +22,6 @@ const BottomNav = styled.div`
 	bottom: 0;
 	width: 100vw;
 	background: rgba(0, 0, 0, 0.9);
-	${({ isMobile }) => css`
-		flex-direction: ${isMobile ? 'row-reverse' : 'row'};
-	`}
 `
 
 const DrawerButtonsContainer = styled.div`
@@ -35,7 +32,7 @@ const DrawerButtonsContainer = styled.div`
 	`}
 `
 
-/* -------------------------- NAVIGATION COMPONENT -------------------------- */
+/* -------------------------------- COMPONENT ------------------------------- */
 
 const Navigation = ({ openedApps, isMobile, toggleDesktop }) => {
 	const [mobileDrawerOpened, setMobileDrawerOpened] = useState(false)

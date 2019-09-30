@@ -4,9 +4,9 @@ import { Transition } from 'react-transition-group'
 
 import { themes } from '../../shared/shared'
 
-/* ---------------------------- STYLED-COMPONENTS --------------------------- */
+/* --------------------------------- STYLES --------------------------------- */
 
-const BackdropRoot = styled.div`
+const Root = styled.div`
 	position: absolute;
 	z-index: 5000;
 	top: 0;
@@ -20,12 +20,12 @@ const BackdropRoot = styled.div`
 	`};
 `
 
-/* --------------------------- BACKDROP COMPONENT --------------------------- */
+/* -------------------------------- COMPONENT ------------------------------- */
 
 const Backdrop = ({ isShown = false, animDuration = 0.5, ...props }) => {
 	return (
 		<Transition timeout={animDuration * 1000} in={isShown} unmountOnExit>
-			<BackdropRoot isShown={isShown} animDuration={animDuration} {...props} />
+			<Root isShown={isShown} animDuration={animDuration} {...props} />
 		</Transition>
 	)
 }

@@ -9,15 +9,23 @@ import { ReactComponent as CloseSVG } from '../../shared/assets/material-icons/c
 import { ReactComponent as MinimizeSVG } from '../../shared/assets/material-icons/minimize.svg'
 import { ReactComponent as FullscreenExitSVG } from '../../shared/assets/material-icons/fullscreen-exit.svg'
 import { ReactComponent as FullscreenSVG } from '../../shared/assets/material-icons/fullscreen.svg'
-import { getStyleProperty, getRect, isDoubleTouch, opac, flags, themes, mediaBreakpoints } from '../../shared/shared'
+import {
+	getStyleProperty,
+	getRect,
+	isDoubleTouch,
+	opac,
+	flags,
+	themes,
+	mediaBreakpoints,
+} from '../../shared/shared'
 import Button from '../ui/Button'
 
-/* ---------------------------- STYLED-COMPONENTS --------------------------- */
+/* --------------------------------- STYLES --------------------------------- */
 
 // Time in seconds for all GSAP Window Tweens.
 const windowAnimDuration = 0.4
 
-const WindowRoot = styled.div`
+const Root = styled.div`
 	position: absolute;
 	display: flex;
 	flex-direction: column;
@@ -110,7 +118,7 @@ const CornerSW = styled(Corner)`
 	cursor: sw-resize !important;
 `
 
-/* ---------------------------- WINDOW COMPONENT ---------------------------- */
+/* -------------------------------- COMPONENT ------------------------------- */
 
 export const WindowSizeContext = React.createContext()
 
@@ -365,7 +373,7 @@ export default class Window extends React.Component {
 				onEntered={this.enableDrag}
 				onExit={() => this.minimize()}
 			>
-				<WindowRoot
+				<Root
 					id={`window-${id}`}
 					ref={this.rootRef}
 					isMaximized={isMaximized}
@@ -412,7 +420,7 @@ export default class Window extends React.Component {
 					<CornerNE id={`corner-ne-${id}`} />
 					<CornerSE id={`corner-se-${id}`} />
 					<CornerSW id={`corner-sw-${id}`} />
-				</WindowRoot>
+				</Root>
 			</Transition>
 		)
 	}

@@ -5,23 +5,24 @@ import { safeTranslate } from '../../shared/shared'
 import { useOnClickOutside } from '../../shared/customHooks'
 import Backdrop from './Backdrop'
 
-/* ---------------------------- STYLED-COMPONENTS --------------------------- */
+/* --------------------------------- STYLES --------------------------------- */
 
-const DrawerRoot = styled.div`
+const Root = styled.div`
 	position: absolute;
 	z-index: 5001;
 	top: 0;
 	bottom: 0;
 	${({ isShown, animDuration, side, theme }) => css`
 		${side}: 0;
-		background-color: ${theme.bgContrastColor};
+		background-color: ${theme.mainColor};
+		color: ${theme.bgContrastColor};
 		transition: ${animDuration}s;
 		transform: ${isShown ? safeTranslate('0, 0') : safeTranslate(`${side === 'left' ? '-' : ''}100%, 0`)};
 		opacity: ${isShown ? 1 : 0};
 	`}
 `
 
-/* ---------------------------- DRAWER COMPONENT ---------------------------- */
+/* -------------------------------- COMPONENT ------------------------------- */
 
 const Drawer = ({ isShown = false, onClose, animDuration = 0.5, side = 'left', children, ...props }) => {
 	const drawerRef = useRef()
@@ -32,9 +33,9 @@ const Drawer = ({ isShown = false, onClose, animDuration = 0.5, side = 'left', c
 
 	return (
 		<>
-			<DrawerRoot ref={drawerRef} isShown={isShown} animDuration={animDuration} side={side} {...props}>
+			<Root ref={drawerRef} isShown={isShown} animDuration={animDuration} side={side} {...props}>
 				{children}
-			</DrawerRoot>
+			</Root>
 			<Backdrop isShown={isShown} animDuration={animDuration} />
 		</>
 	)

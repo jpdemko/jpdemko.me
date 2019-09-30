@@ -36,7 +36,7 @@ function FakeOS() {
 	return (
 		<>
 			<GlobalStyle />
-			<ThemeProvider theme={themes.blue}>
+			<ThemeProvider theme={themes.dark}>
 				<Display isMobile={isMobile} mountableApps={mountableApps} />
 			</ThemeProvider>
 		</>

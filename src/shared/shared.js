@@ -40,10 +40,10 @@ Object.keys(themes).forEach((key) => {
 export const mediaBreakpoints = { desktop: 768 }
 
 /**
- * Shorter/cleaner way to get the computed style values of an element.
- * @param {Element} ele Target DOM element you want to retrieve styles for.
- * @param {string} prop Style property you want to get.
- * @param {boolean} [parseValue=false] Sometimes you want an actual number w/o any units.
+ * Condensed way to get the computed style values of an element.
+ * @param {Element} ele - target DOM element you want to retrieve styles for
+ * @param {string} prop - style property you want to get
+ * @param {boolean} [parseValue=false] - sometimes you want an actual number w/o any units
  * @return {string|number}
  */
 export function getStyleProperty(ele, prop, parseValue = false) {
@@ -52,7 +52,7 @@ export function getStyleProperty(ele, prop, parseValue = false) {
 }
 
 /**
- * Basically fetch w/ some built in error handling.
+ * Fetch w/ some built in error handling.
  * @param {string} url
  * @return {Promise<Response>}
  */
@@ -62,12 +62,15 @@ export function simplerFetch(url) {
 			if (!res.ok) throw Error(`bad response --> code ${res.status}`)
 			return res.json()
 		})
-		.catch((err) => Promise.reject(err.message))
+		.catch((err) => {
+			console.log(err.message)
+			Promise.reject(err.message)
+		})
 }
 
 /**
- * Shorter/cleaner way to get the DOMRect of something, tired of lines wrapping.
- * @param {Element|string} target DOM element OR string element ID.
+ * Condensed way to get the DOMRect of something.
+ * @param {Element|string} target - DOM element OR string element ID
  * @return {DOMRect}
  */
 export function getRect(target) {
@@ -77,8 +80,8 @@ export function getRect(target) {
 
 /**
  * This 'mixin' was created because of a Chrome bug which causes child elements to blur on 3D translation.
- * @param {string} adjustments Your desired translation values, eg: '0, -15%'
- * @return {string} The resultant browser translation, eg: 'translate3d(0, -15%, 0)'
+ * @param {string} adjustments - your desired translation values, eg: '0, -15%'
+ * @return {string} - the resultant browser translation, eg: 'translate3d(0, -15%, 0)'
  */
 export function safeTranslate(adjustments) {
 	const is3D = adjustments.split(',').length > 2

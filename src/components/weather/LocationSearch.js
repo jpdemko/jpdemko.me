@@ -1,17 +1,17 @@
+/* global Microsoft */
+
 import React, { useState, useRef, useEffect } from 'react'
 import styled, { css } from 'styled-components/macro'
-import { TimelineLite } from 'gsap/all'
-import PlacesAutocomplete, { geocodeByAddress, getLatLng } from 'react-places-autocomplete'
 
 import { ReactComponent as LocationSVG } from '../../shared/assets/material-icons/location.svg'
-import { themes, opac } from '../../shared/shared'
 import Button from '../ui/Button'
 
-/* ---------------------------- STYLED-COMPONENTS --------------------------- */
+/* --------------------------------- STYLES --------------------------------- */
 
 const animDuration = 0.15
 
-const LocationSearchRoot = styled.div`
+const Root = styled.div`
+	flex: 0 0;
 	display: flex;
 	position: relative;
 	&& {
@@ -19,6 +19,18 @@ const LocationSearchRoot = styled.div`
 	}
 	${({ theme }) => css`
 		box-shadow: inset 0 -1px 0 0 ${theme.mainColor};
+		/* Fixing Bing elements; search results and children */
+		& .MicrosoftMap .as_container_search {
+			position: absolute;
+			width: 100%;
+			top: 100%;
+			left: 0;
+			background-color: ${theme.mainColor};
+		}
+		& .MicrosoftMap .as_container_search .asOuterContainer {
+			border: none;
+			box-shadow: none;
+		}
 	`}
 `
 
@@ -36,66 +48,51 @@ const AutocompleteInput = styled.input`
 			box-shadow: inset 0 -2px 0 0 ${theme.mainColor};
 		}
 	`}
+	/* Fixing Bing elements; location search input */
+	&[style] {
+		background-color: #0000 !important;
+	}
 `
 
-const AutocompleteResults = styled.div`
-	position: absolute;
-	display: flex;
-	flex-direction: column;
-	top: 100%;
-	width: 100%;
-	${({ theme }) => css`
-		background-color: ${theme.bgContrastColor};
-	`}
-`
+/* -------------------------------- COMPONENT ------------------------------- */
 
-const Suggestion = styled(Button)`
-	width: 100%;
-	${({ theme }) => css`
-		border-bottom: 1px solid ${opac(0.5, theme.mainColor)};
-	`}
-`
-
-/* ------------------------- FIND-LOCATION COMPONENT ------------------------ */
-
-const LocationSearch = ({ onLocationFound }) => {
+const LocationSearch = ({ map, onLocationFound }) => {
 	const [input, setInput] = useState('')
-	const rootRef = useRef()
-	const errorAnim = useRef()
+	const suggestManagerRef = useRef()
+	const searchManagerRef = useRef()
+
+	const onLocationFoundRef = useRef()
+	useEffect(() => {
+		onLocationFoundRef.current = onLocationFound
+	}, [onLocationFound])
 
 	useEffect(() => {
-		errorAnim.current = new TimelineLite({ paused: true })
-		errorAnim.current.to(rootRef.current, animDuration, {
-			boxShadow: `inset 0 -3px 0 0 ${themes.red.mainColor}`,
-			color: `${themes.red.mainColor}`,
-			onComplete: () => errorAnim.current.reverse(),
-		})
-	}, [])
-
-	const playErrorAnim = () => {
-		if (!errorAnim.current.isActive()) errorAnim.current.play()
-	}
-
-	const handoffLocation = (lat, lng) => {
-		const decPlace = 10000
-		const roundLat = Math.round(lat * decPlace) / decPlace
-		const roundLng = Math.round(lng * decPlace) / decPlace
-		onLocationFound(roundLat, roundLng)
-	}
-
-	const onSelect = (address) => {
-		geocodeByAddress(address)
-			.then((results) => getLatLng(results[0]))
-			.then(({ lat, lng }) => handoffLocation(lat, lng))
-			.catch(console.log)
-		setInput('')
-	}
+		if (map) {
+			Microsoft.Maps.loadModule(['Microsoft.Maps.AutoSuggest', 'Microsoft.Maps.Search'], {
+				callback: () => {
+					suggestManagerRef.current = new Microsoft.Maps.AutosuggestManager({
+						maxResults: 5,
+						map,
+					})
+					suggestManagerRef.current.attachAutosuggest('#searchInput', '#searchRoot', (mapData) =>
+						onLocationFoundRef.current(mapData),
+					)
+					searchManagerRef.current = new Microsoft.Maps.Search.SearchManager(map)
+				},
+				errorCallback: console.log,
+			})
+		}
+	}, [map])
 
 	const onGeolocateCurrentPosition = () => {
 		navigator.geolocation.getCurrentPosition(
 			({ coords }) => {
+				const location = new Microsoft.Maps.Location(coords.latitude, coords.longitude)
+				searchManagerRef.current.reverseGeocode({
+					location,
+					callback: onLocationFoundRef.current,
+				})
 				setInput('')
-				handoffLocation(coords.latitude, coords.longitude)
 			},
 			console.log,
 			{ enableHighAccuracy: true },
@@ -103,34 +100,17 @@ const LocationSearch = ({ onLocationFound }) => {
 	}
 
 	return (
-		<PlacesAutocomplete
-			value={input}
-			onChange={setInput}
-			onSelect={onSelect}
-			shouldFetchSuggestions={input.length > 2}
-			highlightFirstSuggestion
-			searchOptions={{ types: ['geocode'] }}
-			onError={playErrorAnim}
-		>
-			{({ getInputProps, suggestions, getSuggestionItemProps, loading }) => (
-				<LocationSearchRoot ref={rootRef}>
-					<AutocompleteInput
-						{...getInputProps({
-							placeholder: 'Add locations...',
-						})}
-					/>
-					<Button svg={LocationSVG} onClick={onGeolocateCurrentPosition} />
-					<AutocompleteResults hasSuggestions={suggestions.length > 0}>
-						{loading && <div>Loading...</div>}
-						{suggestions.map((s) => (
-							<Suggestion key={s.description} isFocused={s.active} {...getSuggestionItemProps(s)}>
-								{s.description}
-							</Suggestion>
-						))}
-					</AutocompleteResults>
-				</LocationSearchRoot>
-			)}
-		</PlacesAutocomplete>
+		<Root id='searchRoot'>
+			<AutocompleteInput
+				id='searchInput'
+				placeholder='Add locations...'
+				value={input}
+				onClick={() => setInput('')}
+				onChange={(e) => setInput(e.target.value)}
+				style={{ backgroundColor: '#0000' }}
+			/>
+			<Button svg={LocationSVG} onClick={onGeolocateCurrentPosition} />
+		</Root>
 	)
 }
 

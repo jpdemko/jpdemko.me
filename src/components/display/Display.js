@@ -8,9 +8,9 @@ import Button from '../ui/Button'
 import Window from './Window'
 import Navigation from './Navigation'
 
-/* ---------------------------- STYLED-COMPONENTS --------------------------- */
+/* --------------------------------- STYLES --------------------------------- */
 
-const DisplayRoot = styled.div`
+const Root = styled.div`
 	height: 100vh;
 	display: flex;
 	flex-direction: column;
@@ -70,7 +70,7 @@ const ShortcutButton = styled(Button)`
 	margin: 0.5em;
 `
 
-/* ---------------------------- DISPLAY COMPONENT --------------------------- */
+/* -------------------------------- COMPONENT ------------------------------- */
 
 // GSAP's Draggable has a shared z-index updater across all instances, however it doesn't update
 // in every circumstance we need it to.
@@ -181,7 +181,7 @@ export default class Display extends React.Component {
 		const { mountableApps, isMobile, children } = this.props
 		const { openedApps } = this.state
 		return (
-			<DisplayRoot id='display'>
+			<Root id='display'>
 				{/* SVG pattern loaded inline because of styled-components Firefox bug which causes flickering? */}
 				<Background style={{ backgroundImage: `url(${TopographySVG})` }} theme={themes.light} />
 				<AllowedDragArea>
@@ -221,7 +221,7 @@ export default class Display extends React.Component {
 					</TransitionGroup>
 				</AllowedDragArea>
 				<Navigation openedApps={openedApps} isMobile={isMobile} toggleDesktop={this.toggleDesktop} />
-			</DisplayRoot>
+			</Root>
 		)
 	}
 }

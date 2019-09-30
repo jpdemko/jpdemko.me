@@ -1,6 +1,7 @@
 {
-  "extends": "react-app",
-  "rules": {
-    "no-continue": "off"
-  }
+	"extends": "react-app",
+	"rules": {
+		"no-continue": "off",
+		"no-sequences": "off"
+	}
 }

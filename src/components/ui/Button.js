@@ -3,7 +3,7 @@ import styled, { css } from 'styled-components/macro'
 
 import { safeTranslate, opac } from '../../shared/shared'
 
-/* ---------------------------- STYLED-COMPONENTS --------------------------- */
+/* --------------------------------- STYLES --------------------------------- */
 
 export const ButtonBase = styled.button.attrs(({ size = 1, svg }) => {
 	let sizeModifier = 1
@@ -101,7 +101,7 @@ const FancyButton = styled(ButtonBase)`
 	`}
 `
 
-/* ---------------------------- BUTTON COMPONENT ---------------------------- */
+/* -------------------------------- COMPONENT ------------------------------- */
 
 const Button = ({ tag, variant, children, ...props }) => {
 	let ButtonVariant = BasicButton
@@ -113,7 +113,7 @@ const Button = ({ tag, variant, children, ...props }) => {
 	return (
 		<ButtonVariant as={tag} {...props}>
 			{props.svg && <props.svg />}
-			{children && <span>{children}</span>}
+			{children}
 		</ButtonVariant>
 	)
 }

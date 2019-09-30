@@ -4,7 +4,7 @@ import styled, { css } from 'styled-components/macro'
 import { opac, themes } from '../../shared/shared'
 import { ButtonBase } from './Button'
 
-/* ---------------------------- STYLED-COMPONENTS --------------------------- */
+/* --------------------------------- STYLES --------------------------------- */
 
 const { dark, light } = themes
 
@@ -21,7 +21,7 @@ const TabButton = styled(ButtonBase)`
 	`}
 `
 
-const TabsRoot = styled.div`
+const Root = styled.div`
 	border: 1px solid ${dark.mainColor};
 	background: ${light.mainColor};
 `
@@ -31,13 +31,13 @@ const TabsHeader = styled.div`
 	background: ${opac(0.2, dark.mainColor)};
 `
 
-/* ----------------------------- TABS COMPONENT ----------------------------- */
+/* -------------------------------- COMPONENT ------------------------------- */
 
 const Tabs = ({ children, ...props }) => {
 	const [content, setContent] = useState(children[0])
 
 	return (
-		<TabsRoot {...props}>
+		<Root {...props}>
 			<TabsHeader>
 				{children.map((ele) => (
 					<TabButton key={ele.props.title} isFocused={content === ele} onClick={() => setContent(ele)}>
@@ -46,7 +46,7 @@ const Tabs = ({ children, ...props }) => {
 				))}
 			</TabsHeader>
 			{content}
-		</TabsRoot>
+		</Root>
 	)
 }
 
