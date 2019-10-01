@@ -1,7 +1,7 @@
 import React from 'react'
 import styled, { css } from 'styled-components/macro'
 
-import { safeTranslate, opac } from '../../shared/shared'
+import { opac } from '../../shared/shared'
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -36,7 +36,7 @@ export const ButtonBase = styled.button.attrs(({ size = 1, svg }) => {
 	transition: opacity 0.2s, background 0.15s, box-shadow 0.15s, outline 0.1s;
 	font-weight: 500;
 	outline: none;
-	${({ theme, varCSS, disabled, svgAdjust }) => css`
+	${({ theme, varCSS, disabled }) => css`
 		box-shadow: 0 0 0 0 ${theme.mainColor};
 		font-size: ${varCSS.fontSize};
 		padding: ${varCSS.verticalPadding} ${varCSS.sidePadding};
@@ -45,15 +45,6 @@ export const ButtonBase = styled.button.attrs(({ size = 1, svg }) => {
 		cursor: ${disabled ? 'default' : 'pointer'};
 		&:active {
 			box-shadow: 0 0 0 3px ${theme.mainColor};
-		}
-		svg {
-			${svgAdjust &&
-				css`
-					transform: ${safeTranslate(svgAdjust)};
-				`}
-		}
-		svg + span {
-			margin: 0 ${varCSS.sidePadding};
 		}
 	`}
 `

@@ -11,7 +11,7 @@ import Navigation from './Navigation'
 /* --------------------------------- STYLES --------------------------------- */
 
 const Root = styled.div`
-	height: 100vh;
+	height: 100%;
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
@@ -28,8 +28,8 @@ const Background = styled.div`
 	z-index: -1;
 	top: 0;
 	left: 0;
-	height: 100vh;
-	width: 100vw;
+	height: 100%;
+	width: 100%;
 	opacity: 0.8;
 	${({ theme }) => css`
 		background-color: ${theme.mainColor};
@@ -194,6 +194,7 @@ export default class Display extends React.Component {
 								svg={mountableApp.shared.logo}
 								variant='fancy'
 								size='large'
+								theme={mountableApp.shared.theme}
 							/>
 						))}
 					</Shortcuts>

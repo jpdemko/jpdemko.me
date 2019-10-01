@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import styled, { css } from 'styled-components/macro'
 
 import { opac, themes } from '../../shared/shared'
+import WeatherIcon from './WeatherIcon'
+import Tabs from '../ui/Tabs'
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -12,6 +14,14 @@ const Root = styled.div`
 	> * {
 		flex: 1;
 	}
+`
+
+const Forecast = styled.div`
+	display: flex;
+	flex-direction: column;
+	${({ curWeatherBG }) => css`
+		background-image: ${curWeatherBG};
+	`}
 `
 
 const InfoMessage = styled.div`
@@ -64,7 +74,7 @@ const validZones = [
 	'Pacific/Honolulu',
 ]
 
-const ForecastDisplay = ({ curLocation, ...props }) => {
+const ForecastDisplay = ({ curLocation, getTemp, ...props }) => {
 	const [isValidZone, setIsValidZone] = useState(
 		curLocation && validZones.includes(curLocation.weatherData.timezone),
 	)
@@ -73,8 +83,15 @@ const ForecastDisplay = ({ curLocation, ...props }) => {
 		setIsValidZone(curLocation && validZones.includes(curLocation.weatherData.timezone))
 	}, [curLocation])
 
+	const { mapData, weatherData } = curLocation || {}
 	return (
 		<Root {...props}>
+			{curLocation && (
+				<Forecast curWeatherBG={curLocation.curWeatherBG}>
+					<div>{mapData.address.formattedAddress}</div>
+					<div>{weatherData.currently.summary}</div>
+				</Forecast>
+			)}
 			<div id='BingMapRadar'>
 				<InfoMessage theme={themes.dark} isValidZone={isValidZone}>
 					INFO: Radar loop only works in US! (don't have outside data)

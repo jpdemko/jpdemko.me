@@ -53,6 +53,7 @@ const Row = styled.div`
 `
 
 const Location = styled(Button)`
+	padding-top: 0.5em;
 	flex: 1;
 	display: flex;
 	flex-direction: column;
@@ -69,7 +70,7 @@ const LocationSummary = styled.div`
 	align-items: center;
 	& svg {
 		font-size: 1.4em;
-		transform: translate3d(0, 5%, 0);
+		/* transform: translate3d(0, 7.5%, 0); */
 	}
 `
 
@@ -193,32 +194,32 @@ const WeatherNav = ({
 	}, 1000 * 60 * updateInterval)
 
 	const navContent = (
-		<ThemeProvider theme={themes.light}>
-			<Root isMobileSizedWindow={isMobileSizedWindow} {...props} theme={themes.dark}>
-				<LocationSearch map={map} onLocationFound={onLocationFound} locations={locations} />
-				<LocationsList>
-					{locations.map(({ id, curWeatherBG, mapData, weatherData }) => (
-						<Row key={id} curWeatherBG={curWeatherBG}>
-							<Location tag='div' onClick={() => onLocationFound(mapData)}>
-								<LocationAddress>{mapData.address.formattedAddress}</LocationAddress>
-								<LocationSummary>
-									<WeatherIcon iconName={weatherData.currently.icon} />
-									<span>{getTemp(weatherData.currently.apparentTemperature)}&deg;</span>
-									<span style={{ opacity: 0.8, marginRight: '.5em' }}>/</span>
-									<span>{date.setZone(weatherData.timezone).toFormat('t')}</span>
-								</LocationSummary>
-							</Location>
-							<Button svg={CloseCircleSVG} onClick={() => removeLocation(id)}></Button>
-						</Row>
-					))}
-				</LocationsList>
-				<Footer>
-					<Button variant='fancy' theme={themes.blue} onClick={flipMetric}>
-						{isMetric ? 'Switch to Fahrenheit' : 'Switch to Celsius'}
-					</Button>
-				</Footer>
-			</Root>
-		</ThemeProvider>
+		// <ThemeProvider theme={themes.light}>
+		<Root isMobileSizedWindow={isMobileSizedWindow} {...props} theme={themes.dark}>
+			<LocationSearch map={map} onLocationFound={onLocationFound} locations={locations} />
+			<LocationsList>
+				{locations.map(({ id, curWeatherBG, mapData, weatherData }) => (
+					<Row key={id} curWeatherBG={curWeatherBG}>
+						<Location tag='div' onClick={() => onLocationFound(mapData)}>
+							<LocationAddress>{mapData.address.formattedAddress}</LocationAddress>
+							<LocationSummary>
+								<span>{getTemp(weatherData.currently.apparentTemperature)}&deg;</span>
+								<WeatherIcon iconName={weatherData.currently.icon} />
+								{/* <span style={{ opacity: 0.8, marginRight: '.5em' }}>/</span> */}
+								<span>{date.setZone(weatherData.timezone).toFormat('t')}</span>
+							</LocationSummary>
+						</Location>
+						<Button svg={CloseCircleSVG} onClick={() => removeLocation(id)}></Button>
+					</Row>
+				))}
+			</LocationsList>
+			<Footer>
+				<Button variant='fancy' theme={themes.blue} onClick={flipMetric}>
+					{isMetric ? 'Switch to Fahrenheit' : 'Switch to Celsius'}
+				</Button>
+			</Footer>
+		</Root>
+		// {/* </ThemeProvider> */}
 	)
 	return (
 		<>

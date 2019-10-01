@@ -100,7 +100,7 @@ const Weather = () => {
 	const getTemp = (temp) => (isMetric ? Math.round((5 / 9) * (temp - 32)) : Math.round(temp))
 
 	return (
-		<ThemeProvider theme={themes.dark}>
+		<ThemeProvider theme={themes.light}>
 			<Root weatherBG={curLocation && curLocation.weatherBG}>
 				<WeatherNav
 					isMobileSizedWindow={isMobileSizedWindow}
@@ -111,7 +111,7 @@ const Weather = () => {
 					flipMetric={flipMetric}
 					getTemp={getTemp}
 				/>
-				<ForecastDisplay curLocation={curLocation} />
+				<ForecastDisplay curLocation={curLocation} getTemp={getTemp} />
 			</Root>
 		</ThemeProvider>
 	)
@@ -120,6 +120,7 @@ const Weather = () => {
 Weather.shared = {
 	title: 'Weather',
 	logo: SunnySVG,
+	theme: themes.blue,
 }
 
 export default Weather
