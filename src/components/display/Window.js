@@ -18,6 +18,7 @@ import {
 	themes,
 	mediaBreakpoints,
 } from '../../shared/shared'
+import Contexts from '../../shared/contexts'
 import Button from '../ui/Button'
 
 /* --------------------------------- STYLES --------------------------------- */
@@ -31,9 +32,9 @@ const Root = styled.div`
 	flex-direction: column;
 	max-width: 100vw;
 	max-height: 100vh;
-	${({ windowCSS, zIndex, isFocused, isMobile, isMaximized, theme }) => css`
+	${({ windowCSS, zIndex, isFocused, isMobileSite, isMaximized, theme }) => css`
 		z-index: ${zIndex};
-		${!isMobile &&
+		${!isMobileSite &&
 			css`
 				min-height: ${windowCSS.minHeight}px;
 				min-width: ${windowCSS.minWidth}px;
@@ -49,9 +50,9 @@ const TitleBar = styled.div`
 	font-weight: 500;
 	opacity: 0.9;
 	align-items: center;
-	${({ isMobile, theme }) => css`
+	${({ isMobileSite, theme }) => css`
 		color: ${theme.bgContrastColor};
-		display: ${isMobile ? 'none' : 'flex'};
+		display: ${isMobileSite ? 'none' : 'flex'};
 		background-image: ${theme.gradient};
 	`}
 `
@@ -120,15 +121,13 @@ const CornerSW = styled(Corner)`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-export const WindowSizeContext = React.createContext()
-
 export default class Window extends React.Component {
 	constructor(props) {
 		super(props)
 		this.state = {
 			isMinimized: false,
-			isMaximized: props.isMobile,
-			isMobileSizedWindow: props.isMobile,
+			isMaximized: props.isMobileSite,
+			isMobileWindow: props.isMobileSite,
 		}
 
 		this.rootRef = React.createRef()
@@ -171,12 +170,12 @@ export default class Window extends React.Component {
 	}
 
 	static getDerivedStateFromProps(props, state) {
-		if (props.isMobile && !state.isMobileSizedWindow) return { isMobileSizedWindow: true }
+		if (props.isMobileSite && !state.isMobileWindow) return { isMobileWindow: true }
 		return null
 	}
 
 	componentDidMount() {
-		const { id, focusApp, windowCSS, isMobile } = this.props
+		const { id, focusApp, windowCSS, isMobileSite } = this.props
 		const windowElement = this.rootRef.current
 
 		this.windowDraggable = new Draggable(windowElement, {
@@ -259,7 +258,7 @@ export default class Window extends React.Component {
 				},
 			}),
 		]
-		if (isMobile) this.dragInstances.forEach((i) => i.disable())
+		if (isMobileSite) this.dragInstances.forEach((i) => i.disable())
 	}
 
 	componentWillUnmount() {
@@ -267,8 +266,8 @@ export default class Window extends React.Component {
 	}
 
 	componentDidUpdate(prevProps, prevState) {
-		if (prevProps.isMobile !== this.props.isMobile) {
-			this.dragInstances.forEach((i) => i.enabled(!this.props.isMobile))
+		if (prevProps.isMobileSite !== this.props.isMobileSite) {
+			this.dragInstances.forEach((i) => i.enabled(!this.props.isMobileSite))
 		}
 		const { isMaximized, isMinimized, isWindowed } = this.state
 		if (isWindowed && (isMaximized || isMinimized)) this.setState({ isWindowed: false })
@@ -276,11 +275,11 @@ export default class Window extends React.Component {
 	}
 
 	checkMediaSize = () => {
-		const { isMobileSizedWindow } = this.state
-		if (!isMobileSizedWindow && this.windowRect.width < mediaBreakpoints.desktop)
-			this.setState({ isMobileSizedWindow: true })
-		else if (isMobileSizedWindow && this.windowRect.width >= mediaBreakpoints.desktop)
-			this.setState({ isMobileSizedWindow: false })
+		const { isMobileWindow } = this.state
+		if (!isMobileWindow && this.windowRect.width < mediaBreakpoints.desktop)
+			this.setState({ isMobileWindow: true })
+		else if (isMobileWindow && this.windowRect.width >= mediaBreakpoints.desktop)
+			this.setState({ isMobileWindow: false })
 	}
 
 	minimize = (options = []) => {
@@ -294,7 +293,7 @@ export default class Window extends React.Component {
 
 	toggleMinimize = () => {
 		if (this.state.isMinimized) {
-			if (this.props.isMobile) this.maximize()
+			if (this.props.isMobileSite) this.maximize()
 			else this.restore()
 		} else if (!this.props.focusApp(this.props.id)) this.minimize()
 	}
@@ -357,7 +356,7 @@ export default class Window extends React.Component {
 	}
 
 	render() {
-		const { id, title, isMobile, isFocused, zIndex, windowCSS, in: show } = this.props
+		const { id, title, isMobileSite, isFocused, zIndex, windowCSS, in: show } = this.props
 		const { closeApp, focusApp } = this.props
 		const { isMaximized } = this.state
 		return (
@@ -367,7 +366,7 @@ export default class Window extends React.Component {
 				in={show}
 				onEnter={(node) => {
 					const { minimized, windowed, maximized } = this.difStatesCSS
-					if (isMobile) TweenMax.fromTo(node, windowAnimDuration, { ...minimized }, { ...maximized })
+					if (isMobileSite) TweenMax.fromTo(node, windowAnimDuration, { ...minimized }, { ...maximized })
 					else TweenMax.fromTo(node, windowAnimDuration, { ...minimized }, { ...windowed })
 				}}
 				onEntered={this.enableDrag}
@@ -378,7 +377,7 @@ export default class Window extends React.Component {
 					ref={this.rootRef}
 					isMaximized={isMaximized}
 					isFocused={isFocused}
-					isMobile={isMobile}
+					isMobileSite={isMobileSite}
 					windowCSS={windowCSS}
 					zIndex={zIndex}
 					theme={isFocused ? themes.blue : themes.dark}
@@ -386,7 +385,7 @@ export default class Window extends React.Component {
 					<TitleBar
 						id={`title-bar-${id}`}
 						isFocused={isFocused}
-						isMobile={isMobile}
+						isMobileSite={isMobileSite}
 						onDoubleClick={this.toggleMaximize}
 						onTouchEnd={(e) => {
 							// 'onDoubleClick' doesn't work w/ touch events even though the normal 'onClick' does?
@@ -408,9 +407,9 @@ export default class Window extends React.Component {
 						</div>
 					</TitleBar>
 					<Content onClick={() => focusApp(id)}>
-						<WindowSizeContext.Provider value={this.state.isMobileSizedWindow}>
+						<Contexts.MobileWindow.Provider value={this.state.isMobileWindow}>
 							{this.props.children}
-						</WindowSizeContext.Provider>
+						</Contexts.MobileWindow.Provider>
 					</Content>
 					<Side position='top' id={`side-top-${id}`} />
 					<Side position='right' id={`side-right-${id}`} />

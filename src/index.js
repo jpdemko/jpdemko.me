@@ -7,6 +7,7 @@ import ReactDOM from 'react-dom'
 import { createGlobalStyle, ThemeProvider } from 'styled-components/macro'
 
 import registerServiceWorker from './registerServiceWorker'
+import Contexts from './shared/contexts'
 import { useMedia } from './shared/customHooks'
 import { themes, mediaBreakpoints } from './shared/shared'
 import Display from './components/display/Display'
@@ -37,13 +38,15 @@ const GlobalStyle = createGlobalStyle`
 const mountableApps = [Weather]
 
 function FakeOS() {
-	const isMobile = useMedia([`(min-width: ${mediaBreakpoints.desktop}px)`], [false], true)
+	const isMobileSite = useMedia([`(min-width: ${mediaBreakpoints.desktop}px)`], [false], true)
 
 	return (
 		<>
 			<GlobalStyle />
 			<ThemeProvider theme={themes.dark}>
-				<Display isMobile={isMobile} mountableApps={mountableApps} />
+				<Contexts.MobileSite.Provider value={isMobileSite}>
+					<Display isMobileSite={isMobileSite} mountableApps={mountableApps} />
+				</Contexts.MobileSite.Provider>
 			</ThemeProvider>
 		</>
 	)

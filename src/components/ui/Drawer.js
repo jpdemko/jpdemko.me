@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react'
+import React from 'react'
 import styled, { css } from 'styled-components/macro'
 
 import { safeTranslate } from '../../shared/shared'
@@ -25,10 +25,10 @@ const Root = styled.div`
 /* -------------------------------- COMPONENT ------------------------------- */
 
 const Drawer = ({ isShown = false, onClose, animDuration = 0.5, side = 'left', children, ...props }) => {
-	const drawerRef = useRef()
+	const drawerRef = React.useRef()
 
 	// 'useOnClickOutside()' will keep creating/removing event handlers on each render unless this is done.
-	const memoizedCloseDrawer = useCallback(() => onClose(), [onClose])
+	const memoizedCloseDrawer = React.useCallback(() => isShown && onClose(), [isShown, onClose])
 	useOnClickOutside(drawerRef, memoizedCloseDrawer)
 
 	return (

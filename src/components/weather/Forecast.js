@@ -1,27 +1,16 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import styled, { css } from 'styled-components/macro'
+import { DateTime } from 'luxon'
 
-import { opac, themes } from '../../shared/shared'
-import WeatherIcon from './WeatherIcon'
+import { themes, opac } from '../../shared/shared'
 import Tabs from '../ui/Tabs'
 
 /* --------------------------------- STYLES --------------------------------- */
 
-const Root = styled.div`
-	flex: 2;
-	display: flex;
-	flex-direction: column;
-	> * {
-		flex: 1;
-	}
-`
-
-const Forecast = styled.div`
-	display: flex;
-	flex-direction: column;
-	${({ curWeatherBG }) => css`
-		background-image: ${curWeatherBG};
-	`}
+const CustomTabs = styled(Tabs)`
+	font-size: 0.8em;
+	border: none;
+	flex: 1 1;
 `
 
 const InfoMessage = styled.div`
@@ -39,7 +28,18 @@ const InfoMessage = styled.div`
 	`}
 `
 
-/* -------------------------------- COMPONENT ------------------------------- */
+const Table = styled.div`
+	height: 100%;
+	display: grid;
+`
+
+/* -------------------------------- COMPONENTS ------------------------------- */
+
+const DaySummary = ({ id, weatherData: { daily }, ...props }) => (
+	<div>
+		<div>{DateTime.fromSeconds(daily.time).setZone()}</div>
+	</div>
+)
 
 const validZones = [
 	'America/Adak',
@@ -74,31 +74,33 @@ const validZones = [
 	'Pacific/Honolulu',
 ]
 
-const ForecastDisplay = ({ curLocation, getTemp, ...props }) => {
-	const [isValidZone, setIsValidZone] = useState(
-		curLocation && validZones.includes(curLocation.weatherData.timezone),
-	)
+const Forecast = ({ curLocation, locations = [] }) => {
+	const [isValidZone, setIsValidZone] = React.useState(true)
 
-	useEffect(() => {
+	React.useEffect(() => {
 		setIsValidZone(curLocation && validZones.includes(curLocation.weatherData.timezone))
 	}, [curLocation])
 
-	const { mapData, weatherData } = curLocation || {}
-	return (
-		<Root {...props}>
-			{curLocation && (
-				<Forecast curWeatherBG={curLocation.curWeatherBG}>
-					<div>{mapData.address.formattedAddress}</div>
-					<div>{weatherData.currently.summary}</div>
-				</Forecast>
-			)}
-			<div id='BingMapRadar'>
+	const bingMapRadar = {
+		id: 'bingMapRadar',
+		tabHeader: <div>Radar</div>,
+		tabContent: (
+			<div id='BingMapRadar' title='Radar'>
 				<InfoMessage theme={themes.dark} isValidZone={isValidZone}>
 					INFO: Radar loop only works in US! (don't have outside data)
 				</InfoMessage>
 			</div>
-		</Root>
-	)
+		),
+	}
+
+	const content = locations.map((loc) => ({
+		id: loc.id,
+		tabHeader: <div>header:{loc.id}</div>,
+		tabContent: <div>content:{loc.id}</div>,
+	}))
+	content.push(bingMapRadar)
+
+	return <CustomTabs content={content} />
 }
 
-export default ForecastDisplay
+export default Forecast

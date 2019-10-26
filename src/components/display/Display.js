@@ -7,6 +7,7 @@ import { themes } from '../../shared/shared'
 import Button from '../ui/Button'
 import Window from './Window'
 import Navigation from './Navigation'
+import App from './App'
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -20,7 +21,6 @@ const Root = styled.div`
 const AllowedDragArea = styled.div`
 	position: relative;
 	flex: 1;
-	padding: 1em;
 `
 
 const Background = styled.div`
@@ -58,16 +58,22 @@ const WindowWireframe = styled.div`
 `
 
 const Shortcuts = styled.div`
+	height: 100%;
 	position: relative;
 	z-index: 10; /* Need this because of absolute positioned Background div */
 	display: flex;
-	flex-direction: column;
+	flex-wrap: wrap;
 	align-items: flex-start;
+	align-content: flex-start;
+	justify-content: flex-start;
+	> * {
+		flex: 0 0 auto;
+	}
 `
 
 const ShortcutButton = styled(Button)`
-	font-size: 2em;
-	margin: 0.5em;
+	font-size: 2.5em;
+	margin: 0.5em 0 0 0.5em;
 `
 
 /* -------------------------------- COMPONENT ------------------------------- */
@@ -82,15 +88,16 @@ let uniqueID = 0
 export default class Display extends React.Component {
 	state = {
 		openedApps: [],
+		mobileMenuCallback: null,
 	}
 	recentlyMinimizedApps = []
 	skipRestoreToggleDesktop = true
 
 	componentDidUpdate(prevProps) {
-		if (prevProps.isMobile !== this.props.isMobile) {
+		if (prevProps.isMobileSite !== this.props.isMobileSite) {
 			this.state.openedApps.forEach((app) => {
 				const wdow = app.windowRef.current
-				if (this.props.isMobile) {
+				if (this.props.isMobileSite) {
 					app.desktopState = { ...wdow.state }
 					if (app.isFocused && !wdow.state.isMinimized) wdow.maximize()
 					else wdow.minimize(['skipFocusBelowApp', 'skipFocusApp'])
@@ -127,7 +134,7 @@ export default class Display extends React.Component {
 
 	// Mimics Win10 desktop toggle or iOS/Android home button.
 	toggleDesktop = () => {
-		if (!this.props.isMobile && !this.skipRestoreToggleDesktop && this.recentlyMinimizedApps.length > 0) {
+		if (!this.props.isMobileSite && !this.skipRestoreToggleDesktop && this.recentlyMinimizedApps.length > 0) {
 			this.recentlyMinimizedApps.forEach((app) => {
 				const wdow = app.windowRef.current
 				if (wdow.state.isMinimized) wdow.restore(['skipFocusApp'])
@@ -177,9 +184,11 @@ export default class Display extends React.Component {
 		return !!curApp
 	}
 
+	setMobileMenuCallback = (mobileMenuCallback) => this.setState({ mobileMenuCallback })
+
 	render() {
-		const { mountableApps, isMobile, children } = this.props
-		const { openedApps } = this.state
+		const { mountableApps, isMobileSite, children } = this.props
+		const { openedApps, mobileMenuCallback } = this.state
 		return (
 			<Root id='display'>
 				{/* SVG pattern loaded inline because of styled-components Firefox bug which causes flickering? */}
@@ -206,7 +215,7 @@ export default class Display extends React.Component {
 								ref={app.windowRef}
 								key={app.id}
 								id={app.id}
-								isMobile={isMobile}
+								isMobileSite={isMobileSite}
 								isFocused={app.isFocused}
 								title={app.class.shared.title}
 								windowCSS={windowCSS}
@@ -216,12 +225,17 @@ export default class Display extends React.Component {
 								skipRestoreToggleDesktop={this.resetToggleDesktop}
 								zIndex={app.zIndex}
 							>
-								<app.class />
+								<App isFocused={app.isFocused} setMobileMenuCallback={this.setMobileMenuCallback} app={app} />
 							</Window>
 						))}
 					</TransitionGroup>
 				</AllowedDragArea>
-				<Navigation openedApps={openedApps} isMobile={isMobile} toggleDesktop={this.toggleDesktop} />
+				<Navigation
+					openedApps={openedApps}
+					isMobileSite={isMobileSite}
+					toggleDesktop={this.toggleDesktop}
+					mobileMenuCallback={mobileMenuCallback}
+				/>
 			</Root>
 		)
 	}

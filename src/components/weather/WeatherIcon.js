@@ -89,20 +89,20 @@ export const getCurWeatherBG = (weatherData, sunData) => {
 	Object.keys(sun).forEach((key) => (sun[key] = DateTime.fromISO(sun[key]).toLocal()))
 
 	// Create time intervals where we can tell where the weather data retrieval time falls under.
-	const dawn = Interval.fromDateTimes(
-		sun.civil_twilight_begin,
+	const goldenDawn = Interval.fromDateTimes(
+		sun.sunrise,
 		sun.sunrise.plus(sun.sunrise.diff(sun.civil_twilight_begin)),
 	)
-	const dusk = Interval.fromDateTimes(
+	const goldenDusk = Interval.fromDateTimes(
 		sun.sunset.minus(sun.civil_twilight_end.diff(sun.sunset)),
-		sun.civil_twilight_end,
+		sun.sunset,
 	)
 
 	const iconKey = weatherData.currently.icon
-	if (dawn.contains(now) || dusk.contains(now)) {
+	if (goldenDawn.contains(now) || goldenDusk.contains(now)) {
 		const colors = getAdjustedPalette(defaultTimePalettes['dawnDusk'], iconKey)
 		return `linear-gradient(170deg, ${colors[0]} 0%, ${colors[1]} 80%)`
-	} else if (dusk.isBefore(now) || dawn.isAfter(now)) {
+	} else if (goldenDusk.isBefore(now) || goldenDawn.isAfter(now)) {
 		const colors = getAdjustedPalette(defaultTimePalettes['night'], iconKey)
 		return `linear-gradient(15deg, ${colors[0]} 25%, ${colors[1]} 100%)`
 	} else {

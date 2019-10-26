@@ -1,6 +1,6 @@
 /* global Microsoft */
 
-import React, { useState, useRef, useEffect } from 'react'
+import React from 'react'
 import styled, { css } from 'styled-components/macro'
 
 import { ReactComponent as LocationSVG } from '../../shared/assets/material-icons/location.svg'
@@ -56,53 +56,63 @@ const AutocompleteInput = styled.input`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-const LocationSearch = ({ map, onLocationFound }) => {
-	const [input, setInput] = useState('')
-	const suggestManagerRef = useRef()
-	const searchManagerRef = useRef()
+let uniqueID = 0
 
-	const onLocationFoundRef = useRef()
-	useEffect(() => {
+const LocationSearch = ({ map, modulesLoaded, onLocationFound }) => {
+	const idRef = React.useRef(uniqueID++)
+	const [input, setInput] = React.useState('')
+
+	const mapManagersRef = React.useRef()
+	const managersLoadedRef = React.useRef(false)
+	React.useEffect(() => {
+		if (map && modulesLoaded && !managersLoadedRef.current) {
+			managersLoadedRef.current = true
+			mapManagersRef.current = {
+				autoSuggest: new Microsoft.Maps.AutosuggestManager({
+					maxResults: 5,
+					map,
+				}),
+				search: new Microsoft.Maps.Search.SearchManager(map),
+			}
+			const id = idRef.current
+			mapManagersRef.current.autoSuggest.attachAutosuggest(
+				`#searchInput${id}`,
+				`#searchRoot${id}`,
+				onLocationFoundRef.current,
+			)
+		}
+
+		return () => {
+			if (mapManagersRef.current) {
+				mapManagersRef.current.autoSuggest.dispose()
+			}
+		}
+	}, [map, modulesLoaded])
+
+	const onLocationFoundRef = React.useRef()
+	React.useEffect(() => {
 		onLocationFoundRef.current = onLocationFound
 	}, [onLocationFound])
-
-	useEffect(() => {
-		if (map) {
-			Microsoft.Maps.loadModule(['Microsoft.Maps.AutoSuggest', 'Microsoft.Maps.Search'], {
-				callback: () => {
-					suggestManagerRef.current = new Microsoft.Maps.AutosuggestManager({
-						maxResults: 5,
-						map,
-					})
-					suggestManagerRef.current.attachAutosuggest('#searchInput', '#searchRoot', (mapData) =>
-						onLocationFoundRef.current(mapData),
-					)
-					searchManagerRef.current = new Microsoft.Maps.Search.SearchManager(map)
-				},
-				errorCallback: console.log,
-			})
-		}
-	}, [map])
 
 	const onGeolocateCurrentPosition = () => {
 		navigator.geolocation.getCurrentPosition(
 			({ coords }) => {
 				const location = new Microsoft.Maps.Location(coords.latitude, coords.longitude)
-				searchManagerRef.current.reverseGeocode({
+				mapManagersRef.current.search.reverseGeocode({
 					location,
 					callback: onLocationFoundRef.current,
 				})
 				setInput('')
 			},
-			console.log,
+			(err) => console.log('<LocationSearch /> getCurrentPosition() error: ', err),
 			{ enableHighAccuracy: true },
 		)
 	}
 
 	return (
-		<Root id='searchRoot'>
+		<Root id={`searchRoot${idRef.current}`}>
 			<AutocompleteInput
-				id='searchInput'
+				id={`searchInput${idRef.current}`}
 				placeholder='Add locations...'
 				value={input}
 				onClick={() => setInput('')}

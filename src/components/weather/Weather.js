@@ -1,14 +1,16 @@
 /* global Microsoft */
 
-import React, { useContext, useState, useEffect } from 'react'
+import React from 'react'
 import styled, { css, ThemeProvider } from 'styled-components/macro'
+import { DateTime, Interval } from 'luxon'
 
+import { getCurWeatherBG } from './WeatherIcon'
 import { ReactComponent as SunnySVG } from '../../shared/assets/weather-icons/wi-day-sunny.svg'
-import { themes } from '../../shared/shared'
+import { themes, simplerFetch } from '../../shared/shared'
 import { useLocalStorage, useInterval } from '../../shared/customHooks'
-import { WindowSizeContext } from '../display/Window'
 import WeatherNav from './WeatherNav'
-import ForecastDisplay from './ForecastDisplay'
+import CurrentWeather from './CurrentWeather'
+import Forecast from './Forecast'
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -21,6 +23,14 @@ const Root = styled.div`
 		background-image: ${weatherBG};
 		color: ${theme.mainColor};
 	`}
+`
+
+const Data = styled.div`
+	font-weight: 500;
+	font-size: 1.2rem;
+	flex: 2;
+	display: flex;
+	flex-direction: column;
 `
 
 /* -------------------------------- COMPONENT ------------------------------- */
@@ -44,14 +54,15 @@ const radar = {
 	],
 }
 
-const Weather = () => {
-	const isMobileSizedWindow = useContext(WindowSizeContext)
+const Weather = ({ ...props }) => {
 	const [curLocation, setCurLocation] = useLocalStorage('curLocation')
-	const [isMetric, setIsMetric] = useState(false)
-	const [map, setMap] = useState()
+	const [locations, setLocations] = useLocalStorage('locations', [])
+	const [isMetric, setIsMetric] = React.useState(false)
 
 	// Setup map and add radar data.
-	useEffect(() => {
+	const [map, setMap] = React.useState()
+	const [modulesLoaded, setModulesLoaded] = React.useState(false)
+	React.useEffect(() => {
 		const genMap = new Microsoft.Maps.Map('#BingMapRadar', {
 			navigationBarMode: Microsoft.Maps.NavigationBarMode.minified,
 			supportedMapTypes: [
@@ -65,20 +76,24 @@ const Weather = () => {
 				zoom: 8,
 			}),
 		})
+		Microsoft.Maps.loadModule(['Microsoft.Maps.AutoSuggest', 'Microsoft.Maps.Search'], {
+			callback: () => setModulesLoaded(true),
+			errorCallback: console.log,
+		})
+
 		if (curLocation) genMap.entities.push(new Microsoft.Maps.Pushpin(genMap.getCenter()))
 		updateRadar(genMap)
+		setMap(genMap)
 
 		return () => {
-			if (map) {
-				map.dispose()
-				setMap(null)
-			}
+			if (map) map.dispose()
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
 
 	const updateRadar = (mapParam) => {
-		const localMap = mapParam ? mapParam : map
+		const localMap = mapParam || map
+		if (!localMap) return
 		localMap.layers.clear()
 		const tileSources = radar.timestamps.map(
 			(ts) =>
@@ -88,11 +103,107 @@ const Weather = () => {
 		)
 		const animatedLayer = new Microsoft.Maps.AnimatedTileLayer({ mercator: tileSources, frameRate: 500 })
 		localMap.layers.insert(animatedLayer)
-		setMap(localMap)
 	}
 
 	useInterval(() => {
 		updateRadar()
+	}, 1000 * 60 * updateInterval)
+
+	const mapLoadLocation = (mapData) => {
+		map.entities.clear()
+		if (mapData) {
+			map.setView({ center: mapData.location, zoom: 8 })
+			map.entities.push(new Microsoft.Maps.Pushpin(mapData.location))
+		}
+	}
+
+	const onLocationFound = (mapData) => {
+		if (!map || !mapData) return
+
+		const locationsCopy = [...locations]
+		const { latitude: lat, longitude: lng } = mapData.location
+		const locIdx = locationsCopy.findIndex((loc) => loc.id === lat + lng)
+		if (locIdx > -1) {
+			setCurLocation(locationsCopy[locIdx])
+			mapLoadLocation(mapData)
+		} else {
+			fetchData(mapData)
+				.then((newLocation) => {
+					setLocations([...locationsCopy, newLocation])
+					setCurLocation(newLocation)
+					mapLoadLocation(mapData)
+				})
+				.catch(console.log)
+		}
+	}
+
+	const removeLocation = (id) => {
+		const newLocations = locations.filter((loc) => loc.id !== id)
+		setLocations(newLocations)
+		if (curLocation.id === id) {
+			const nextLocation = newLocations.find((loc) => loc.id !== id)
+			mapLoadLocation(nextLocation ? nextLocation.mapData : nextLocation)
+			setCurLocation(nextLocation)
+		}
+	}
+
+	const fetchSunData = (lat, lng, weatherData) => {
+		const { currently, timezone } = weatherData
+		const locDate = DateTime.fromSeconds(currently.time)
+			.setZone(timezone)
+			.toFormat('yyyy-MM-dd')
+		const sunAPI = 'https://api.sunrise-sunset.org/json'
+		const params = `?lat=${lat}&lng=${lng}&formatted=0&date=${locDate}`
+		return simplerFetch(sunAPI + params).then((res) => res.results)
+	}
+
+	const fetchWeatherData = (lat, lng) => {
+		const corsProxy = 'https://cors-anywhere.herokuapp.com/'
+		const darkskyAPI = 'https://api.darksky.net/forecast/'
+		const params = `${process.env.REACT_APP_DARK_SKY_API_KEY}/${lat},${lng}?exclude=minutely`
+		return simplerFetch(corsProxy + darkskyAPI + params).then((res) => res)
+	}
+
+	const fetchData = async (mapData) => {
+		try {
+			const { latitude: lat, longitude: lng } = mapData.location
+			const weatherData = await fetchWeatherData(lat, lng)
+			const sunData = await fetchSunData(lat, lng, weatherData)
+			return {
+				id: lat + lng,
+				curWeatherBG: getCurWeatherBG(weatherData, sunData),
+				mapData,
+				sunData,
+				weatherData,
+			}
+		} catch (err) {
+			console.log('<Weather /> fetchData() error: ', err)
+			return Promise.reject(err)
+		}
+	}
+
+	const updateLocations = () => {
+		const locPromises = locations.map((loc) => {
+			const prevFetchDate = DateTime.fromSeconds(loc.weatherData.currently.time).toLocal()
+			const recent = Interval.fromDateTimes(prevFetchDate, prevFetchDate.plus({ minutes: updateInterval }))
+			return !recent.contains(DateTime.local()) ? fetchData(loc.mapData) : loc
+		})
+		Promise.all(locPromises)
+			.then((nextLocations) => {
+				const nextCurLocation = nextLocations.find((loc) => loc.id === curLocation.id)
+				setCurLocation(nextCurLocation)
+				setLocations(nextLocations)
+			})
+			.catch(console.log)
+	}
+
+	// On initial load and subsequent intervals we get new data for user's locations.
+	React.useEffect(() => {
+		updateLocations()
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [])
+	useInterval(() => {
+		updateLocations()
 	}, 1000 * 60 * updateInterval)
 
 	const flipMetric = () => setIsMetric((prev) => !prev)
@@ -101,17 +212,21 @@ const Weather = () => {
 
 	return (
 		<ThemeProvider theme={themes.light}>
-			<Root weatherBG={curLocation && curLocation.weatherBG}>
+			<Root {...props} weatherBG={curLocation && curLocation.weatherBG}>
 				<WeatherNav
-					isMobileSizedWindow={isMobileSizedWindow}
-					curLocation={curLocation}
-					setCurLocation={setCurLocation}
 					map={map}
+					modulesLoaded={modulesLoaded}
+					locations={locations}
+					removeLocation={removeLocation}
+					onLocationFound={onLocationFound}
 					isMetric={isMetric}
 					flipMetric={flipMetric}
 					getTemp={getTemp}
 				/>
-				<ForecastDisplay curLocation={curLocation} getTemp={getTemp} />
+				<Data>
+					<CurrentWeather curLocation={curLocation} getTemp={getTemp} />
+					<Forecast curLocation={curLocation} locations={locations} />
+				</Data>
 			</Root>
 		</ThemeProvider>
 	)

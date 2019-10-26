@@ -1,13 +1,13 @@
-import { useState, useEffect, useRef } from 'react'
+import React from 'react'
 
 /**
  * Custom hook to expedite the common React localStorage scenario.
  * @param {string} key
  * @param {*} [initValue] - optional value only used on initial creation
- * @return {[*, function():void]}
+ * @return {[*, const():void]}
  */
-export function useLocalStorage(key, initValue) {
-	const [value, setValue] = useState(() => {
+export const useLocalStorage = (key, initValue) => {
+	const [value, setValue] = React.useState(() => {
 		let item = localStorage.getItem(key)
 		if (item && item !== 'undefined') {
 			item = JSON.parse(item)
@@ -22,7 +22,7 @@ export function useLocalStorage(key, initValue) {
 	 * Update item in storage/state.
 	 * @param {*} value
 	 */
-	function set(value) {
+	const set = (value) => {
 		localStorage.setItem(key, JSON.stringify(typeof value !== 'undefined' ? value : null))
 		setValue(value)
 	}
@@ -37,7 +37,7 @@ export function useLocalStorage(key, initValue) {
  * @param {*} [defaultValue=null] - what to return if no queries match
  * @return {*} - returns value in values array based on the same index of matching query
  */
-export function useMedia(queries = [], values, defaultValue = null) {
+export const useMedia = (queries = [], values, defaultValue = null) => {
 	const mediaQueryLists = queries.map((q) => window.matchMedia(q))
 
 	const getValue = () => {
@@ -45,9 +45,9 @@ export function useMedia(queries = [], values, defaultValue = null) {
 		return typeof values[index] !== 'undefined' ? values[index] : defaultValue
 	}
 
-	const [value, setValue] = useState(getValue)
+	const [value, setValue] = React.useState(getValue)
 
-	useEffect(() => {
+	React.useEffect(() => {
 		const handler = () => setValue(getValue)
 		mediaQueryLists.forEach((mql) => mql.addListener(handler))
 		return () => mediaQueryLists.forEach((mql) => mql.removeListener(handler))
@@ -57,11 +57,17 @@ export function useMedia(queries = [], values, defaultValue = null) {
 	return value
 }
 
-export function useOnClickOutside(ref, handler) {
-	useEffect(() => {
+export const useOnClickOutside = (ref, handler) => {
+	const handledRecentlyRef = React.useRef(false)
+
+	React.useEffect(() => {
 		const listener = (event) => {
-			if (!ref.current || ref.current.contains(event.target)) return
+			if (!ref.current || ref.current.contains(event.target) || handledRecentlyRef.current) return
+			handledRecentlyRef.current = true
 			handler(event)
+			setTimeout(() => {
+				handledRecentlyRef.current = false
+			}, 200)
 		}
 		document.addEventListener('mousedown', listener)
 		document.addEventListener('touchstart', listener)
@@ -73,17 +79,37 @@ export function useOnClickOutside(ref, handler) {
 	}, [ref, handler])
 }
 
-export function useInterval(callback, delay) {
-	const callbackRef = useRef()
-	useEffect(() => {
+export const useInterval = (callback, delay) => {
+	const callbackRef = React.useRef()
+
+	React.useEffect(() => {
 		callbackRef.current = callback
 	}, [callback])
 
-	useEffect(() => {
-		const tick = () => callbackRef.current()
+	React.useEffect(() => {
+		const tick = (...args) => callbackRef.current(...args)
 		if (delay !== null) {
 			let id = setInterval(tick, delay)
 			return () => clearInterval(id)
 		}
 	}, [delay])
+}
+
+export const usePrevious = (value) => {
+	const ref = React.useRef()
+
+	React.useEffect(() => {
+		ref.current = value
+	}, [value])
+
+	return ref.current
+}
+
+export const useEffectWithInitial = (callback, deps) => {
+	if (!deps) throw new Error('useEffectWithInitial() requires dependancy array...')
+	deps.push(callback)
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	React.useEffect(() => callback(), [])
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	React.useEffect(() => callback(), deps)
 }

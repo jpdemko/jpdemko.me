@@ -12,17 +12,17 @@
 		"gsap": "^2.1.3",
 		"luxon": "^1.19.3",
 		"polished": "^3.4.1",
-		"react": "^16.10.1",
-		"react-dom": "^16.10.1",
-		"react-scripts": "^3.1.2",
+		"react": "^16.11.0",
+		"react-dom": "^16.11.0",
+		"react-scripts": "^3.2.0",
 		"react-transition-group": "^4.3",
 		"sanitize.css": "^11.0.0",
-		"styled-components": "5.0.0-beta.9"
+		"styled-components": "5.0.0-beta.11"
 	},
 	"devDependencies": {
 		"bingmaps": "^2.0.3",
 		"eslint": "^6.5.1",
-		"typescript": "^3.6.3"
+		"typescript": "^3.6.4"
 	},
 	"browserslist": [
 		">0.2%",

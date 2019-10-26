@@ -1,51 +1,75 @@
-import React, { useState } from 'react'
+import React from 'react'
 import styled, { css } from 'styled-components/macro'
 
-import { opac, themes } from '../../shared/shared'
 import { ButtonBase } from './Button'
 
 /* --------------------------------- STYLES --------------------------------- */
 
-const { dark, light } = themes
+const Root = styled.div`
+	display: flex;
+	flex-direction: column;
+	${({ theme }) => css`
+		background: ${theme.mainColor};
+	`}
+`
 
 const TabButton = styled(ButtonBase)`
-	${({ isFocused }) => css`
-		border-right: ${isFocused ? 'none' : `1px solid ${opac(0.2, dark.mainColor)}`};
-		background: ${isFocused ? light.mainColor : opac(0.1, dark.mainColor)};
-		&:focus {
-			background: ${isFocused ? light.mainColor : opac(0.2, dark.mainColor)};
-		}
-		&:hover {
-			background: ${isFocused ? opac(0.8, light.mainColor) : opac(0.2, dark.mainColor)};
+	${({ isFocused, theme }) => css`
+		color: ${theme.bgContrastColor};
+		opacity: ${isFocused ? 1 : 0.65};
+		border-right: 1px solid ${theme.mixedColor};
+	`}
+`
+
+const TabsHeader = styled.div`
+	font-weight: 500;
+	flex: 0 0;
+	display: flex;
+	${({ headerFilled, theme }) => css`
+		background: ${theme.gradient};
+		> * {
+			flex: ${headerFilled ? 1 : 0} 1 auto;
 		}
 	`}
 `
 
-const Root = styled.div`
-	border: 1px solid ${dark.mainColor};
-	background: ${light.mainColor};
+const SelectedContent = styled.div`
+	flex: 1 1;
+	position: relative;
 `
 
-const TabsHeader = styled.div`
-	overflow: hidden;
-	background: ${opac(0.2, dark.mainColor)};
+const TabContents = styled.div`
+	${({ isFocused, theme }) => css`
+		background: ${theme.mainColor};
+		color: ${theme.bgContrastColor};
+		position: ${isFocused ? 'initial' : 'absolute'};
+		display: ${isFocused ? 'initial' : 'none'};
+	`}
 `
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-const Tabs = ({ children, ...props }) => {
-	const [content, setContent] = useState(children[0])
+const defaultContent = [{ id: 1, tabHeader: <div>header#1</div>, tabContent: <div>content#1</div> }]
+
+const Tabs = ({ content = defaultContent, headerFilled = false, ...props }) => {
+	const [focusedID, setFocusedID] = React.useState(content[0].id)
 
 	return (
 		<Root {...props}>
-			<TabsHeader>
-				{children.map((ele) => (
-					<TabButton key={ele.props.title} isFocused={content === ele} onClick={() => setContent(ele)}>
-						{ele.props.title}
+			<TabsHeader headerFilled={headerFilled}>
+				{content.map(({ id, tabHeader }) => (
+					<TabButton key={`header#${id}`} isFocused={id === focusedID} onClick={() => setFocusedID(id)}>
+						{tabHeader}
 					</TabButton>
 				))}
 			</TabsHeader>
-			{content}
+			<SelectedContent>
+				{content.map(({ id, tabContent }) => (
+					<TabContents key={`content#${id}`} isFocused={id === focusedID}>
+						{tabContent}
+					</TabContents>
+				))}
+			</SelectedContent>
 		</Root>
 	)
 }

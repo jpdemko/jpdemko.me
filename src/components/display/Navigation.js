@@ -1,6 +1,7 @@
-import React, { useState, useCallback } from 'react'
+import React from 'react'
 import styled, { css, ThemeProvider } from 'styled-components/macro'
 
+import { ReactComponent as MenuSVG } from '../../shared/assets/material-icons/menu.svg'
 import { ReactComponent as AppsSVG } from '../../shared/assets/material-icons/apps.svg'
 import { ReactComponent as HomeSVG } from '../../shared/assets/material-icons/home.svg'
 import { themes } from '../../shared/shared'
@@ -27,28 +28,37 @@ const BottomNav = styled.div`
 const DrawerButtonsContainer = styled.div`
 	display: flex;
 	height: 100%;
-	${({ isMobile }) => css`
-		flex-direction: ${isMobile ? 'column-reverse' : 'column'};
+	${({ isMobileSite }) => css`
+		flex-direction: ${isMobileSite ? 'column-reverse' : 'column'};
 	`}
 `
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-const Navigation = ({ openedApps, isMobile, toggleDesktop }) => {
-	const [mobileDrawerOpened, setMobileDrawerOpened] = useState(false)
+const Navigation = ({ openedApps, isMobileSite, toggleDesktop, mobileMenuCallback }) => {
+	const [mainDrawerOpened, setMainDrawerOpened] = React.useState(false)
 
-	const appShortcutClicked = useCallback((app) => {
+	const appShortcutClicked = React.useCallback((app) => {
 		app.windowRef.current.toggleMinimize()
-		setMobileDrawerOpened(false)
+		setMainDrawerOpened(false)
 	}, [])
 
 	return (
 		<>
 			<ThemeProvider theme={themes.light}>
-				<BottomNav isMobile={isMobile}>
+				<BottomNav isMobileSite={isMobileSite}>
 					<NavButton svg={HomeSVG} onClick={toggleDesktop} />
-					{isMobile ? (
-						<NavButton svg={AppsSVG} onClick={() => openedApps.length > 0 && setMobileDrawerOpened(true)} />
+					{isMobileSite ? (
+						<>
+							<NavButton svg={AppsSVG} onClick={() => openedApps.length > 0 && setMainDrawerOpened(true)} />
+							{mobileMenuCallback && (
+								<NavButton
+									style={{ marginLeft: 'auto' }}
+									svg={MenuSVG}
+									onClick={() => mobileMenuCallback()}
+								/>
+							)}
+						</>
 					) : (
 						openedApps.map((app) => (
 							<NavButton
@@ -64,9 +74,9 @@ const Navigation = ({ openedApps, isMobile, toggleDesktop }) => {
 					)}
 				</BottomNav>
 			</ThemeProvider>
-			{isMobile && (
-				<Drawer animDuraton={0.25} isShown={mobileDrawerOpened} onClose={() => setMobileDrawerOpened(false)}>
-					<DrawerButtonsContainer isMobile={isMobile}>
+			{isMobileSite && (
+				<Drawer animDuraton={0.25} isShown={mainDrawerOpened} onClose={() => setMainDrawerOpened(false)}>
+					<DrawerButtonsContainer isMobileSite={isMobileSite}>
 						{openedApps.map((app) => (
 							<NavButton
 								key={app.id}
