@@ -37,7 +37,7 @@ const Background = styled.div`
 `
 
 // Only shared between Display/Window, doesn't really belong in 'variables.js' file, which is used everywhere.
-const windowCSS = {
+const minWindowCSS = {
 	minWidth: 480,
 	minHeight: 320,
 }
@@ -47,20 +47,22 @@ const windowCSS = {
 const WindowWireframe = styled.div`
 	position: absolute;
 	z-index: -5000;
-	top: 50%;
-	left: 50%;
 	opacity: 0;
-	transform: translate(-50%, -50%);
-	min-width: ${windowCSS.minWidth}px;
-	min-height: ${windowCSS.minHeight}px;
-	width: 70%;
-	height: 50%;
+	${({ isMobileSite }) => css`
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		min-width: ${isMobileSite ? 120 : minWindowCSS.minWidth}px;
+		min-height: ${isMobileSite ? 80 : minWindowCSS.minHeight}px;
+		width: ${isMobileSite ? 100 : 65}%;
+		height: ${isMobileSite ? 100 : 60}%;
+	`}
 `
 
 const Shortcuts = styled.div`
 	height: 100%;
 	position: relative;
-	z-index: 10; /* Need this because of absolute positioned Background div */
+	z-index: 10; /* Need this because of absolute positioned background div */
 	display: flex;
 	flex-wrap: wrap;
 	align-items: flex-start;
@@ -72,8 +74,10 @@ const Shortcuts = styled.div`
 `
 
 const ShortcutButton = styled(Button)`
-	font-size: 2.5em;
-	margin: 0.5em 0 0 0.5em;
+	height: 4em;
+	width: 4em;
+	padding: 0.5em;
+	margin: 1em 0 0 1em;
 `
 
 /* -------------------------------- COMPONENT ------------------------------- */
@@ -208,7 +212,7 @@ export default class Display extends React.Component {
 						))}
 					</Shortcuts>
 					{children}
-					<WindowWireframe id='window-wireframe' />
+					<WindowWireframe id='window-wireframe' isMobileSite={isMobileSite} />
 					<TransitionGroup>
 						{openedApps.map((app, i) => (
 							<Window
@@ -218,7 +222,7 @@ export default class Display extends React.Component {
 								isMobileSite={isMobileSite}
 								isFocused={app.isFocused}
 								title={app.class.shared.title}
-								windowCSS={windowCSS}
+								minWindowCSS={minWindowCSS}
 								closeApp={this.closeApp}
 								focusApp={this.focusApp}
 								focusBelowApp={this.focusBelowApp}

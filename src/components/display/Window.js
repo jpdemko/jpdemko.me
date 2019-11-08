@@ -1,9 +1,8 @@
-// MAYBE - Drag to top to maximize / snapping to left or right to take up half of width.
-
 import React from 'react'
 import { TweenMax, Draggable } from 'gsap/all'
 import styled, { css } from 'styled-components/macro'
 import { Transition } from 'react-transition-group'
+import { throttle, debounce } from 'throttle-debounce'
 
 import { ReactComponent as CloseSVG } from '../../shared/assets/material-icons/close.svg'
 import { ReactComponent as MinimizeSVG } from '../../shared/assets/material-icons/minimize.svg'
@@ -23,21 +22,18 @@ import Button from '../ui/Button'
 
 /* --------------------------------- STYLES --------------------------------- */
 
-// Time in seconds for all GSAP Window Tweens.
-const windowAnimDuration = 0.4
-
 const Root = styled.div`
 	position: absolute;
 	display: flex;
 	flex-direction: column;
 	max-width: 100vw;
 	max-height: 100vh;
-	${({ windowCSS, zIndex, isFocused, isMobileSite, isMaximized, theme }) => css`
+	${({ minWindowCSS, zIndex, isFocused, isMobileSite, isMaximized, theme }) => css`
 		z-index: ${zIndex};
 		${!isMobileSite &&
 			css`
-				min-height: ${windowCSS.minHeight}px;
-				min-width: ${windowCSS.minWidth}px;
+				min-height: ${minWindowCSS.minHeight}px;
+				min-width: ${minWindowCSS.minWidth}px;
 			`}
 		border: ${isMaximized ? 'none' : `1px solid ${theme.mixedColor}`};
 		/* Might have to take the shadow out because performance isn't that great w/ it... */
@@ -62,12 +58,13 @@ const Content = styled.div`
 	position: relative;
 	overflow: hidden;
 	> div {
+		overflow-x: hidden;
 		overflow-y: auto;
 		height: 100%;
 	}
 `
 
-// Change this to control proportions of offset and the Corner styled-component!
+// Change these to control the sizes for the interactive parts of the component.
 const sideSize = '0.25em'
 const sideOffset = `calc(${sideSize} / 2 * -1)`
 const Side = styled.div.attrs(({ position }) => ({
@@ -124,20 +121,22 @@ const CornerSW = styled(Corner)`
 export default class Window extends React.Component {
 	constructor(props) {
 		super(props)
+		this.rootRef = React.createRef()
+		this.checkMediaSizeThrottled = throttle(100, this.checkMediaSize)
+		this.handleResizeDebounced = debounce(100, this.handleResize)
+
 		this.state = {
 			isMinimized: false,
 			isMaximized: props.isMobileSite,
 			isMobileWindow: props.isMobileSite,
 		}
 
-		this.rootRef = React.createRef()
-
-		const shortcut = getRect(`sc-${props.title}`)
 		const wireframe = getRect('window-wireframe')
+		this.shortcutRect = getRect(`sc-${props.title}`)
 		this.difStatesCSS = {
 			minimized: {
-				top: shortcut.top - wireframe.height / 2,
-				left: shortcut.left - wireframe.width / 2,
+				top: this.shortcutRect.top - wireframe.height / 2,
+				left: this.shortcutRect.left - wireframe.width / 2,
 				width: wireframe.width,
 				height: wireframe.height,
 				scale: 0.25,
@@ -175,8 +174,19 @@ export default class Window extends React.Component {
 	}
 
 	componentDidMount() {
-		const { id, focusApp, windowCSS, isMobileSite } = this.props
+		const { id, focusApp, minWindowCSS, isMobileSite } = this.props
 		const windowElement = this.rootRef.current
+
+		// Grab rect of #window-wireframe which is used as opening location for all apps.
+		let { width, height } = getRect('window-wireframe')
+		// Interactable sides/corners use these values to prevent resizing <= min CSS values.
+		this.windowRect = { width, height }
+		this.checkMediaSize()
+		// Prevent 'this' conflicts later.
+		const windowRect = this.windowRect
+		const checkMediaSize = this.checkMediaSize
+		const checkMediaSizeThrottled = this.checkMediaSizeThrottled
+		const syncPosition = this.syncPosition
 
 		this.windowDraggable = new Draggable(windowElement, {
 			activeCursor: 'grabbing',
@@ -197,18 +207,13 @@ export default class Window extends React.Component {
 					focusApp(id)
 					this.windowDraggable.disable()
 				},
-				onRelease: this.windowDraggable.enable,
+				onRelease: () => {
+					this.windowDraggable.enable()
+					checkMediaSize()
+					syncPosition()
+				},
 				allowContextMenu: true,
 			})
-
-		// Grab rect of #window-wireframe which is used as opening location.
-		let { width, height } = getRect('window-wireframe')
-		// Interactable sides/corners use these values to prevent resizing <= min CSS values.
-		this.windowRect = { width, height }
-		this.checkMediaSize()
-		// Creating local references to prevent 'this' conflicts.
-		let windowRect = this.windowRect
-		const checkMediaSize = this.checkMediaSize
 
 		this.dragInstances = [
 			this.windowDraggable,
@@ -216,9 +221,10 @@ export default class Window extends React.Component {
 				trigger: `#side-top-${id}, #corner-nw-${id}, #corner-ne-${id}`,
 				cursor: 'n-resize',
 				onDrag: function() {
-					const preventLowering = windowRect.height <= windowCSS.minHeight && this.deltaY > 0
+					const preventLowering = windowRect.height <= minWindowCSS.minHeight && this.deltaY > 0
 					const deltaY = preventLowering ? 0 : this.deltaY
 					windowRect.height -= deltaY
+					checkMediaSizeThrottled()
 					TweenMax.set(windowElement, {
 						height: windowRect.height,
 						y: `+=${deltaY}`,
@@ -229,10 +235,10 @@ export default class Window extends React.Component {
 				trigger: `#side-right-${id}, #corner-ne-${id}, #corner-se-${id}`,
 				cursor: 'e-resize',
 				onDrag: function() {
-					const preventLowering = windowRect.width <= windowCSS.minWidth && this.deltaX < 0
+					const preventLowering = windowRect.width <= minWindowCSS.minWidth && this.deltaX < 0
 					const deltaX = preventLowering ? 0 : this.deltaX
 					windowRect.width += deltaX
-					checkMediaSize()
+					checkMediaSizeThrottled()
 					TweenMax.set(windowElement, { width: windowRect.width })
 				},
 			}),
@@ -240,9 +246,10 @@ export default class Window extends React.Component {
 				trigger: `#side-bottom-${id}, #corner-sw-${id}, #corner-se-${id}`,
 				cursor: 's-resize',
 				onDrag: function() {
-					const preventLowering = windowRect.height <= windowCSS.minHeight && this.deltaY < 0
+					const preventLowering = windowRect.height <= minWindowCSS.minHeight && this.deltaY < 0
 					const deltaY = preventLowering ? 0 : this.deltaY
 					windowRect.height += deltaY
+					checkMediaSizeThrottled()
 					TweenMax.set(windowElement, { height: windowRect.height })
 				},
 			}),
@@ -250,19 +257,21 @@ export default class Window extends React.Component {
 				trigger: `#side-left-${id}, #corner-nw-${id}, #corner-sw-${id}`,
 				cursor: 'w-resize',
 				onDrag: function() {
-					const preventLowering = windowRect.width <= windowCSS.minWidth && this.deltaX > 0
+					const preventLowering = windowRect.width <= minWindowCSS.minWidth && this.deltaX > 0
 					const deltaX = preventLowering ? 0 : this.deltaX
 					windowRect.width -= deltaX
-					checkMediaSize()
+					checkMediaSizeThrottled()
 					TweenMax.set(windowElement, { width: windowRect.width, x: `+=${deltaX}` })
 				},
 			}),
 		]
 		if (isMobileSite) this.dragInstances.forEach((i) => i.disable())
+		window.addEventListener('resize', this.handleResizeDebounced)
 	}
 
 	componentWillUnmount() {
 		this.dragInstances.forEach((i) => i.kill())
+		window.removeEventListener('resize', this.handleResizeDebounced)
 	}
 
 	componentDidUpdate(prevProps, prevState) {
@@ -274,12 +283,33 @@ export default class Window extends React.Component {
 		else if (!isWindowed && (!isMaximized && !isMinimized)) this.setState({ isWindowed: true })
 	}
 
+	handleResize = () => {
+		const { width, height } = getRect(`window-${this.props.id}`)
+		this.windowRect = { width, height }
+		this.checkMediaSize()
+	}
+
 	checkMediaSize = () => {
 		const { isMobileWindow } = this.state
-		if (!isMobileWindow && this.windowRect.width < mediaBreakpoints.desktop)
-			this.setState({ isMobileWindow: true })
-		else if (isMobileWindow && this.windowRect.width >= mediaBreakpoints.desktop)
-			this.setState({ isMobileWindow: false })
+		const nextState = {}
+		if (!isMobileWindow && this.windowRect.width < mediaBreakpoints.desktop) {
+			nextState.isMobileWindow = true
+		} else if (isMobileWindow && this.windowRect.width >= mediaBreakpoints.desktop) {
+			nextState.isMobileWindow = false
+		}
+		this.setState(nextState)
+	}
+
+	syncPosition = () => {
+		this.windowDraggable.update(true)
+		const { width, height } = getRect(`window-${this.props.id}`)
+		this.difStatesCSS.minimized = {
+			...this.difStatesCSS.minimized,
+			top: this.shortcutRect.top - height / 2,
+			left: this.shortcutRect.left - width / 2,
+			width,
+			height,
+		}
 	}
 
 	minimize = (options = []) => {
@@ -322,24 +352,29 @@ export default class Window extends React.Component {
 		if (!options.includes('skipSetLastWindowedCSS')) this.setLastWindowedCSS()
 		if (!options.includes('skipFocusApp')) this.props.focusApp(this.props.id)
 		this.props.skipRestoreToggleDesktop()
-		// Creating local references to prevent 'this' conflicts.
-		let windowRect = this.windowRect
+		// Preventing 'this' conflict later.
+		const windowRect = this.windowRect
 		const checkMediaSize = this.checkMediaSize
-		// Clone non-const vars so GSAP doesn't alter them...
-		TweenMax.to(this.rootRef.current, windowAnimDuration, {
+		const checkMediaSizeThrottled = this.checkMediaSizeThrottled
+		// const syncPosition = this.syncPosition
+		// Clone vars so GSAP doesn't alter original...
+		TweenMax.to(this.rootRef.current, 0.5, {
 			...tweenVars,
-			onComplete: () => this.windowDraggable.update(true),
+			onComplete: () => {
+				// syncPosition()
+				checkMediaSize()
+			},
 			onUpdate: function() {
 				windowRect.width = this.target.offsetWidth
 				windowRect.height = this.target.offsetHeight
-				checkMediaSize()
+				checkMediaSizeThrottled()
 			},
 		})
 	}
 
 	setLastWindowedCSS = () => {
 		if (!this.state.isWindowed || TweenMax.isTweening(this.rootRef.current)) return
-		this.windowDraggable.update(true)
+		this.syncPosition()
 
 		const { width, height } = this.rootRef.current.getBoundingClientRect()
 		this.difStatesCSS.windowed = {
@@ -356,18 +391,19 @@ export default class Window extends React.Component {
 	}
 
 	render() {
-		const { id, title, isMobileSite, isFocused, zIndex, windowCSS, in: show } = this.props
+		const { id, title, isMobileSite, isFocused, zIndex, minWindowCSS, in: show } = this.props
 		const { closeApp, focusApp } = this.props
 		const { isMaximized } = this.state
+		const animDuration = 1
 		return (
 			<Transition
 				unmountOnExit
-				timeout={windowAnimDuration * 1000}
+				timeout={animDuration * 1000}
 				in={show}
 				onEnter={(node) => {
 					const { minimized, windowed, maximized } = this.difStatesCSS
-					if (isMobileSite) TweenMax.fromTo(node, windowAnimDuration, { ...minimized }, { ...maximized })
-					else TweenMax.fromTo(node, windowAnimDuration, { ...minimized }, { ...windowed })
+					if (isMobileSite) TweenMax.fromTo(node, animDuration, { ...minimized }, { ...maximized })
+					else TweenMax.fromTo(node, animDuration, { ...minimized }, { ...windowed })
 				}}
 				onEntered={this.enableDrag}
 				onExit={() => this.minimize()}
@@ -378,7 +414,7 @@ export default class Window extends React.Component {
 					isMaximized={isMaximized}
 					isFocused={isFocused}
 					isMobileSite={isMobileSite}
-					windowCSS={windowCSS}
+					minWindowCSS={minWindowCSS}
 					zIndex={zIndex}
 					theme={isFocused ? themes.blue : themes.dark}
 				>
@@ -408,7 +444,9 @@ export default class Window extends React.Component {
 					</TitleBar>
 					<Content onClick={() => focusApp(id)}>
 						<Contexts.MobileWindow.Provider value={this.state.isMobileWindow}>
-							{this.props.children}
+							<Contexts.LandscapeOrientation.Provider value={this.state.isLandscape}>
+								{this.props.children}
+							</Contexts.LandscapeOrientation.Provider>
 						</Contexts.MobileWindow.Provider>
 					</Content>
 					<Side position='top' id={`side-top-${id}`} />

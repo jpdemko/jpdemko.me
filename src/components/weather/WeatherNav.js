@@ -38,6 +38,9 @@ const Root = styled.div`
 		background-color: ${theme.mainColor};
 		color: ${theme.bgContrastColor};
 	`}
+	&& svg {
+		height: 1.5em;
+	}
 `
 
 const LocationsList = styled.div`
@@ -68,18 +71,20 @@ const LocationAddress = styled.div`
 const LocationSummary = styled.div`
 	display: flex;
 	align-items: center;
-	& svg {
-		font-size: 1.4em;
+	&& svg {
+		height: 2em;
 	}
 `
 
 const Footer = styled.div`
-	padding: 0.25em;
+	padding: 0.2em;
 	flex: 0 0;
 	justify-self: flex-end;
 	display: flex;
+	flex-wrap: wrap;
 	> * {
-		flex: 1;
+		flex: 1 1 auto;
+		margin: 0.2em;
 	}
 `
 
@@ -88,6 +93,7 @@ const Footer = styled.div`
 const WeatherNav = ({
 	map,
 	modulesLoaded,
+	curLocation,
 	locations,
 	onLocationFound,
 	getTemp,
@@ -98,7 +104,7 @@ const WeatherNav = ({
 }) => {
 	const isMobileSite = React.useContext(Contexts.MobileSite)
 	const isMobileWindow = React.useContext(Contexts.MobileWindow)
-	const { setDrawerOpened, setMobileNavContent } = React.useContext(Contexts.App)
+	const { toggleMobileMenu, setMobileNavContent } = React.useContext(Contexts.App)
 
 	// Update clock for all locations every minute.
 	const [date, setDate] = React.useState(DateTime.local())
@@ -110,12 +116,7 @@ const WeatherNav = ({
 	const navContent = (
 		<ThemeProvider theme={themes.light}>
 			<Root isMobileWindow={isMobileWindow} {...props} theme={themes.dark}>
-				<LocationSearch
-					map={map}
-					modulesLoaded={modulesLoaded}
-					onLocationFound={onLocationFound}
-					locations={locations}
-				/>
+				<LocationSearch map={map} modulesLoaded={modulesLoaded} onLocationFound={onLocationFound} />
 				<LocationsList>
 					{locations.map(({ id, curWeatherBG, mapData, weatherData }) => (
 						<Row key={id} curWeatherBG={curWeatherBG}>
@@ -137,6 +138,9 @@ const WeatherNav = ({
 					<Button variant='fancy' theme={themes.blue} onClick={flipMetric}>
 						{isMetric ? 'Switch to Fahrenheit' : 'Switch to Celsius'}
 					</Button>
+					<Button variant='fancy' theme={themes.blue} onClick={() => console.log(curLocation)}>
+						Log current location data.
+					</Button>
 				</Footer>
 			</Root>
 		</ThemeProvider>
@@ -148,7 +152,7 @@ const WeatherNav = ({
 			{isMobileWindow && !isMobileSite && (
 				<ThemeProvider theme={themes.blue}>
 					<MobileContextButtons>
-						<Button variant='fancy' onClick={() => setDrawerOpened(true)} svg={MenuSVG} />
+						<Button variant='fancy' onClick={toggleMobileMenu} svg={MenuSVG} />
 					</MobileContextButtons>
 				</ThemeProvider>
 			)}

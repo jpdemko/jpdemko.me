@@ -1,16 +1,17 @@
 /* global Microsoft */
 
 import React from 'react'
-import styled, { css, ThemeProvider } from 'styled-components/macro'
+import styled, { css } from 'styled-components/macro'
 import { DateTime, Interval } from 'luxon'
 
 import { getCurWeatherBG } from './WeatherIcon'
 import { ReactComponent as SunnySVG } from '../../shared/assets/weather-icons/wi-day-sunny.svg'
 import { themes, simplerFetch } from '../../shared/shared'
-import { useLocalStorage, useInterval } from '../../shared/customHooks'
+import { useLocalStorage, useInterval, useResizeObserver } from '../../shared/customHooks'
 import WeatherNav from './WeatherNav'
 import CurrentWeather from './CurrentWeather'
 import Forecast from './Forecast'
+import Contexts from '../../shared/contexts'
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -19,18 +20,20 @@ const Root = styled.div`
 	height: 100%;
 	display: flex;
 	${({ theme, weatherBG }) => css`
-		background-color: ${theme.bgContrastColor};
+		background-color: ${theme.mainColor};
 		background-image: ${weatherBG};
-		color: ${theme.mainColor};
+		color: ${theme.bgContrastColor};
 	`}
 `
 
 const Data = styled.div`
-	font-weight: 500;
 	font-size: 1.2rem;
 	flex: 2;
 	display: flex;
-	flex-direction: column;
+	overflow: hidden;
+	${({ isLandscape }) => css`
+		flex-direction: ${isLandscape ? 'row' : 'column'};
+	`}
 `
 
 /* -------------------------------- COMPONENT ------------------------------- */
@@ -54,10 +57,9 @@ const radar = {
 	],
 }
 
-const Weather = ({ ...props }) => {
+const Weather = React.memo(({ ...props }) => {
 	const [curLocation, setCurLocation] = useLocalStorage('curLocation')
 	const [locations, setLocations] = useLocalStorage('locations', [])
-	const [isMetric, setIsMetric] = React.useState(false)
 
 	// Setup map and add radar data.
 	const [map, setMap] = React.useState()
@@ -117,6 +119,7 @@ const Weather = ({ ...props }) => {
 		}
 	}
 
+	const { toggleMobileMenu } = React.useContext(Contexts.App)
 	const onLocationFound = (mapData) => {
 		if (!map || !mapData) return
 
@@ -132,6 +135,7 @@ const Weather = ({ ...props }) => {
 					setLocations([...locationsCopy, newLocation])
 					setCurLocation(newLocation)
 					mapLoadLocation(mapData)
+					toggleMobileMenu()
 				})
 				.catch(console.log)
 		}
@@ -158,10 +162,9 @@ const Weather = ({ ...props }) => {
 	}
 
 	const fetchWeatherData = (lat, lng) => {
-		const corsProxy = 'https://cors-anywhere.herokuapp.com/'
 		const darkskyAPI = 'https://api.darksky.net/forecast/'
 		const params = `${process.env.REACT_APP_DARK_SKY_API_KEY}/${lat},${lng}?exclude=minutely`
-		return simplerFetch(corsProxy + darkskyAPI + params).then((res) => res)
+		return simplerFetch(darkskyAPI + params, true).then((res) => res)
 	}
 
 	const fetchData = async (mapData) => {
@@ -206,31 +209,40 @@ const Weather = ({ ...props }) => {
 		updateLocations()
 	}, 1000 * 60 * updateInterval)
 
+	const [isMetric, setIsMetric] = React.useState(false)
 	const flipMetric = () => setIsMetric((prev) => !prev)
+	const getTemp = React.useCallback(
+		(temp) => (isMetric ? Math.round((5 / 9) * (temp - 32)) : Math.round(temp)),
+		[isMetric],
+	)
 
-	const getTemp = (temp) => (isMetric ? Math.round((5 / 9) * (temp - 32)) : Math.round(temp))
+	const [dataRef, dataWidth, dataHeight] = useResizeObserver()
+	const [isLandscape, setIsLandscape] = React.useState()
+	React.useEffect(() => {
+		if (!isLandscape && dataWidth > dataHeight * 1.25) setIsLandscape(true)
+		else if (isLandscape && dataWidth <= dataHeight * 1.25) setIsLandscape(false)
+	}, [dataWidth, dataHeight, isLandscape])
 
 	return (
-		<ThemeProvider theme={themes.light}>
-			<Root {...props} weatherBG={curLocation && curLocation.weatherBG}>
-				<WeatherNav
-					map={map}
-					modulesLoaded={modulesLoaded}
-					locations={locations}
-					removeLocation={removeLocation}
-					onLocationFound={onLocationFound}
-					isMetric={isMetric}
-					flipMetric={flipMetric}
-					getTemp={getTemp}
-				/>
-				<Data>
-					<CurrentWeather curLocation={curLocation} getTemp={getTemp} />
-					<Forecast curLocation={curLocation} locations={locations} />
-				</Data>
-			</Root>
-		</ThemeProvider>
+		<Root {...props} weatherBG={curLocation && curLocation.weatherBG}>
+			<WeatherNav
+				map={map}
+				modulesLoaded={modulesLoaded}
+				curLocation={curLocation}
+				locations={locations}
+				removeLocation={removeLocation}
+				onLocationFound={onLocationFound}
+				isMetric={isMetric}
+				flipMetric={flipMetric}
+				getTemp={getTemp}
+			/>
+			<Data ref={dataRef} isLandscape={isLandscape}>
+				<CurrentWeather curLocation={curLocation} getTemp={getTemp} />
+				<Forecast curLocation={curLocation} locations={locations} getTemp={getTemp} />
+			</Data>
+		</Root>
 	)
-}
+})
 
 Weather.shared = {
 	title: 'Weather',

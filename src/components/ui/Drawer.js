@@ -12,6 +12,7 @@ const Root = styled.div`
 	z-index: 5001;
 	top: 0;
 	bottom: 0;
+	max-width: 75vw;
 	${({ isShown, animDuration, side, theme }) => css`
 		${side}: 0;
 		background-color: ${theme.mainColor};

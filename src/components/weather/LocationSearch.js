@@ -3,6 +3,7 @@
 import React from 'react'
 import styled, { css } from 'styled-components/macro'
 
+import { useRefFromValue } from '../../shared/customHooks'
 import { ReactComponent as LocationSVG } from '../../shared/assets/material-icons/location.svg'
 import Button from '../ui/Button'
 
@@ -59,6 +60,7 @@ const AutocompleteInput = styled.input`
 let uniqueID = 0
 
 const LocationSearch = ({ map, modulesLoaded, onLocationFound }) => {
+	const onLocationFoundRef = useRefFromValue(onLocationFound)
 	const idRef = React.useRef(uniqueID++)
 	const [input, setInput] = React.useState('')
 
@@ -78,7 +80,7 @@ const LocationSearch = ({ map, modulesLoaded, onLocationFound }) => {
 			mapManagersRef.current.autoSuggest.attachAutosuggest(
 				`#searchInput${id}`,
 				`#searchRoot${id}`,
-				onLocationFoundRef.current,
+				(mapData) => onLocationFoundRef.current(mapData),
 			)
 		}
 
@@ -87,12 +89,7 @@ const LocationSearch = ({ map, modulesLoaded, onLocationFound }) => {
 				mapManagersRef.current.autoSuggest.dispose()
 			}
 		}
-	}, [map, modulesLoaded])
-
-	const onLocationFoundRef = React.useRef()
-	React.useEffect(() => {
-		onLocationFoundRef.current = onLocationFound
-	}, [onLocationFound])
+	}, [map, modulesLoaded, onLocationFoundRef])
 
 	const onGeolocateCurrentPosition = () => {
 		navigator.geolocation.getCurrentPosition(
@@ -100,7 +97,7 @@ const LocationSearch = ({ map, modulesLoaded, onLocationFound }) => {
 				const location = new Microsoft.Maps.Location(coords.latitude, coords.longitude)
 				mapManagersRef.current.search.reverseGeocode({
 					location,
-					callback: onLocationFoundRef.current,
+					callback: (mapData) => onLocationFoundRef.current(mapData),
 				})
 				setInput('')
 			},

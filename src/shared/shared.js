@@ -1,5 +1,7 @@
 import { mix, transparentize } from 'polished'
 
+/* -------------------------------------------------------------------------- */
+
 export const flags = {
 	isIE: !!window.navigator.userAgent.match(/(MSIE|Trident)/),
 	// Chrome WebKit bug causes blurry text/images on child elements upon parent 3D transform.
@@ -7,6 +9,8 @@ export const flags = {
 	// isChrome: !!window.chrome && (!!window.chrome.webstore || !!window.chrome.runtime),
 	isChrome: false,
 }
+
+/* -------------------------------------------------------------------------- */
 
 export let themes = {
 	dark: {
@@ -37,7 +41,9 @@ Object.keys(themes).forEach((key) => {
 	themes[key].bgContrastColor = key !== 'light' ? themes.light.mainColor : themes.dark.mainColor
 })
 
-export const mediaBreakpoints = { desktop: 768 }
+export const mediaBreakpoints = { desktop: 813 }
+
+/* -------------------------------------------------------------------------- */
 
 /**
  * Condensed way to get the computed style values of an element.
@@ -51,32 +57,44 @@ export function getStyleProperty(ele, prop, parseValue = false) {
 	return parseValue ? parseFloat(styleProp.match(/\d+\.?\d*/)[0]) : styleProp
 }
 
+/* -------------------------------------------------------------------------- */
+
+const corsProxies = ['https://cors-anywhere.herokuapp.com/', 'https://crossorigin.me/']
+let curProxyIdx = 0
+
 /**
- * Fetch w/ some built in error handling.
+ * Fetch w/ some built in error handling & optional CORS proxy usage.
  * @param {string} url
+ * @param {boolean} [useProxy=false]
  * @return {Promise<Response>}
  */
-export function simplerFetch(url) {
+export function simplerFetch(url, useProxy = false) {
+	url = useProxy && curProxyIdx < corsProxies.length ? corsProxies[curProxyIdx] + url : url
 	return fetch(url)
 		.then((res) => {
 			if (!res.ok) throw Error(`bad response --> code ${res.status}`)
 			return res.json()
 		})
 		.catch((err) => {
-			console.log(err.message)
-			Promise.reject(err.message)
+			console.log(err)
+			if (curProxyIdx++ < corsProxies.length) return simplerFetch(url, useProxy)
+			Promise.reject(err)
 		})
 }
+
+/* -------------------------------------------------------------------------- */
 
 /**
  * Condensed way to get the DOMRect of something.
  * @param {Element|string} target - DOM element OR string element ID
- * @return {DOMRect}
+ * @return {DOMRect|Object}
  */
 export function getRect(target) {
 	target = typeof target === 'string' ? document.getElementById(target) : target
-	return target.getBoundingClientRect()
+	return target ? target.getBoundingClientRect() : {}
 }
+
+/* -------------------------------------------------------------------------- */
 
 /**
  * This 'mixin' was created because of a Chrome bug which causes child elements to blur on 3D translation.
@@ -90,13 +108,14 @@ export function safeTranslate(adjustments) {
 	return `${translateType}(${vars})`
 }
 
+/* -------------------------------------------------------------------------- */
+
 const maxDoubleClickTime = 500
 let lastTouch = {
 	target: null,
 	time: 0,
 }
 
-// TODO - Figure out how to use jsdocs w/ React. (e: SyntheticEvent)
 export function isDoubleTouch(e) {
 	const curTouch = {
 		target: e.currentTarget,
@@ -108,6 +127,8 @@ export function isDoubleTouch(e) {
 	lastTouch = curTouch
 	return isDoubleTouch
 }
+
+/* -------------------------------------------------------------------------- */
 
 /**
  * I keep using polished.js 'transparentize()' wrong thinking I'm setting the opacity rather than it actually

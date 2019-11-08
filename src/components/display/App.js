@@ -2,37 +2,55 @@ import React from 'react'
 
 import Drawer from '../ui/Drawer'
 import Contexts from '../../shared/contexts'
-import { usePrevious, useEffectWithInitial } from '../../shared/customHooks'
+import { usePrevious, useRefFromValue, useEffectWithInitial } from '../../shared/customHooks'
 
 const App = ({ app, isFocused, setMobileMenuCallback }) => {
 	const [drawerOpened, setDrawerOpened] = React.useState(false)
 	const [mobileNavContent, setMobileNavContent] = React.useState(null)
 
+	// Prevents possible UI confusion where if the app's drawer is open in mobile and the layout switches
+	// to desktop there could be two navs open if the app implements a visible desktop one.
 	const isMobileWindow = React.useContext(Contexts.MobileWindow)
 	React.useEffect(() => {
 		if (!isMobileWindow && drawerOpened) setDrawerOpened(false)
 	}, [drawerOpened, isMobileWindow])
 
-	const handleMobileMenu = React.useCallback(() => setDrawerOpened((prev) => !prev), [])
+	// Callback for parent mobile nav and any child button toggle. Also prevents the following issues;
+	// - prevents drawer closing and opening at the same time making it appear as if it did nothing
+	// - prevents drawer opening if not focused
+	const tempDisabledRef = React.useRef(false)
+	const isFocusedRef = useRefFromValue(isFocused)
+	const toggleMobileMenu = React.useCallback(() => {
+		if (!tempDisabledRef.current && isFocusedRef.current) {
+			tempDisabledRef.current = true
+			setDrawerOpened((prev) => !prev)
+			setTimeout(() => {
+				tempDisabledRef.current = false
+			}, 250)
+		}
+	}, [isFocusedRef])
 
-	const appContextCallbacks = React.useMemo(() => ({ setDrawerOpened, setMobileNavContent }), [])
-
+	// Checks to see if the app is freshly focused by the user, if so, the mobile app menu will only
+	// contain the focused app's nav options.
 	const prevFocused = usePrevious(isFocused)
 	useEffectWithInitial(() => {
-		if (isFocused && !prevFocused) setMobileMenuCallback(handleMobileMenu)
+		if (isFocused && !prevFocused) setMobileMenuCallback(toggleMobileMenu)
 	}, [isFocused])
 
-	const MemoApp = React.useMemo(() => React.memo(() => <app.class />), [])
+	// Callbacks inherited by every app via context to deal with mobile navigation.
+	const appContextCallbacks = React.useMemo(() => ({ toggleMobileMenu, setMobileNavContent }), [
+		toggleMobileMenu,
+	])
 
 	return (
 		<>
 			{mobileNavContent && (
-				<Drawer side='right' isShown={drawerOpened} onClose={() => setDrawerOpened(false)}>
+				<Drawer side='right' isShown={drawerOpened} onClose={toggleMobileMenu}>
 					{mobileNavContent}
 				</Drawer>
 			)}
 			<Contexts.App.Provider value={appContextCallbacks}>
-				<MemoApp />
+				<app.class />
 			</Contexts.App.Provider>
 		</>
 	)

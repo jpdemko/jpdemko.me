@@ -1,4 +1,7 @@
 import React from 'react'
+import { throttle } from 'throttle-debounce'
+
+/* -------------------------------------------------------------------------- */
 
 /**
  * Custom hook to expedite the common React localStorage scenario.
@@ -30,6 +33,8 @@ export const useLocalStorage = (key, initValue) => {
 	return [value, set]
 }
 
+/* -------------------------------------------------------------------------- */
+
 /**
  * Use if you need to do something in JS based on media-queries. (make sure they don't overlap)
  * @param {string[]} queries - eg: ['(min-width: 480px)', '(min-width: 1024px)']
@@ -57,6 +62,8 @@ export const useMedia = (queries = [], values, defaultValue = null) => {
 	return value
 }
 
+/* -------------------------------------------------------------------------- */
+
 export const useOnClickOutside = (ref, handler) => {
 	const handledRecentlyRef = React.useRef(false)
 
@@ -79,6 +86,8 @@ export const useOnClickOutside = (ref, handler) => {
 	}, [ref, handler])
 }
 
+/* -------------------------------------------------------------------------- */
+
 export const useInterval = (callback, delay) => {
 	const callbackRef = React.useRef()
 
@@ -95,6 +104,8 @@ export const useInterval = (callback, delay) => {
 	}, [delay])
 }
 
+/* -------------------------------------------------------------------------- */
+
 export const usePrevious = (value) => {
 	const ref = React.useRef()
 
@@ -105,6 +116,20 @@ export const usePrevious = (value) => {
 	return ref.current
 }
 
+/* -------------------------------------------------------------------------- */
+
+export const useRefFromValue = (value) => {
+	const ref = React.useRef()
+
+	React.useEffect(() => {
+		ref.current = value
+	}, [value])
+
+	return ref
+}
+
+/* -------------------------------------------------------------------------- */
+
 export const useEffectWithInitial = (callback, deps) => {
 	if (!deps) throw new Error('useEffectWithInitial() requires dependancy array...')
 	deps.push(callback)
@@ -112,4 +137,41 @@ export const useEffectWithInitial = (callback, deps) => {
 	React.useEffect(() => callback(), [])
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	React.useEffect(() => callback(), deps)
+}
+
+/* -------------------------------------------------------------------------- */
+
+export const useResizeObserver = (throttleMS = 200, defaultWidth = 1, defaultHeight = 1) => {
+	const ref = React.useRef(null)
+	const isLoadedRef = React.useRef(true)
+	const [width, setWidth] = React.useState(defaultWidth)
+	const [height, setHeight] = React.useState(defaultHeight)
+
+	const setWidthThrottled = React.useCallback(
+		throttle(throttleMS, (n) => isLoadedRef.current && setWidth(n)),
+		[],
+	)
+	const setHeightThrottled = React.useCallback(
+		throttle(throttleMS, (n) => isLoadedRef.current && setHeight(n)),
+		[],
+	)
+
+	React.useEffect(() => {
+		const element = ref.current
+		const resizeObserver = new ResizeObserver((entries) => {
+			if (!Array.isArray(entries) || !entries.length || !isLoadedRef.current) return
+
+			const entry = entries[0]
+			setWidthThrottled(entry.contentRect.width)
+			setHeightThrottled(entry.contentRect.height)
+		})
+		resizeObserver.observe(element)
+
+		return () => {
+			isLoadedRef.current = false
+			resizeObserver.unobserve(element)
+		}
+	}, [setHeightThrottled, setWidthThrottled])
+
+	return [ref, width, height]
 }

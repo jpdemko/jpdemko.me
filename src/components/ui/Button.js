@@ -36,7 +36,8 @@ export const ButtonBase = styled.button.attrs(({ size = 1, svg }) => {
 	transition: opacity 0.2s, background 0.15s, box-shadow 0.15s, outline 0.1s;
 	font-weight: 500;
 	outline: none;
-	${({ theme, varCSS, disabled }) => css`
+	${({ theme, varCSS, disabled, vertical }) => css`
+		flex-direction: ${vertical ? 'column' : 'row'};
 		box-shadow: 0 0 0 0 ${theme.mainColor};
 		font-size: ${varCSS.fontSize};
 		padding: ${varCSS.verticalPadding} ${varCSS.sidePadding};
@@ -47,6 +48,12 @@ export const ButtonBase = styled.button.attrs(({ size = 1, svg }) => {
 			box-shadow: 0 0 0 3px ${theme.mainColor};
 		}
 	`}
+	> * {
+		flex: 1 0 auto;
+	}
+	> svg {
+		flex: 0 0 auto;
+	}
 `
 
 const BasicButton = styled(ButtonBase)`
@@ -104,7 +111,7 @@ const Button = ({ tag, variant, children, ...props }) => {
 	return (
 		<ButtonVariant as={tag} {...props}>
 			{props.svg && <props.svg />}
-			{children}
+			<div>{children}</div>
 		</ButtonVariant>
 	)
 }
