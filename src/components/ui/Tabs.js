@@ -2,6 +2,7 @@ import React from 'react'
 import styled, { css } from 'styled-components/macro'
 
 import { ButtonBase } from './Button'
+import { usePrevious } from '../../shared/customHooks'
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -21,6 +22,7 @@ const TabButton = styled(ButtonBase)`
 		opacity: ${isFocused ? 1 : 0.65};
 		background: ${isFocused ? theme.mainColor : null};
 		border-right: 2px solid ${theme.mixedColor};
+		border-bottom: 2px solid ${!isFocused ? theme.mixedColor : theme.mainColor};
 	`}
 `
 
@@ -58,6 +60,16 @@ const defaultContent = [{ id: 1, tabHeader: null, tabContent: null }]
 
 const Tabs = ({ content = defaultContent, ...props }) => {
 	const [focusedID, setFocusedID] = React.useState(content[0].id)
+
+	const prevContentLength = usePrevious(content && content.length)
+	React.useEffect(() => {
+		if (content && content.length !== prevContentLength) {
+			if (!content.find((ele) => ele.id === focusedID)) {
+				const nextEle = content.find((ele) => ele.id !== focusedID)
+				setFocusedID(nextEle ? nextEle.id : null)
+			}
+		}
+	}, [content, focusedID, prevContentLength])
 
 	return (
 		<Root {...props}>

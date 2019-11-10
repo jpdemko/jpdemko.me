@@ -22,8 +22,9 @@ const InfoMessage = styled.div`
 	display: inline-block;
 	position: absolute;
 	z-index: 500;
-	top: 0.5em;
-	left: 0.5em;
+	margin: 1em;
+	top: 0;
+	left: 0;
 	padding: 0.25em 0.5em;
 	transition: opacity 0.5s;
 	${({ theme, isValidZone }) => css`
@@ -66,18 +67,21 @@ const Grid = styled.div`
 const Row = styled.div`
 	display: contents;
 	${({ theme }) => css`
-		&:nth-child(odd) div {
+		&:nth-child(odd) > div {
 			background: ${opac(0.5, theme.mixedColor)};
 		}
-		&:first-child div {
-			background: ${opac(0.75, theme.mixedColor)};
-			border-bottom: 2px solid ${opac(0.5, theme.bgContrastColor)};
-			text-transform: uppercase;
+		&:first-child > div {
+			background: ${theme.mainColor};
+			border-bottom: 2px solid ${theme.mixedColor};
 			position: sticky;
+			z-index: 1;
 			top: 0;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
 		}
 	`}
-	div {
+	> div {
 		padding: 0.2em;
 		width: 100%;
 		height: 100%;
@@ -87,6 +91,11 @@ const Row = styled.div`
 		align-items: center;
 		text-align: center;
 	}
+`
+
+const Subtle = styled.span`
+	font-size: 0.8em;
+	opacity: 0.8;
 `
 
 /* -------------------------------- COMPONENTS ------------------------------- */
@@ -118,25 +127,42 @@ const DayDetailed = ({ data: { timezone, hours }, getTemp }) => (
 					<div>Time</div>
 					<div>Summary</div>
 					<div>Temp.</div>
-					<div>Rain %</div>
-					<div>Humid. %</div>
+					<div>Rain%</div>
+					<div>Humid.%</div>
 				</Row>
-				{hours.map((hour) => (
-					<Row key={hour.time}>
-						<div>
-							{DateTime.fromSeconds(hour.time)
-								.setZone(timezone)
-								.toFormat('h a')}
-						</div>
-						<div>
-							<WeatherIcon iconName={hour.icon} />
-							{hour.summary}
-						</div>
-						<div>{getTemp(hour.apparentTemperature)}&deg;</div>
-						<div>{Math.round(hour.precipProbability * 100)}%</div>
-						<div>{Math.round(hour.humidity * 100)}%</div>
-					</Row>
-				))}
+				{hours.map((hour) => {
+					const time = DateTime.fromSeconds(hour.time)
+						.setZone(timezone)
+						.toFormat('h a')
+					const [h, period] = time.split(' ')
+					return (
+						<Row key={hour.time}>
+							<div>
+								<div>
+									{h}
+									<Subtle>{period}</Subtle>
+								</div>
+							</div>
+							<div>
+								<WeatherIcon iconName={hour.icon} />
+								{hour.summary}
+							</div>
+							<div>{getTemp(hour.apparentTemperature)}&deg;</div>
+							<div>
+								<div>
+									{Math.round(hour.precipProbability * 100)}
+									<Subtle>%</Subtle>
+								</div>
+							</div>
+							<div>
+								<div>
+									{Math.round(hour.humidity * 100)}
+									<Subtle>%</Subtle>
+								</div>
+							</div>
+						</Row>
+					)
+				})}
 			</Grid>
 		)}
 	</>

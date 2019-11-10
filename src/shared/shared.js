@@ -4,6 +4,7 @@ import { mix, transparentize } from 'polished'
 
 export const flags = {
 	isIE: !!window.navigator.userAgent.match(/(MSIE|Trident)/),
+	// Might be fixed in newer versions of Chrome?
 	// Chrome WebKit bug causes blurry text/images on child elements upon parent 3D transform.
 	// This is a flag to disable 3D transforms in Chrome.
 	// isChrome: !!window.chrome && (!!window.chrome.webstore || !!window.chrome.runtime),

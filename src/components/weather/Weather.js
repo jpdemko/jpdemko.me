@@ -228,7 +228,6 @@ const Weather = React.memo(({ ...props }) => {
 			<WeatherNav
 				map={map}
 				modulesLoaded={modulesLoaded}
-				curLocation={curLocation}
 				locations={locations}
 				removeLocation={removeLocation}
 				onLocationFound={onLocationFound}

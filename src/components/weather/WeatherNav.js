@@ -34,7 +34,7 @@ const Root = styled.div`
 	position: relative;
 	height: 100%;
 	${({ theme, isMobileWindow }) => css`
-		border-${isMobileWindow ? 'left' : 'right'}: 1px solid ${theme.mainColor};
+		border-${isMobileWindow ? 'left' : 'right'}: 2px solid ${theme.mixedColor};
 		background-color: ${theme.mainColor};
 		color: ${theme.bgContrastColor};
 	`}
@@ -93,7 +93,6 @@ const Footer = styled.div`
 const WeatherNav = ({
 	map,
 	modulesLoaded,
-	curLocation,
 	locations,
 	onLocationFound,
 	getTemp,
@@ -137,9 +136,6 @@ const WeatherNav = ({
 				<Footer>
 					<Button variant='fancy' theme={themes.blue} onClick={flipMetric}>
 						{isMetric ? 'Switch to Fahrenheit' : 'Switch to Celsius'}
-					</Button>
-					<Button variant='fancy' theme={themes.blue} onClick={() => console.log(curLocation)}>
-						Log current location data.
 					</Button>
 				</Footer>
 			</Root>
