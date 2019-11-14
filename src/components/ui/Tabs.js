@@ -40,7 +40,7 @@ const TabsHeader = styled.div`
 `
 
 const SelectedContent = styled.div`
-	flex: 1 1;
+	flex: 1 1 auto;
 	position: relative;
 	overflow-y: auto;
 `

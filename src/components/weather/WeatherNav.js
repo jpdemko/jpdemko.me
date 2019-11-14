@@ -14,7 +14,7 @@ import WeatherIcon from './WeatherIcon'
 /* --------------------------------- STYLES --------------------------------- */
 
 const DesktopNav = styled.div`
-	flex: 1;
+	flex: 1 1 auto;
 	${({ shown }) => css`
 		display: ${shown ? 'initial' : 'none'};
 	`}
@@ -44,7 +44,7 @@ const Root = styled.div`
 `
 
 const LocationsList = styled.div`
-	flex: 1 0;
+	flex: 1 1 auto;
 	overflow-y: auto;
 `
 
@@ -57,7 +57,7 @@ const Row = styled.div`
 
 const Location = styled(Button)`
 	padding-top: 0.5em;
-	flex: 1;
+	flex: 1 1 auto;
 	display: flex;
 	flex-direction: column;
 	align-items: flex-start;
@@ -78,7 +78,7 @@ const LocationSummary = styled.div`
 
 const Footer = styled.div`
 	padding: 0.2em;
-	flex: 0 0;
+	flex: 0 0 auto;
 	justify-self: flex-end;
 	display: flex;
 	flex-wrap: wrap;

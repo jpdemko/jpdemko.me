@@ -12,7 +12,7 @@ import Button from '../ui/Button'
 const animDuration = 0.15
 
 const Root = styled.div`
-	flex: 0 0;
+	flex: 0 0 auto;
 	display: flex;
 	position: relative;
 	&& {
@@ -31,6 +31,9 @@ const Root = styled.div`
 		& .MicrosoftMap .as_container_search .asOuterContainer {
 			border: none;
 			box-shadow: none;
+			> div:first-child {
+				display: none;
+			}
 		}
 	`}
 `
@@ -38,7 +41,7 @@ const Root = styled.div`
 const AutocompleteInput = styled.input`
 	border: none;
 	outline: none;
-	flex: 1;
+	flex: 1 1 auto;
 	transition: ${animDuration}s;
 	${({ theme }) => css`
 		color: ${theme.mainColor};
@@ -114,7 +117,6 @@ const LocationSearch = ({ map, modulesLoaded, onLocationFound }) => {
 				value={input}
 				onClick={() => setInput('')}
 				onChange={(e) => setInput(e.target.value)}
-				style={{ backgroundColor: '#0000' }}
 			/>
 			<Button svg={LocationSVG} onClick={onGeolocateCurrentPosition} />
 		</Root>

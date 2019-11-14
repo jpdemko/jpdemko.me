@@ -27,6 +27,7 @@ const GlobalStyle = createGlobalStyle`
 	svg:not(:root) {
 		height: 100%;
 		width: auto;
+		overflow: hidden;
 	}
 
 	#root {

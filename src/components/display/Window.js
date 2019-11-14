@@ -1,5 +1,5 @@
 import React from 'react'
-import { TweenMax, Draggable } from 'gsap/all'
+import { gsap, Draggable } from 'gsap/all'
 import styled, { css } from 'styled-components/macro'
 import { Transition } from 'react-transition-group'
 import { throttle, debounce } from 'throttle-debounce'
@@ -8,17 +8,11 @@ import { ReactComponent as CloseSVG } from '../../shared/assets/material-icons/c
 import { ReactComponent as MinimizeSVG } from '../../shared/assets/material-icons/minimize.svg'
 import { ReactComponent as FullscreenExitSVG } from '../../shared/assets/material-icons/fullscreen-exit.svg'
 import { ReactComponent as FullscreenSVG } from '../../shared/assets/material-icons/fullscreen.svg'
-import {
-	getStyleProperty,
-	getRect,
-	isDoubleTouch,
-	opac,
-	flags,
-	themes,
-	mediaBreakpoints,
-} from '../../shared/shared'
+import { getStyleProperty, getRect, isDoubleTouch, opac, themes, mediaBreakpoints } from '../../shared/shared'
 import Contexts from '../../shared/contexts'
 import Button from '../ui/Button'
+
+gsap.registerPlugin(Draggable)
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -30,18 +24,20 @@ const Root = styled.div`
 	max-height: 100vh;
 	${({ minWindowCSS, zIndex, isFocused, isMobileSite, isMaximized, theme }) => css`
 		z-index: ${zIndex};
-		${!isMobileSite &&
+		${
+			'' /* ${!isMobileSite &&
 			css`
 				min-height: ${minWindowCSS.minHeight}px;
 				min-width: ${minWindowCSS.minWidth}px;
-			`}
+			`} */
+		}
 		border: ${isMaximized ? 'none' : `1px solid ${theme.mixedColor}`};
-		/* Might have to take the shadow out because performance isn't that great w/ it... */
 		filter: ${isFocused ? `drop-shadow(0 1px 12px ${opac(0.3, theme.mixedColor)})` : 'none'};
 	`}
 `
 
 const TitleBar = styled.div`
+	flex: 0 0 auto;
 	padding-left: 0.5em;
 	font-weight: 500;
 	opacity: 0.9;
@@ -54,7 +50,7 @@ const TitleBar = styled.div`
 `
 
 const Content = styled.div`
-	flex: 1;
+	flex: 1 1 auto;
 	position: relative;
 	overflow: hidden;
 	> div {
@@ -80,6 +76,7 @@ const Side = styled.div.attrs(({ position }) => ({
 					width: 100%;
 			  `
 			: css`
+					top: 0;
 					height: 100%;
 					width: ${sideSize};
 			  `}
@@ -139,18 +136,14 @@ export default class Window extends React.Component {
 				left: this.shortcutRect.left - wireframe.width / 2,
 				width: wireframe.width,
 				height: wireframe.height,
-				scale: 0.25,
-				opacity: 0,
-				display: 'none',
+				scale: 0,
 			},
 			windowed: {
-				display: 'flex',
-				opacity: 1,
-				scale: 1,
 				top: wireframe.top,
 				left: wireframe.left,
 				width: wireframe.width,
 				height: wireframe.height,
+				scale: 1,
 				x: 0,
 				y: 0,
 			},
@@ -159,11 +152,9 @@ export default class Window extends React.Component {
 				left: 0,
 				width: '100%',
 				height: '100%',
+				scale: 1,
 				x: 0,
 				y: 0,
-				opacity: 1,
-				scale: 1,
-				display: 'flex',
 			},
 		}
 	}
@@ -188,10 +179,10 @@ export default class Window extends React.Component {
 		const checkMediaSizeThrottled = this.checkMediaSizeThrottled
 		const syncPosition = this.syncPosition
 
-		this.windowDraggable = new Draggable(windowElement, {
-			activeCursor: 'grabbing',
+		this.draggableWindow = Draggable.create(windowElement, {
+			type: 'x,y',
 			cursor: 'grab',
-			force3D: !flags.isChrome,
+			activeCursor: 'grabbing',
 			bounds: '#display',
 			edgeResistance: 0.5,
 			trigger: `#title-bar-${id}`,
@@ -200,24 +191,31 @@ export default class Window extends React.Component {
 			allowContextMenu: true,
 		})
 
-		const genResizeDraggable = (target, vars) =>
-			new Draggable(target, {
+		const draggableWindow = this.draggableWindow
+		const genResizeDraggable = (vars) => {
+			const parent = document.getElementById('allowedDragArea')
+			const nextEle = document.createElement('div')
+			nextEle.style.position = 'absolute'
+			parent.appendChild(nextEle)
+			return Draggable.create(nextEle, {
 				...vars,
+				type: 'x,y',
 				onPress: () => {
 					focusApp(id)
-					this.windowDraggable.disable()
+					draggableWindow[0].disable()
 				},
 				onRelease: () => {
-					this.windowDraggable.enable()
+					draggableWindow[0].enable()
 					checkMediaSize()
 					syncPosition()
 				},
 				allowContextMenu: true,
 			})
+		}
 
 		this.dragInstances = [
-			this.windowDraggable,
-			genResizeDraggable(document.createElement('div'), {
+			this.draggableWindow,
+			genResizeDraggable({
 				trigger: `#side-top-${id}, #corner-nw-${id}, #corner-ne-${id}`,
 				cursor: 'n-resize',
 				onDrag: function() {
@@ -225,13 +223,13 @@ export default class Window extends React.Component {
 					const deltaY = preventLowering ? 0 : this.deltaY
 					windowRect.height -= deltaY
 					checkMediaSizeThrottled()
-					TweenMax.set(windowElement, {
+					gsap.set(windowElement, {
 						height: windowRect.height,
 						y: `+=${deltaY}`,
 					})
 				},
 			}),
-			genResizeDraggable(document.createElement('div'), {
+			genResizeDraggable({
 				trigger: `#side-right-${id}, #corner-ne-${id}, #corner-se-${id}`,
 				cursor: 'e-resize',
 				onDrag: function() {
@@ -239,10 +237,10 @@ export default class Window extends React.Component {
 					const deltaX = preventLowering ? 0 : this.deltaX
 					windowRect.width += deltaX
 					checkMediaSizeThrottled()
-					TweenMax.set(windowElement, { width: windowRect.width })
+					gsap.set(windowElement, { width: windowRect.width })
 				},
 			}),
-			genResizeDraggable(document.createElement('div'), {
+			genResizeDraggable({
 				trigger: `#side-bottom-${id}, #corner-sw-${id}, #corner-se-${id}`,
 				cursor: 's-resize',
 				onDrag: function() {
@@ -250,10 +248,10 @@ export default class Window extends React.Component {
 					const deltaY = preventLowering ? 0 : this.deltaY
 					windowRect.height += deltaY
 					checkMediaSizeThrottled()
-					TweenMax.set(windowElement, { height: windowRect.height })
+					gsap.set(windowElement, { height: windowRect.height })
 				},
 			}),
-			genResizeDraggable(document.createElement('div'), {
+			genResizeDraggable({
 				trigger: `#side-left-${id}, #corner-nw-${id}, #corner-sw-${id}`,
 				cursor: 'w-resize',
 				onDrag: function() {
@@ -261,26 +259,26 @@ export default class Window extends React.Component {
 					const deltaX = preventLowering ? 0 : this.deltaX
 					windowRect.width -= deltaX
 					checkMediaSizeThrottled()
-					TweenMax.set(windowElement, { width: windowRect.width, x: `+=${deltaX}` })
+					gsap.set(windowElement, { width: windowRect.width, x: `+=${deltaX}` })
 				},
 			}),
 		]
-		if (isMobileSite) this.dragInstances.forEach((i) => i.disable())
+		if (isMobileSite) this.dragInstances.forEach((i) => i[0].disable())
 		window.addEventListener('resize', this.handleResizeDebounced)
 	}
 
 	componentWillUnmount() {
-		this.dragInstances.forEach((i) => i.kill())
+		this.dragInstances.forEach((i) => i[0].kill())
 		window.removeEventListener('resize', this.handleResizeDebounced)
 	}
 
 	componentDidUpdate(prevProps, prevState) {
 		if (prevProps.isMobileSite !== this.props.isMobileSite) {
-			this.dragInstances.forEach((i) => i.enabled(!this.props.isMobileSite))
+			this.dragInstances.forEach((i) => i[0].enabled(!this.props.isMobileSite))
 		}
 		const { isMaximized, isMinimized, isWindowed } = this.state
 		if (isWindowed && (isMaximized || isMinimized)) this.setState({ isWindowed: false })
-		else if (!isWindowed && (!isMaximized && !isMinimized)) this.setState({ isWindowed: true })
+		else if (!isWindowed && !isMaximized && !isMinimized) this.setState({ isWindowed: true })
 	}
 
 	handleResize = () => {
@@ -301,7 +299,7 @@ export default class Window extends React.Component {
 	}
 
 	syncPosition = () => {
-		this.windowDraggable.update(true)
+		this.draggableWindow[0].update(true)
 		const { width, height } = getRect(`window-${this.props.id}`)
 		this.difStatesCSS.minimized = {
 			...this.difStatesCSS.minimized,
@@ -356,37 +354,34 @@ export default class Window extends React.Component {
 		const windowRect = this.windowRect
 		const checkMediaSize = this.checkMediaSize
 		const checkMediaSizeThrottled = this.checkMediaSizeThrottled
-		// const syncPosition = this.syncPosition
 		// Clone vars so GSAP doesn't alter original...
-		TweenMax.to(this.rootRef.current, 0.5, {
+		gsap.to(this.rootRef.current, {
 			...tweenVars,
+			duration: 0.4,
 			onComplete: () => {
-				// syncPosition()
 				checkMediaSize()
 			},
 			onUpdate: function() {
-				windowRect.width = this.target.offsetWidth
-				windowRect.height = this.target.offsetHeight
+				windowRect.width = this._targets[0].offsetWidth
+				windowRect.height = this._targets[0].offsetHeight
 				checkMediaSizeThrottled()
 			},
 		})
 	}
 
 	setLastWindowedCSS = () => {
-		if (!this.state.isWindowed || TweenMax.isTweening(this.rootRef.current)) return
+		if (!this.state.isWindowed || gsap.isTweening(this.rootRef.current)) return
 		this.syncPosition()
 
 		const { width, height } = this.rootRef.current.getBoundingClientRect()
 		this.difStatesCSS.windowed = {
 			top: getStyleProperty(this.rootRef.current, 'top', true),
 			left: getStyleProperty(this.rootRef.current, 'left', true),
-			x: this.windowDraggable.x,
-			y: this.windowDraggable.y,
+			x: this.draggableWindow[0].x,
+			y: this.draggableWindow[0].y,
 			width,
 			height,
 			scale: 1,
-			opacity: 1,
-			display: 'flex',
 		}
 	}
 
@@ -394,18 +389,20 @@ export default class Window extends React.Component {
 		const { id, title, isMobileSite, isFocused, zIndex, minWindowCSS, in: show } = this.props
 		const { closeApp, focusApp } = this.props
 		const { isMaximized } = this.state
-		const animDuration = 1
 		return (
 			<Transition
+				mountOnEnter
 				unmountOnExit
-				timeout={animDuration * 1000}
 				in={show}
+				timeout={{
+					appear: 100,
+					enter: 800,
+					exit: 400,
+				}}
 				onEnter={(node) => {
 					const { minimized, windowed, maximized } = this.difStatesCSS
-					if (isMobileSite) TweenMax.fromTo(node, animDuration, { ...minimized }, { ...maximized })
-					else TweenMax.fromTo(node, animDuration, { ...minimized }, { ...windowed })
+					gsap.fromTo(node, { ...minimized }, { ...(isMobileSite ? maximized : windowed), duration: 0.8 })
 				}}
-				onEntered={this.enableDrag}
 				onExit={() => this.minimize()}
 			>
 				<Root
@@ -429,9 +426,7 @@ export default class Window extends React.Component {
 						}}
 						theme={isFocused ? themes.blue : themes.dark}
 					>
-						<div>
-							{title}#{id} - zIndex: {zIndex}
-						</div>
+						<div>{title}</div>
 						<div style={{ display: 'flex', marginLeft: 'auto' }}>
 							<Button theme={themes.light} onClick={() => this.minimize()} svg={MinimizeSVG} />
 							<Button

@@ -11,7 +11,7 @@ import Tabs from '../ui/Tabs'
 
 const CustomTabs = styled(Tabs)`
 	border: none;
-	flex: 2;
+	flex: 2 1;
 	font-size: 0.8em;
 	${({ theme }) => css`
 		border-top: 2px solid ${theme.mixedColor};
@@ -54,43 +54,56 @@ const Temps = styled.div`
 	}
 `
 
-const Grid = styled.div`
-	display: grid;
-	grid-template-columns: repeat(5, minmax(min-content, auto));
-	align-items: center;
-	justify-items: center;
-	&& svg {
-		height: 2em;
-	}
+const TRoot = styled.div`
+	overflow: auto;
+	height: 100%;
 `
 
-const Row = styled.div`
-	display: contents;
+const Table = styled.table`
+	width: 100%;
+	border-collapse: collapse;
+	text-align: center;
+`
+
+const THeader = styled.thead`
+	white-space: nowrap;
 	${({ theme }) => css`
-		&:nth-child(odd) > div {
-			background: ${opac(0.5, theme.mixedColor)};
-		}
-		&:first-child > div {
+		th {
 			background: ${theme.mainColor};
-			border-bottom: 2px solid ${theme.mixedColor};
 			position: sticky;
 			z-index: 1;
 			top: 0;
-			white-space: nowrap;
-			overflow: hidden;
-			text-overflow: ellipsis;
+		}
+		div {
+			position: absolute;
+			width: 100%;
+			left: 0;
+			border-bottom: 2px solid ${theme.mixedColor};
 		}
 	`}
-	> div {
-		padding: 0.2em;
-		width: 100%;
-		height: 100%;
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-		align-items: center;
-		text-align: center;
+`
+
+const TBody = styled.tbody`
+	overflow: auto;
+	${({ theme }) => css`
+		tr:nth-child(odd) {
+			background: ${opac(0.5, theme.mixedColor)};
+		}
+	`}
+`
+
+const TRow = styled.tr`
+	> * {
+		padding: 0.15em 0.3em;
 	}
+`
+
+const SummaryCell = styled.div`
+	display: flex;
+	flex-direction: column;
+	text-align: center;
+	justify-content: center;
+	align-items: center;
 `
 
 const Subtle = styled.span`
@@ -107,65 +120,86 @@ const DaySummary = ({ data, getTemp, name, ...props }) => {
 			<div>{name}</div>
 			<HR />
 			<Temps>
-				<span>High: {getTemp(high)}&deg;</span>
+				<span>H - {getTemp(high)}&deg;</span>
 				<WeatherIcon iconName={icon} />
-				<span>Low: {getTemp(low)}&deg;</span>
+				<span>L - {getTemp(low)}&deg;</span>
 			</Temps>
 		</Card>
 	)
 }
 
 const DayDetailed = ({ data: { timezone, hours }, getTemp }) => (
-	<>
+	<TRoot>
 		{hours.length === 0 ? (
 			<div style={{ textAlign: 'center', padding: '.25em' }}>
 				No data! Detailed hourly data isn't accurate past 48 hours!
 			</div>
 		) : (
-			<Grid>
-				<Row>
-					<div>Time</div>
-					<div>Summary</div>
-					<div>Temp.</div>
-					<div>Rain%</div>
-					<div>Humid.%</div>
-				</Row>
-				{hours.map((hour) => {
-					const time = DateTime.fromSeconds(hour.time)
-						.setZone(timezone)
-						.toFormat('h a')
-					const [h, period] = time.split(' ')
-					return (
-						<Row key={hour.time}>
-							<div>
-								<div>
-									{h}
-									<Subtle>{period}</Subtle>
-								</div>
-							</div>
-							<div>
-								<WeatherIcon iconName={hour.icon} />
-								{hour.summary}
-							</div>
-							<div>{getTemp(hour.apparentTemperature)}&deg;</div>
-							<div>
-								<div>
-									{Math.round(hour.precipProbability * 100)}
-									<Subtle>%</Subtle>
-								</div>
-							</div>
-							<div>
-								<div>
-									{Math.round(hour.humidity * 100)}
-									<Subtle>%</Subtle>
-								</div>
-							</div>
-						</Row>
-					)
-				})}
-			</Grid>
+			<Table>
+				<THeader>
+					<TRow>
+						<th>
+							Time
+							<div />
+						</th>
+						<th>
+							Summary
+							<div />
+						</th>
+						<th>
+							Temp.
+							<div />
+						</th>
+						<th>
+							Rain%
+							<div />
+						</th>
+						<th>
+							Humid.%
+							<div />
+						</th>
+					</TRow>
+				</THeader>
+				<TBody>
+					{hours.map((hour) => {
+						const time = DateTime.fromSeconds(hour.time)
+							.setZone(timezone)
+							.toFormat('h a')
+						const [h, period] = time.split(' ')
+						return (
+							<TRow key={hour.time}>
+								<td>
+									<div>
+										{h}
+										<Subtle>{period}</Subtle>
+									</div>
+								</td>
+								<td>
+									<SummaryCell>
+										<WeatherIcon iconName={hour.icon} />
+										{hour.summary}
+									</SummaryCell>
+								</td>
+								<td>{getTemp(hour.apparentTemperature)}&deg;</td>
+								<td>
+									<div>
+										{Math.round(hour.precipProbability * 100)}
+										<Subtle>%</Subtle>
+									</div>
+								</td>
+								<td>
+									<div>
+										{Math.round(hour.humidity * 100)}
+										<Subtle>%</Subtle>
+									</div>
+								</td>
+							</TRow>
+						)
+					})}
+				</TBody>
+			</Table>
 		)}
-	</>
+	</TRoot>
 )
 
 const usaZones = [

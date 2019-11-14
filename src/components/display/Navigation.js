@@ -17,7 +17,7 @@ const NavButton = styled(Button)`
 
 const BottomNav = styled.div`
 	display: flex;
-	flex: 0;
+	flex: 0 0 auto;
 	z-index: 4000;
 	left: 0;
 	bottom: 0;

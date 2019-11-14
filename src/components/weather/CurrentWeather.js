@@ -1,14 +1,14 @@
 import React from 'react'
 import styled, { css } from 'styled-components/macro'
 
-import { opac } from '../../shared/shared'
 import WeatherIcon from './WeatherIcon'
 
 /* --------------------------------- STYLES --------------------------------- */
 
 const Root = styled.div`
+	padding: 0.5em 1em;
 	font-weight: 500;
-	flex: 1;
+	flex: 1 1;
 	position: relative;
 	display: flex;
 	flex-direction: column;
@@ -19,7 +19,7 @@ const Root = styled.div`
 		background-image: ${curWeatherBG ? curWeatherBG : theme.gradient};
 	`}
 	> * {
-		margin-bottom: 0.5rem;
+		flex: 0 0 auto;
 	}
 `
 
@@ -29,47 +29,25 @@ const Address = styled.div`
 	opacity: 0.9;
 `
 
-const MainData = styled.div`
-	width: 100%;
-	flex: 0 0 auto;
-	display: flex;
-	align-items: center;
-	font-size: 2.5em;
-	line-height: 1;
-	> * {
-		flex: 1 0 auto;
-	}
-`
-
 const Temps = styled.div`
+	line-height: 1;
+	font-size: 2.5em;
 	display: flex;
 	flex-direction: column;
-	text-align: left;
+	align-items: center;
 	> * {
 		flex: 0 0 auto;
 	}
 `
 
 const Icon = styled.div`
-	height: 100%;
-	text-align: end;
+	height: 4em;
 `
 
 const Range = styled.div`
 	font-size: 0.25em;
 	margin-left: 0.2em;
 	text-align: start;
-`
-
-const Sepa = styled.div`
-	height: 100%;
-	margin: 0 0.15em 0 0.15em;
-	&& {
-		flex: 0 0 auto;
-	}
-	${({ theme }) => css`
-		border-right: 2px solid ${opac(0.9, theme.bgContrastColor)};
-	`}
 `
 
 const Info = styled.div`
@@ -86,18 +64,17 @@ const CurrentWeather = React.memo(({ curLocation, getTemp, ...props }) => {
 			{curLocation ? (
 				<>
 					<Address>{mapData.address.formattedAddress}</Address>
-					<div>{weatherData.currently.summary}</div>
-					<MainData>
-						<Icon>
-							<WeatherIcon iconName={weatherData.currently.icon} />
-						</Icon>
-						<Sepa />
-						<Temps>
-							<Range>High: {getTemp(weatherData.daily.data[0].apparentTemperatureHigh)}&deg;</Range>
-							<div>{getTemp(weatherData.currently.apparentTemperature)}&deg;</div>
-							<Range>Low: {getTemp(weatherData.daily.data[0].apparentTemperatureLow)}&deg;</Range>
-						</Temps>
-					</MainData>
+					<Icon>
+						<WeatherIcon iconName={weatherData.currently.icon} />
+					</Icon>
+					<div style={{ marginBottom: '1em' }}>{weatherData.currently.summary}</div>
+					<Temps>
+						<Range>H - {getTemp(weatherData.daily.data[0].apparentTemperatureHigh)}&deg;</Range>
+						<div style={{ marginBottom: '.1em' }}>
+							{getTemp(weatherData.currently.apparentTemperature)}&deg;
+						</div>
+						<Range>L - {getTemp(weatherData.daily.data[0].apparentTemperatureLow)}&deg;</Range>
+					</Temps>
 				</>
 			) : (
 				<Info>No locations added, add a location from the menu/nav!</Info>

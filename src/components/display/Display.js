@@ -20,7 +20,7 @@ const Root = styled.div`
 
 const AllowedDragArea = styled.div`
 	position: relative;
-	flex: 1;
+	flex: 1 1 auto;
 `
 
 const Background = styled.div`
@@ -167,7 +167,7 @@ export default class Display extends React.Component {
 		openedApps.forEach((app) => {
 			if (app.windowRef.current.state.isMinimized) return
 			else if (!belowApp && app.zIndex < curAppZ) belowApp = app
-			else if (belowApp && (app.zIndex < curAppZ && app.zIndex > belowApp.zIndex)) belowApp = app
+			else if (belowApp && app.zIndex < curAppZ && app.zIndex > belowApp.zIndex) belowApp = app
 		})
 		return this.focusApp(belowApp ? belowApp.id : -1)
 	}
@@ -197,7 +197,7 @@ export default class Display extends React.Component {
 			<Root id='display'>
 				{/* SVG pattern loaded inline because of styled-components Firefox bug which causes flickering? */}
 				<Background style={{ backgroundImage: `url(${TopographySVG})` }} theme={themes.light} />
-				<AllowedDragArea>
+				<AllowedDragArea id='allowedDragArea'>
 					<Shortcuts>
 						{mountableApps.map((mountableApp) => (
 							<ShortcutButton

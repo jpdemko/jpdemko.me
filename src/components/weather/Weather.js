@@ -28,7 +28,7 @@ const Root = styled.div`
 
 const Data = styled.div`
 	font-size: 1.2rem;
-	flex: 2;
+	flex: 2 1 auto;
 	display: flex;
 	overflow: hidden;
 	${({ isLandscape }) => css`
