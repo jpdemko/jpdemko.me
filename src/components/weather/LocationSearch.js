@@ -104,7 +104,11 @@ const LocationSearch = ({ map, modulesLoaded, onLocationFound }) => {
 				})
 				setInput('')
 			},
-			(err) => console.log('<LocationSearch /> getCurrentPosition() error: ', err),
+			({ code, message }) => {
+				const output = `Geolocation error #${code}: ${message}`
+				console.log(output)
+				alert(output)
+			},
 			{ enableHighAccuracy: true },
 		)
 	}

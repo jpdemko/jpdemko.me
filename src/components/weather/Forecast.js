@@ -11,7 +11,7 @@ import Tabs from '../ui/Tabs'
 
 const CustomTabs = styled(Tabs)`
 	border: none;
-	flex: 2 1;
+	flex: 2 0;
 	font-size: 0.8em;
 	${({ theme }) => css`
 		border-top: 2px solid ${theme.mixedColor};
@@ -54,26 +54,24 @@ const Temps = styled.div`
 	}
 `
 
-const TRoot = styled.div`
-	overflow: auto;
-	height: 100%;
-`
-
 const Table = styled.table`
+	position: relative;
 	width: 100%;
 	border-collapse: collapse;
 	text-align: center;
+	${({ theme }) => css`
+		th {
+			background: ${theme.mainColor};
+			position: sticky;
+			z-index: 1000;
+			top: 0;
+		}
+	`}
 `
 
 const THeader = styled.thead`
 	white-space: nowrap;
 	${({ theme }) => css`
-		th {
-			background: ${theme.mainColor};
-			position: sticky;
-			z-index: 1;
-			top: 0;
-		}
 		div {
 			position: absolute;
 			width: 100%;
@@ -111,6 +109,14 @@ const Subtle = styled.span`
 	opacity: 0.8;
 `
 
+const MapEntry = styled.div`
+	position: absolute;
+	height: 100%;
+	width: 100%;
+	left: 0;
+	top: 0;
+`
+
 /* -------------------------------- COMPONENTS ------------------------------- */
 
 const DaySummary = ({ data, getTemp, name, ...props }) => {
@@ -129,7 +135,7 @@ const DaySummary = ({ data, getTemp, name, ...props }) => {
 }
 
 const DayDetailed = ({ data: { timezone, hours }, getTemp }) => (
-	<TRoot>
+	<>
 		{hours.length === 0 ? (
 			<div style={{ textAlign: 'center', padding: '.25em' }}>
 				No data! Detailed hourly data isn't accurate past 48 hours!
@@ -199,7 +205,7 @@ const DayDetailed = ({ data: { timezone, hours }, getTemp }) => (
 				</TBody>
 			</Table>
 		)}
-	</TRoot>
+	</>
 )
 
 const usaZones = [
@@ -254,11 +260,11 @@ const Forecast = React.memo(({ curLocation, getTemp }) => {
 				</Card>
 			),
 			tabContent: (
-				<div id='BingMapRadar' title='Radar'>
+				<MapEntry id='BingMapRadar'>
 					<InfoMessage theme={themes.dark} isValidZone={isValidZone}>
 						INFO: Radar loop only works in US! (don't have outside data)
 					</InfoMessage>
-				</div>
+				</MapEntry>
 			),
 		}),
 		[isValidZone],

@@ -20,8 +20,11 @@
 			crossorigin="anonymous"
 			src="https://polyfill.io/v3/polyfill.min.js?flags=gated&features=es2015%2Ces2016%2CResizeObserver"
 		></script>
+		<script type="text/javascript">
+			function onMapLoad(e) {}
+		</script>
 		<script
-			src="https://www.bing.com/api/maps/mapcontrol?key=AglceRpWM2aDPvPfTTAS4BNDygByTBUFagq4jfSkzicQ5fhoxxhS9rZbR_DpUhkt"
+			src="https://www.bing.com/api/maps/mapcontrol?key=%REACT_APP_BING_MAPS_API_KEY%&callback=onMapLoad"
 			async
 			defer
 		></script>

@@ -29,6 +29,19 @@ const Address = styled.div`
 	opacity: 0.9;
 `
 
+const TextSummary = styled.div`
+	${({ isLandscape }) => css`
+		margin: 0.25em 0 ${isLandscape ? '.25em' : '.5em'};
+	`}
+`
+
+const LayoutSwitch = styled.div`
+	display: flex;
+	${({ isLandscape }) => css`
+		flex-direction: ${isLandscape ? 'column' : 'row'};
+	`}
+`
+
 const Temps = styled.div`
 	line-height: 1;
 	font-size: 2.5em;
@@ -57,24 +70,26 @@ const Info = styled.div`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-const CurrentWeather = React.memo(({ curLocation, getTemp, ...props }) => {
+const CurrentWeather = React.memo(({ curLocation, getTemp, isLandscape, ...props }) => {
 	const { mapData, weatherData } = curLocation || {}
 	return (
 		<Root {...props} curWeatherBG={curLocation && curLocation.curWeatherBG}>
 			{curLocation ? (
 				<>
 					<Address>{mapData.address.formattedAddress}</Address>
-					<Icon>
-						<WeatherIcon iconName={weatherData.currently.icon} />
-					</Icon>
-					<div style={{ marginBottom: '1em' }}>{weatherData.currently.summary}</div>
-					<Temps>
-						<Range>H - {getTemp(weatherData.daily.data[0].apparentTemperatureHigh)}&deg;</Range>
-						<div style={{ marginBottom: '.1em' }}>
-							{getTemp(weatherData.currently.apparentTemperature)}&deg;
-						</div>
-						<Range>L - {getTemp(weatherData.daily.data[0].apparentTemperatureLow)}&deg;</Range>
-					</Temps>
+					<TextSummary isLandscape={isLandscape}>{weatherData.currently.summary}</TextSummary>
+					<LayoutSwitch isLandscape={isLandscape}>
+						<Icon>
+							<WeatherIcon iconName={weatherData.currently.icon} />
+						</Icon>
+						<Temps>
+							<Range>H - {getTemp(weatherData.daily.data[0].apparentTemperatureHigh)}&deg;</Range>
+							<div style={{ marginBottom: '.1em' }}>
+								{getTemp(weatherData.currently.apparentTemperature)}&deg;
+							</div>
+							<Range>L - {getTemp(weatherData.daily.data[0].apparentTemperatureLow)}&deg;</Range>
+						</Temps>
+					</LayoutSwitch>
 				</>
 			) : (
 				<Info>No locations added, add a location from the menu/nav!</Info>

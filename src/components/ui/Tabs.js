@@ -46,6 +46,7 @@ const SelectedContent = styled.div`
 `
 
 const TabContents = styled.div`
+	height: 100%;
 	${({ isFocused, theme }) => css`
 		background: ${theme.mainColor};
 		color: ${theme.bgContrastColor};

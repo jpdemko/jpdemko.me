@@ -1,8 +1,24 @@
 import React from 'react'
+import styled from 'styled-components/macro'
 
 import Drawer from '../ui/Drawer'
 import Contexts from '../../shared/contexts'
 import { usePrevious, useRefFromValue, useEffectWithInitial } from '../../shared/customHooks'
+
+/* --------------------------------- STYLES --------------------------------- */
+
+const Root = styled.div`
+	> div {
+		overflow-x: hidden;
+		overflow-y: auto;
+		position: absolute;
+		top: 0;
+		height: 100%;
+		width: 100%;
+	}
+`
+
+/* -------------------------------- COMPONENT ------------------------------- */
 
 const App = ({ app, isFocused, setMobileMenuCallback }) => {
 	const [drawerOpened, setDrawerOpened] = React.useState(false)
@@ -50,7 +66,9 @@ const App = ({ app, isFocused, setMobileMenuCallback }) => {
 				</Drawer>
 			)}
 			<Contexts.App.Provider value={appContextCallbacks}>
-				<app.class />
+				<Root>
+					<app.class />
+				</Root>
 			</Contexts.App.Provider>
 		</>
 	)

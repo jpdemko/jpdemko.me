@@ -12,9 +12,10 @@ const Root = styled.div`
 	z-index: 5001;
 	top: 0;
 	bottom: 0;
-	max-width: 75vw;
+	max-width: 75%;
 	${({ isShown, animDuration, side, theme }) => css`
-		${side}: 0;
+		left: ${side.charAt(0) === 'l' ? 0 : 'none'};
+		right: ${side.charAt(0) === 'r' ? 0 : 'none'};
 		background-color: ${theme.mainColor};
 		color: ${theme.bgContrastColor};
 		transition: ${animDuration}s;

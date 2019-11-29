@@ -24,13 +24,11 @@ const Root = styled.div`
 	max-height: 100vh;
 	${({ minWindowCSS, zIndex, isFocused, isMobileSite, isMaximized, theme }) => css`
 		z-index: ${zIndex};
-		${
-			'' /* ${!isMobileSite &&
-			css`
-				min-height: ${minWindowCSS.minHeight}px;
-				min-width: ${minWindowCSS.minWidth}px;
-			`} */
-		}
+			${!isMobileSite &&
+				css`
+					min-height: ${minWindowCSS.minHeight}px;
+					min-width: ${minWindowCSS.minWidth}px;
+				`}
 		border: ${isMaximized ? 'none' : `1px solid ${theme.mixedColor}`};
 		filter: ${isFocused ? `drop-shadow(0 1px 12px ${opac(0.3, theme.mixedColor)})` : 'none'};
 	`}
@@ -53,11 +51,6 @@ const Content = styled.div`
 	flex: 1 1 auto;
 	position: relative;
 	overflow: hidden;
-	> div {
-		overflow-x: hidden;
-		overflow-y: auto;
-		height: 100%;
-	}
 `
 
 // Change these to control the sizes for the interactive parts of the component.
