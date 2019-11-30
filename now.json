@@ -1,0 +1,8 @@
+{
+	"build": {
+		"env": {
+			"BING_MAPS_API_KEY": "@bing-maps-api-key",
+			"DARK_SKY_API_KEY": "@dark-sky-api-key"
+		}
+	}
+}
