@@ -137,19 +137,6 @@ const WeatherNav = ({
 					<Button variant='fancy' theme={themes.blue} onClick={flipMetric}>
 						{isMetric ? 'Switch to Fahrenheit' : 'Switch to Celsius'}
 					</Button>
-					<Button
-						variant='fancy'
-						theme={themes.blue}
-						onClick={() => {
-							// const m = document.getElementById('BingMapRadar')
-							// if (m) {
-							// 	const styles = m.style
-							// 	styles.forEach()
-							// }
-						}}
-					>
-						log map children?
-					</Button>
 				</Footer>
 			</Root>
 		</ThemeProvider>

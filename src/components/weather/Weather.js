@@ -6,7 +6,7 @@ import { DateTime, Interval } from 'luxon'
 
 import { getCurWeatherBG } from './WeatherIcon'
 import { ReactComponent as SunnySVG } from '../../shared/assets/weather-icons/wi-day-sunny.svg'
-import { themes, simplerFetch, getStyleProperty } from '../../shared/shared'
+import { themes, simplerFetch } from '../../shared/shared'
 import { useLocalStorage, useInterval, useResizeObserver } from '../../shared/customHooks'
 import WeatherNav from './WeatherNav'
 import CurrentWeather from './CurrentWeather'
@@ -67,7 +67,6 @@ const Weather = React.memo(({ ...props }) => {
 	const [modulesLoaded, setModulesLoaded] = React.useState(false)
 	React.useEffect(() => {
 		const genMap = new Microsoft.Maps.Map('#BingMapRadar', {
-			credentials: `${process.env.REACT_APP_BING_MAPS_API_KEY}`,
 			navigationBarMode: Microsoft.Maps.NavigationBarMode.minified,
 			supportedMapTypes: [
 				Microsoft.Maps.MapTypeId.road,
