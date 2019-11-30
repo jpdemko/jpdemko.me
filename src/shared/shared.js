@@ -70,8 +70,8 @@ let curProxyIdx = 0
  * @return {Promise<Response>}
  */
 export function simplerFetch(url, useProxy = false) {
-	useProxy = useProxy && process.env.NODE_ENV !== 'production' && curProxyIdx < corsProxies.length
-	const genURL = useProxy ? corsProxies[curProxyIdx] + url : url
+	// useProxy = useProxy && process.env.NODE_ENV !== 'production' && curProxyIdx < corsProxies.length
+	const genURL = useProxy && curProxyIdx < corsProxies.length ? corsProxies[curProxyIdx] + url : url
 	return fetch(genURL)
 		.then((res) => {
 			if (!res.ok) throw Error(`bad response --> code ${res.status}`)
