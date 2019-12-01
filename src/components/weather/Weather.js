@@ -66,8 +66,6 @@ const Weather = React.memo(({ ...props }) => {
 	const [map, setMap] = React.useState()
 	const [modulesLoaded, setModulesLoaded] = React.useState(false)
 	React.useEffect(() => {
-		console.log(`react dsky key: ${process.env.REACT_APP_DARK_SKY_API_KEY}`)
-		console.log(`now dsky key: ${process.env.DARK_SKY_API_KEY}`)
 		const genMap = new Microsoft.Maps.Map('#BingMapRadar', {
 			navigationBarMode: Microsoft.Maps.NavigationBarMode.minified,
 			supportedMapTypes: [
@@ -166,11 +164,7 @@ const Weather = React.memo(({ ...props }) => {
 
 	const fetchWeatherData = (lat, lng) => {
 		const darkskyAPI = 'https://api.darksky.net/forecast/'
-		const key =
-			process.env.NODE_ENV === 'development'
-				? process.env.REACT_APP_DARK_SKY_API_KEY
-				: process.env.DARK_SKY_API_KEY
-		const params = `${key}/${lat},${lng}?exclude=minutely`
+		const params = `${process.env.REACT_APP_DARK_SKY_API_KEY}/${lat},${lng}?exclude=minutely`
 		return simplerFetch(darkskyAPI + params, true).then((res) => res)
 	}
 
