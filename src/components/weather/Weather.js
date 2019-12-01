@@ -66,6 +66,8 @@ const Weather = React.memo(({ ...props }) => {
 	const [map, setMap] = React.useState()
 	const [modulesLoaded, setModulesLoaded] = React.useState(false)
 	React.useEffect(() => {
+		console.log(`react dsky key: ${process.env.REACT_APP_DARK_SKY_API_KEY}`)
+		console.log(`now dsky key: ${process.env.DARK_SKY_API_KEY}`)
 		const genMap = new Microsoft.Maps.Map('#BingMapRadar', {
 			navigationBarMode: Microsoft.Maps.NavigationBarMode.minified,
 			supportedMapTypes: [
