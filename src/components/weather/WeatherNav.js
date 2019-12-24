@@ -3,10 +3,8 @@ import styled, { css, ThemeProvider } from 'styled-components/macro'
 import { DateTime } from 'luxon'
 
 import { ReactComponent as CloseCircleSVG } from '../../shared/assets/material-icons/close-circle.svg'
-import { ReactComponent as MenuSVG } from '../../shared/assets/material-icons/menu.svg'
 import { useInterval } from '../../shared/customHooks'
-import { themes } from '../../shared/shared'
-import Contexts from '../../shared/contexts'
+import { themes, Contexts } from '../../shared/shared'
 import Button from '../ui/Button'
 import LocationSearch from './LocationSearch'
 import WeatherIcon from './WeatherIcon'
@@ -15,17 +13,6 @@ import WeatherIcon from './WeatherIcon'
 
 const DesktopNav = styled.div`
 	flex: 1 1 auto;
-	${({ shown }) => css`
-		display: ${shown ? 'initial' : 'none'};
-	`}
-`
-
-const MobileContextButtons = styled.div`
-	position: absolute;
-	margin: 0.5em;
-	bottom: 0;
-	left: 0;
-	z-index: 4000;
 `
 
 const Root = styled.div`
@@ -36,7 +23,7 @@ const Root = styled.div`
 	${({ theme, isMobileWindow }) => css`
 		border-${isMobileWindow ? 'left' : 'right'}: 2px solid ${theme.mixedColor};
 		background-color: ${theme.mainColor};
-		color: ${theme.bgContrastColor};
+		color: ${theme.contrastColor};
 	`}
 	&& svg {
 		height: 1.5em;
@@ -101,9 +88,8 @@ const WeatherNav = ({
 	removeLocation,
 	...props
 }) => {
-	const isMobileSite = React.useContext(Contexts.MobileSite)
-	const isMobileWindow = React.useContext(Contexts.MobileWindow)
-	const { toggleMobileMenu, setMobileNavContent } = React.useContext(Contexts.App)
+	const isMobileWindow = React.useContext(Contexts.IsMobileWindow)
+	const { setNavContentCallback } = React.useContext(Contexts.AppNav)
 
 	// Update clock for all locations every minute.
 	const [date, setDate] = React.useState(DateTime.local())
@@ -141,20 +127,9 @@ const WeatherNav = ({
 			</Root>
 		</ThemeProvider>
 	)
-	React.useEffect(() => setMobileNavContent(navContent))
+	React.useEffect(() => setNavContentCallback(navContent))
 
-	return (
-		<>
-			{isMobileWindow && !isMobileSite && (
-				<ThemeProvider theme={themes.blue}>
-					<MobileContextButtons>
-						<Button variant='fancy' onClick={toggleMobileMenu} svg={MenuSVG} />
-					</MobileContextButtons>
-				</ThemeProvider>
-			)}
-			<DesktopNav shown={!isMobileWindow}>{navContent}</DesktopNav>
-		</>
-	)
+	return !isMobileWindow && <DesktopNav>{navContent}</DesktopNav>
 }
 
 export default WeatherNav

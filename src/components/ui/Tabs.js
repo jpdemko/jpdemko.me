@@ -18,7 +18,7 @@ const Root = styled.div`
 
 const TabButton = styled(ButtonBase)`
 	${({ isFocused, theme }) => css`
-		color: ${theme.bgContrastColor};
+		color: ${theme.contrastColor};
 		opacity: ${isFocused ? 1 : 0.65};
 		background: ${isFocused ? theme.mainColor : null};
 		border-right: 2px solid ${theme.mixedColor};
@@ -49,7 +49,7 @@ const TabContents = styled.div`
 	height: 100%;
 	${({ isFocused, theme }) => css`
 		background: ${theme.mainColor};
-		color: ${theme.bgContrastColor};
+		color: ${theme.contrastColor};
 		position: ${isFocused ? 'initial' : 'absolute'};
 		display: ${isFocused ? 'initial' : 'none'};
 	`}
@@ -62,9 +62,9 @@ const defaultContent = [{ id: 1, tabHeader: null, tabContent: null }]
 const Tabs = ({ content = defaultContent, ...props }) => {
 	const [focusedID, setFocusedID] = React.useState(content[0].id)
 
-	const prevContentLength = usePrevious(content && content.length)
+	const prevContentLength = usePrevious(content?.length)
 	React.useEffect(() => {
-		if (content && content.length !== prevContentLength) {
+		if (content?.length !== prevContentLength) {
 			if (!content.find((ele) => ele.id === focusedID)) {
 				const nextEle = content.find((ele) => ele.id !== focusedID)
 				setFocusedID(nextEle ? nextEle.id : null)

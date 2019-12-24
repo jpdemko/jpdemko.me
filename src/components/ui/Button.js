@@ -36,8 +36,7 @@ export const ButtonBase = styled.button.attrs(({ size = 1, svg }) => {
 	transition: opacity 0.2s, background 0.15s, box-shadow 0.15s, outline 0.1s;
 	font-weight: 500;
 	outline: none;
-	${({ theme, varCSS, disabled, vertical }) => css`
-		flex-direction: ${vertical ? 'column' : 'row'};
+	${({ theme, varCSS, disabled }) => css`
 		box-shadow: 0 0 0 0 ${theme.mainColor};
 		font-size: ${varCSS.fontSize};
 		padding: ${varCSS.verticalPadding} ${varCSS.sidePadding};
@@ -101,7 +100,7 @@ const FancyButton = styled(ButtonBase)`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-const Button = ({ tag, variant, children, ...props }) => {
+const Button = ({ tag, variant, disabled = false, children, ...props }) => {
 	let ButtonVariant = BasicButton
 	if (variant) {
 		if (variant.includes('outline')) ButtonVariant = OutlinedButton
@@ -109,7 +108,7 @@ const Button = ({ tag, variant, children, ...props }) => {
 	}
 
 	return (
-		<ButtonVariant as={tag} {...props}>
+		<ButtonVariant as={tag} disabled={disabled} {...props}>
 			{props.svg && <props.svg />}
 			<div>{children}</div>
 		</ButtonVariant>

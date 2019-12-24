@@ -6,12 +6,11 @@ import { DateTime, Interval } from 'luxon'
 
 import { getCurWeatherBG } from './WeatherIcon'
 import { ReactComponent as SunnySVG } from '../../shared/assets/weather-icons/wi-day-sunny.svg'
-import { themes, simplerFetch } from '../../shared/shared'
+import { themes, simplerFetch, Contexts } from '../../shared/shared'
 import { useLocalStorage, useInterval, useResizeObserver } from '../../shared/customHooks'
 import WeatherNav from './WeatherNav'
 import CurrentWeather from './CurrentWeather'
 import Forecast from './Forecast'
-import Contexts from '../../shared/contexts'
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -22,7 +21,7 @@ const Root = styled.div`
 	${({ theme, weatherBG }) => css`
 		background-color: ${theme.mainColor};
 		background-image: ${weatherBG};
-		color: ${theme.bgContrastColor};
+		color: ${theme.contrastColor};
 	`}
 `
 
@@ -95,7 +94,7 @@ const Weather = React.memo(({ ...props }) => {
 	}, [])
 
 	const updateRadar = (mapParam) => {
-		const localMap = mapParam || map
+		const localMap = mapParam ?? map
 		if (!localMap) return
 		localMap.layers.clear()
 		const tileSources = radar.timestamps.map(
@@ -120,7 +119,7 @@ const Weather = React.memo(({ ...props }) => {
 		}
 	}
 
-	const { toggleMobileMenu } = React.useContext(Contexts.App)
+	const { toggleMobileMenu } = React.useContext(Contexts.AppNav)
 	const onLocationFound = (mapData) => {
 		if (!map || !mapData) return
 
@@ -190,7 +189,7 @@ const Weather = React.memo(({ ...props }) => {
 		const locPromises = locations.map((loc) => {
 			const prevFetchDate = DateTime.fromSeconds(loc.weatherData.currently.time).toLocal()
 			const recent = Interval.fromDateTimes(prevFetchDate, prevFetchDate.plus({ minutes: updateInterval }))
-			return !recent.contains(DateTime.local()) ? fetchData(loc.mapData) : loc
+			return !recent.contains(DateTime.local()) ? fetchData(loc.mapData) ?? loc : loc
 		})
 		Promise.all(locPromises)
 			.then((nextLocations) => {
@@ -217,15 +216,14 @@ const Weather = React.memo(({ ...props }) => {
 		[isMetric],
 	)
 
-	const [dataRef, dataWidth, dataHeight] = useResizeObserver()
-	const [isLandscape, setIsLandscape] = React.useState()
-	React.useEffect(() => {
-		if (!isLandscape && dataWidth > dataHeight * 1.25) setIsLandscape(true)
-		else if (isLandscape && dataWidth <= dataHeight * 1.25) setIsLandscape(false)
-	}, [dataWidth, dataHeight, isLandscape])
+	const checkIfLandscape = React.useCallback(
+		(resizeEleRect) => resizeEleRect.width > resizeEleRect.height * 1.25,
+		[],
+	)
+	const [dataRef, isLandscape] = useResizeObserver(checkIfLandscape)
 
 	return (
-		<Root {...props} weatherBG={curLocation && curLocation.weatherBG}>
+		<Root {...props} weatherBG={curLocation?.weatherBG}>
 			<WeatherNav
 				map={map}
 				modulesLoaded={modulesLoaded}

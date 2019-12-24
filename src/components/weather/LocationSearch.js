@@ -3,7 +3,7 @@
 import React from 'react'
 import styled, { css } from 'styled-components/macro'
 
-import { useRefFromValue } from '../../shared/customHooks'
+import { useUpdatedValRef } from '../../shared/customHooks'
 import { ReactComponent as LocationSVG } from '../../shared/assets/material-icons/location.svg'
 import Button from '../ui/Button'
 
@@ -63,7 +63,7 @@ const AutocompleteInput = styled.input`
 let uniqueID = 0
 
 const LocationSearch = ({ map, modulesLoaded, onLocationFound }) => {
-	const onLocationFoundRef = useRefFromValue(onLocationFound)
+	const onLocationFoundRef = useUpdatedValRef(onLocationFound)
 	const idRef = React.useRef(uniqueID++)
 	const [input, setInput] = React.useState('')
 

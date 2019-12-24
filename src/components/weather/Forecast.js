@@ -23,13 +23,14 @@ const InfoMessage = styled.div`
 	position: absolute;
 	z-index: 500;
 	margin: 1em;
+	margin-right: 3em;
 	top: 0;
 	left: 0;
 	padding: 0.25em 0.5em;
 	transition: opacity 0.5s;
 	${({ theme, isValidZone }) => css`
 		background-color: ${opac(0.8, theme.mainColor)};
-		color: ${theme.bgContrastColor};
+		color: ${theme.contrastColor};
 		opacity: ${isValidZone ? 0 : 1};
 	`}
 `
@@ -126,9 +127,9 @@ const DaySummary = ({ data, getTemp, name, ...props }) => {
 			<div>{name}</div>
 			<HR />
 			<Temps>
-				<span>H - {getTemp(high)}&deg;</span>
+				<span>H: {getTemp(high)}&deg;</span>
 				<WeatherIcon iconName={icon} />
-				<span>L - {getTemp(low)}&deg;</span>
+				<span>L: {getTemp(low)}&deg;</span>
 			</Temps>
 		</Card>
 	)
@@ -262,7 +263,7 @@ const Forecast = React.memo(({ curLocation, getTemp }) => {
 			tabContent: (
 				<MapEntry id='BingMapRadar'>
 					<InfoMessage theme={themes.dark} isValidZone={isValidZone}>
-						INFO: Radar loop only works in US! (don't have outside data)
+						INFO: Radar loop overlay is only for the USA. I don't have international data.
 					</InfoMessage>
 				</MapEntry>
 			),

@@ -71,9 +71,9 @@ const Info = styled.div`
 /* -------------------------------- COMPONENT ------------------------------- */
 
 const CurrentWeather = React.memo(({ curLocation, getTemp, isLandscape, ...props }) => {
-	const { mapData, weatherData } = curLocation || {}
+	const { mapData, weatherData } = curLocation ?? {}
 	return (
-		<Root {...props} curWeatherBG={curLocation && curLocation.curWeatherBG}>
+		<Root {...props} curWeatherBG={curLocation?.curWeatherBG}>
 			{curLocation ? (
 				<>
 					<Address>{mapData.address.formattedAddress}</Address>
@@ -83,16 +83,18 @@ const CurrentWeather = React.memo(({ curLocation, getTemp, isLandscape, ...props
 							<WeatherIcon iconName={weatherData.currently.icon} />
 						</Icon>
 						<Temps>
-							<Range>H - {getTemp(weatherData.daily.data[0].apparentTemperatureHigh)}&deg;</Range>
+							<Range>H: {getTemp(weatherData.daily.data[0].apparentTemperatureHigh)}&deg;</Range>
 							<div style={{ marginBottom: '.1em' }}>
 								{getTemp(weatherData.currently.apparentTemperature)}&deg;
 							</div>
-							<Range>L - {getTemp(weatherData.daily.data[0].apparentTemperatureLow)}&deg;</Range>
+							<Range>L: {getTemp(weatherData.daily.data[0].apparentTemperatureLow)}&deg;</Range>
 						</Temps>
 					</LayoutSwitch>
 				</>
 			) : (
-				<Info>No locations added, add a location from the menu/nav!</Info>
+				<Info>
+					You don't have any locations added for weather data. Search for a location in the navigation menu.
+				</Info>
 			)}
 		</Root>
 	)

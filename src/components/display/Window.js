@@ -2,14 +2,21 @@ import React from 'react'
 import { gsap, Draggable } from 'gsap/all'
 import styled, { css } from 'styled-components/macro'
 import { Transition } from 'react-transition-group'
-import { throttle, debounce } from 'throttle-debounce'
+import { throttle } from 'throttle-debounce'
 
 import { ReactComponent as CloseSVG } from '../../shared/assets/material-icons/close.svg'
 import { ReactComponent as MinimizeSVG } from '../../shared/assets/material-icons/minimize.svg'
 import { ReactComponent as FullscreenExitSVG } from '../../shared/assets/material-icons/fullscreen-exit.svg'
 import { ReactComponent as FullscreenSVG } from '../../shared/assets/material-icons/fullscreen.svg'
-import { getStyleProperty, getRect, isDoubleTouch, opac, themes, mediaBreakpoints } from '../../shared/shared'
-import Contexts from '../../shared/contexts'
+import {
+	getStyleProperty,
+	getRect,
+	isDoubleTouch,
+	opac,
+	themes,
+	mediaBreakpoints,
+	Contexts,
+} from '../../shared/shared'
 import Button from '../ui/Button'
 
 gsap.registerPlugin(Draggable)
@@ -26,8 +33,8 @@ const Root = styled.div`
 		z-index: ${zIndex};
 			${!isMobileSite &&
 				css`
-					min-height: ${minWindowCSS.minHeight}px;
-					min-width: ${minWindowCSS.minWidth}px;
+					min-height: ${minWindowCSS.height}px;
+					min-width: ${minWindowCSS.width}px;
 				`}
 		border: ${isMaximized ? 'none' : `1px solid ${theme.mixedColor}`};
 		filter: ${isFocused ? `drop-shadow(0 1px 12px ${opac(0.3, theme.mixedColor)})` : 'none'};
@@ -41,7 +48,7 @@ const TitleBar = styled.div`
 	opacity: 0.9;
 	align-items: center;
 	${({ isMobileSite, theme }) => css`
-		color: ${theme.bgContrastColor};
+		color: ${theme.contrastColor};
 		display: ${isMobileSite ? 'none' : 'flex'};
 		background-image: ${theme.gradient};
 	`}
@@ -112,23 +119,18 @@ export default class Window extends React.Component {
 	constructor(props) {
 		super(props)
 		this.rootRef = React.createRef()
-		this.checkMediaSizeThrottled = throttle(100, this.checkMediaSize)
-		this.handleResizeDebounced = debounce(100, this.handleResize)
+		this.handleViewportResizeThrottled = throttle(100, this.handleViewportResize)
 
-		this.state = {
+		this.state = { isMobileWindow: props.isMobileSite, isMaximized: props.isMobileSite }
+
+		this.animStates = {
 			isMinimized: false,
 			isMaximized: props.isMobileSite,
-			isMobileWindow: props.isMobileSite,
+			isWindowed: !props.isMobileSite,
 		}
-
 		const wireframe = getRect('window-wireframe')
-		this.shortcutRect = getRect(`sc-${props.title}`)
-		this.difStatesCSS = {
+		this.animStatesCSS = {
 			minimized: {
-				top: this.shortcutRect.top - wireframe.height / 2,
-				left: this.shortcutRect.left - wireframe.width / 2,
-				width: wireframe.width,
-				height: wireframe.height,
 				scale: 0,
 			},
 			windowed: {
@@ -149,34 +151,32 @@ export default class Window extends React.Component {
 				x: 0,
 				y: 0,
 			},
+			sharedSettings: {
+				// ease: 'elastic.inOut(1.2, 0.4)',
+				// duration: 1,
+				ease: 'power4.inOut',
+				duration: 0.5,
+			},
 		}
-	}
-
-	static getDerivedStateFromProps(props, state) {
-		if (props.isMobileSite && !state.isMobileWindow) return { isMobileWindow: true }
-		return null
 	}
 
 	componentDidMount() {
 		const { id, focusApp, minWindowCSS, isMobileSite } = this.props
 		const windowElement = this.rootRef.current
 
-		// Grab rect of #window-wireframe which is used as opening location for all apps.
+		// Get all the dimensions needed for resize calculations.
 		let { width, height } = getRect('window-wireframe')
-		// Interactable sides/corners use these values to prevent resizing <= min CSS values.
 		this.windowRect = { width, height }
-		this.checkMediaSize()
+		this.handleViewportResize()
+
 		// Prevent 'this' conflicts later.
-		const windowRect = this.windowRect
-		const checkMediaSize = this.checkMediaSize
-		const checkMediaSizeThrottled = this.checkMediaSizeThrottled
-		const syncPosition = this.syncPosition
+		const { windowRect, dragAreaRect, recalcDragAreaRect, handleViewportResizeThrottled } = this
 
 		this.draggableWindow = Draggable.create(windowElement, {
 			type: 'x,y',
 			cursor: 'grab',
 			activeCursor: 'grabbing',
-			bounds: '#display',
+			bounds: '#allowedDragArea',
 			edgeResistance: 0.5,
 			trigger: `#title-bar-${id}`,
 			zIndexBoost: false,
@@ -195,12 +195,11 @@ export default class Window extends React.Component {
 				type: 'x,y',
 				onPress: () => {
 					focusApp(id)
+					recalcDragAreaRect()
 					draggableWindow[0].disable()
 				},
 				onRelease: () => {
 					draggableWindow[0].enable()
-					checkMediaSize()
-					syncPosition()
 				},
 				allowContextMenu: true,
 			})
@@ -210,172 +209,207 @@ export default class Window extends React.Component {
 			this.draggableWindow,
 			genResizeDraggable({
 				trigger: `#side-top-${id}, #corner-nw-${id}, #corner-ne-${id}`,
-				cursor: 'n-resize',
+				cursor: 'n-resize', // ^-negative-^   v-positive-v
 				onDrag: function() {
-					const preventLowering = windowRect.height <= minWindowCSS.minHeight && this.deltaY > 0
-					const deltaY = preventLowering ? 0 : this.deltaY
-					windowRect.height -= deltaY
-					checkMediaSizeThrottled()
+					const nextHeightBelowMin = windowRect.height - this.deltaY < minWindowCSS.height
+					const nextHeightAboveMax = windowRect.height - this.deltaY > dragAreaRect.height
+
+					if (nextHeightBelowMin) this.deltaY = windowRect.height - minWindowCSS.height
+					else if (nextHeightAboveMax) this.deltaY = dragAreaRect.height - windowRect.height
+					windowRect.height = windowRect.height - this.deltaY
+
+					handleViewportResizeThrottled()
 					gsap.set(windowElement, {
 						height: windowRect.height,
-						y: `+=${deltaY}`,
+						y: `+=${this.deltaY}`,
 					})
 				},
 			}),
 			genResizeDraggable({
 				trigger: `#side-right-${id}, #corner-ne-${id}, #corner-se-${id}`,
-				cursor: 'e-resize',
+				cursor: 'e-resize', // negative <--   ---> positive
 				onDrag: function() {
-					const preventLowering = windowRect.width <= minWindowCSS.minWidth && this.deltaX < 0
-					const deltaX = preventLowering ? 0 : this.deltaX
-					windowRect.width += deltaX
-					checkMediaSizeThrottled()
+					const nextWidthBelowMin = windowRect.width + this.deltaX < minWindowCSS.width
+					const nextWidthAboveMax = windowRect.width + this.deltaX > dragAreaRect.width
+
+					if (nextWidthBelowMin) windowRect.width = minWindowCSS.width
+					else if (nextWidthAboveMax) windowRect.width = dragAreaRect.width
+					else windowRect.width += this.deltaX
+
+					handleViewportResizeThrottled()
 					gsap.set(windowElement, { width: windowRect.width })
 				},
 			}),
 			genResizeDraggable({
 				trigger: `#side-bottom-${id}, #corner-sw-${id}, #corner-se-${id}`,
-				cursor: 's-resize',
+				cursor: 's-resize', // ^-negative-^   v-positive-v
 				onDrag: function() {
-					const preventLowering = windowRect.height <= minWindowCSS.minHeight && this.deltaY < 0
-					const deltaY = preventLowering ? 0 : this.deltaY
-					windowRect.height += deltaY
-					checkMediaSizeThrottled()
+					const nextHeightBelowMin = windowRect.height + this.deltaY < minWindowCSS.height
+					const nextHeightAboveMax = windowRect.height + this.deltaY > dragAreaRect.height
+
+					if (nextHeightBelowMin) windowRect.height = minWindowCSS.height
+					else if (nextHeightAboveMax) windowRect.height = dragAreaRect.height
+					else windowRect.height += this.deltaY
+
+					handleViewportResizeThrottled()
 					gsap.set(windowElement, { height: windowRect.height })
 				},
 			}),
 			genResizeDraggable({
 				trigger: `#side-left-${id}, #corner-nw-${id}, #corner-sw-${id}`,
-				cursor: 'w-resize',
+				cursor: 'w-resize', // negative <--   ---> positive
 				onDrag: function() {
-					const preventLowering = windowRect.width <= minWindowCSS.minWidth && this.deltaX > 0
-					const deltaX = preventLowering ? 0 : this.deltaX
-					windowRect.width -= deltaX
-					checkMediaSizeThrottled()
-					gsap.set(windowElement, { width: windowRect.width, x: `+=${deltaX}` })
+					const nextWidthBelowMin = windowRect.width - this.deltaX < minWindowCSS.width
+					const nextWidthAboveMax = windowRect.width - this.deltaX > dragAreaRect.width
+
+					if (nextWidthBelowMin) this.deltaX = windowRect.width - minWindowCSS.width
+					else if (nextWidthAboveMax) this.deltaX = windowRect.width - dragAreaRect.width
+					windowRect.width = windowRect.width - this.deltaX
+
+					handleViewportResizeThrottled()
+					gsap.set(windowElement, {
+						width: windowRect.width,
+						x: `+=${this.deltaX}`,
+					})
 				},
 			}),
 		]
 		if (isMobileSite) this.dragInstances.forEach((i) => i[0].disable())
-		window.addEventListener('resize', this.handleResizeDebounced)
+		window.addEventListener('resize', this.handleViewportResizeThrottled)
 	}
 
 	componentWillUnmount() {
 		this.dragInstances.forEach((i) => i[0].kill())
-		window.removeEventListener('resize', this.handleResizeDebounced)
+		window.removeEventListener('resize', this.handleViewportResizeThrottled)
 	}
 
 	componentDidUpdate(prevProps, prevState) {
-		if (prevProps.isMobileSite !== this.props.isMobileSite) {
-			this.dragInstances.forEach((i) => i[0].enabled(!this.props.isMobileSite))
+		const { isMobileSite } = this.props
+		if (prevProps.isMobileSite !== isMobileSite) {
+			this.dragInstances.forEach((i) => i[0].enabled(!isMobileSite))
+			if (isMobileSite) {
+				if (this.props.isFocused) this.maximize()
+				else this.minimize()
+				this.setState({ isMobileWindow: true })
+			}
 		}
-		const { isMaximized, isMinimized, isWindowed } = this.state
-		if (isWindowed && (isMaximized || isMinimized)) this.setState({ isWindowed: false })
-		else if (!isWindowed && !isMaximized && !isMinimized) this.setState({ isWindowed: true })
 	}
 
-	handleResize = () => {
-		const { width, height } = getRect(`window-${this.props.id}`)
-		this.windowRect = { width, height }
-		this.checkMediaSize()
+	recalcDragAreaRect = () => {
+		const { width, height } = getRect('allowedDragArea')
+		const nextDragAreaRect = { width, height }
+		if (JSON.stringify(this.dragAreaRect ?? {}) !== JSON.stringify(nextDragAreaRect)) {
+			this.dragAreaRect = nextDragAreaRect
+		}
 	}
 
-	checkMediaSize = () => {
-		const { isMobileWindow } = this.state
-		const nextState = {}
-		if (!isMobileWindow && this.windowRect.width < mediaBreakpoints.desktop) {
-			nextState.isMobileWindow = true
-		} else if (isMobileWindow && this.windowRect.width >= mediaBreakpoints.desktop) {
-			nextState.isMobileWindow = false
+	handleViewportResize = () => {
+		this.recalcDragAreaRect()
+		if (!this.state.isMobileWindow && this.windowRect.width < mediaBreakpoints.desktop) {
+			this.setState({ isMobileWindow: true })
+		} else if (this.state.isMobileWindow && this.windowRect.width >= mediaBreakpoints.desktop) {
+			this.setState({ isMobileWindow: false })
 		}
-		this.setState(nextState)
 	}
 
-	syncPosition = () => {
-		this.draggableWindow[0].update(true)
-		const { width, height } = getRect(`window-${this.props.id}`)
-		this.difStatesCSS.minimized = {
-			...this.difStatesCSS.minimized,
-			top: this.shortcutRect.top - height / 2,
-			left: this.shortcutRect.left - width / 2,
-			width,
-			height,
+	/**
+	 * Minimizes the amount of renders compared to if we just used setState().
+	 * Child components only care about if the <Window /> is maximized, not the other anim. states.
+	 */
+	setAnimStates = (nextState) => {
+		this.animStates = {
+			...this.animStates,
+			...nextState,
 		}
+		if (nextState.isMaximized !== 'undefined') this.setState(nextState)
 	}
 
 	minimize = (options = []) => {
-		if (this.state.isMinimized) return
+		if (this.animStates.isMinimized) return
 
 		const { isFocused, focusBelowApp, zIndex } = this.props
-		this.animate(this.difStatesCSS.minimized, [...options, 'skipFocusApp'])
+		this.setAnimStates({ isMinimized: true })
+		this.animate(this.animStatesCSS.minimized, [...options, 'skipFocusApp'])
 		if (!options.includes('skipFocusBelowApp') && isFocused) focusBelowApp(zIndex)
-		this.setState({ isMinimized: true })
 	}
 
 	toggleMinimize = () => {
-		if (this.state.isMinimized) {
-			if (this.props.isMobileSite) this.maximize()
-			else this.restore()
-		} else if (!this.props.focusApp(this.props.id)) this.minimize()
+		if (this.animStates.isMinimized) this.restore()
+		else if (this.props.isFocused) this.minimize()
+		else this.props.focusApp(this.props.id)
 	}
 
 	restore = (options) => {
-		if (this.state.isMinimized && this.state.isMaximized) {
+		if (this.animStates.isMinimized && this.animStates.isMaximized) {
 			this.maximize(options)
 			return
 		}
 
-		this.animate(this.difStatesCSS.windowed, options)
-		this.setState({ isMinimized: false, isMaximized: false })
+		this.setAnimStates({ isMinimized: false, isMaximized: false })
+		this.animate(this.animStatesCSS.windowed, options)
 	}
 
 	maximize = (options) => {
-		this.animate(this.difStatesCSS.maximized, options)
-		this.setState({ isMinimized: false, isMaximized: true })
+		this.setAnimStates({ isMinimized: false, isMaximized: true })
+		this.animate(this.animStatesCSS.maximized, options)
 	}
 
 	toggleMaximize = () => {
-		if (this.state.isMaximized) this.restore()
+		if (this.animStates.isMaximized) this.restore()
 		else this.maximize()
 	}
 
 	animate = (tweenVars, options = []) => {
 		if (!options.includes('skipSetLastWindowedCSS')) this.setLastWindowedCSS()
 		if (!options.includes('skipFocusApp')) this.props.focusApp(this.props.id)
-		this.props.skipRestoreToggleDesktop()
-		// Preventing 'this' conflict later.
-		const windowRect = this.windowRect
-		const checkMediaSize = this.checkMediaSize
-		const checkMediaSizeThrottled = this.checkMediaSizeThrottled
+
+		// Prevent 'this' conflicts later.
+		const { windowRect, handleViewportResizeThrottled } = this
+		const { sharedSettings } = this.animStatesCSS
+
 		// Clone vars so GSAP doesn't alter original...
 		gsap.to(this.rootRef.current, {
 			...tweenVars,
-			duration: 0.4,
+			...sharedSettings,
 			onComplete: () => {
-				checkMediaSize()
+				// Prevent error if scale of element is 0.
+				if (!this.animStates.isMinimized) this.draggableWindow[0].applyBounds()
 			},
 			onUpdate: function() {
 				windowRect.width = this._targets[0].offsetWidth
 				windowRect.height = this._targets[0].offsetHeight
-				checkMediaSizeThrottled()
+				handleViewportResizeThrottled()
 			},
 		})
 	}
 
 	setLastWindowedCSS = () => {
-		if (!this.state.isWindowed || gsap.isTweening(this.rootRef.current)) return
-		this.syncPosition()
+		if (!this.animStates.isWindowed || gsap.isTweening(this.rootRef.current)) return
 
-		const { width, height } = this.rootRef.current.getBoundingClientRect()
-		this.difStatesCSS.windowed = {
-			top: getStyleProperty(this.rootRef.current, 'top', true),
-			left: getStyleProperty(this.rootRef.current, 'left', true),
+		this.draggableWindow[0].update()
+		this.animStatesCSS.windowed = {
+			top: getStyleProperty(this.rootRef.current, 'top', { parse: true })?.[0],
+			left: getStyleProperty(this.rootRef.current, 'left', { parse: true })?.[0],
 			x: this.draggableWindow[0].x,
 			y: this.draggableWindow[0].y,
-			width,
-			height,
+			width: this.windowRect.width,
+			height: this.windowRect.height,
 			scale: 1,
 		}
+	}
+
+	enterAnim = (node) => {
+		const { minimized, windowed, maximized, sharedSettings } = this.animStatesCSS
+		const { isMobileSite } = this.props
+		gsap.fromTo(
+			node,
+			{ ...minimized },
+			{
+				...(isMobileSite ? maximized : windowed),
+				...sharedSettings,
+				duration: 0.8,
+			},
+		)
 	}
 
 	render() {
@@ -392,10 +426,7 @@ export default class Window extends React.Component {
 					enter: 800,
 					exit: 400,
 				}}
-				onEnter={(node) => {
-					const { minimized, windowed, maximized } = this.difStatesCSS
-					gsap.fromTo(node, { ...minimized }, { ...(isMobileSite ? maximized : windowed), duration: 0.8 })
-				}}
+				onEnter={this.enterAnim}
 				onExit={() => this.minimize()}
 			>
 				<Root
@@ -431,11 +462,9 @@ export default class Window extends React.Component {
 						</div>
 					</TitleBar>
 					<Content onClick={() => focusApp(id)}>
-						<Contexts.MobileWindow.Provider value={this.state.isMobileWindow}>
-							<Contexts.LandscapeOrientation.Provider value={this.state.isLandscape}>
-								{this.props.children}
-							</Contexts.LandscapeOrientation.Provider>
-						</Contexts.MobileWindow.Provider>
+						<Contexts.IsMobileWindow.Provider value={this.state.isMobileWindow}>
+							{this.props.children}
+						</Contexts.IsMobileWindow.Provider>
 					</Content>
 					<Side position='top' id={`side-top-${id}`} />
 					<Side position='right' id={`side-right-${id}`} />

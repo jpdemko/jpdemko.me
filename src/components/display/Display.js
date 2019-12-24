@@ -6,8 +6,8 @@ import TopographySVG from '../../shared/assets/backgrounds/topography.svg'
 import { themes } from '../../shared/shared'
 import Button from '../ui/Button'
 import Window from './Window'
-import Navigation from './Navigation'
-import App from './App'
+import Taskbar from './Taskbar'
+import AppNav from './AppNav'
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -38,8 +38,8 @@ const Background = styled.div`
 
 // Only shared between Display/Window, doesn't really belong in 'variables.js' file, which is used everywhere.
 const minWindowCSS = {
-	minWidth: 480,
-	minHeight: 320,
+	width: 480,
+	height: 320,
 }
 
 // Actual Window components use this wireframe's calculated px dimensions for their opening animation.
@@ -52,14 +52,15 @@ const WindowWireframe = styled.div`
 		top: 50%;
 		left: 50%;
 		transform: translate(-50%, -50%);
-		min-width: ${isMobileSite ? 120 : minWindowCSS.minWidth}px;
-		min-height: ${isMobileSite ? 80 : minWindowCSS.minHeight}px;
+		min-width: ${isMobileSite ? 120 : minWindowCSS.width}px;
+		min-height: ${isMobileSite ? 80 : minWindowCSS.height}px;
 		width: ${isMobileSite ? 100 : 65}%;
 		height: ${isMobileSite ? 100 : 60}%;
 	`}
 `
 
 const Shortcuts = styled.div`
+	font-size: 0.8rem;
 	height: 100%;
 	position: relative;
 	z-index: 10; /* Need this because of absolute positioned background div */
@@ -74,10 +75,13 @@ const Shortcuts = styled.div`
 `
 
 const ShortcutButton = styled(Button)`
-	height: 4em;
-	width: 4em;
-	padding: 0.5em;
 	margin: 1em 0 0 1em;
+	display: flex;
+	flex-direction: column;
+	&& > *:first-child {
+		width: 100%;
+		height: auto;
+	}
 `
 
 /* -------------------------------- COMPONENT ------------------------------- */
@@ -92,29 +96,16 @@ let uniqueID = 0
 export default class Display extends React.Component {
 	state = {
 		openedApps: [],
-		mobileMenuCallback: null,
-	}
-	recentlyMinimizedApps = []
-	skipRestoreToggleDesktop = true
-
-	componentDidUpdate(prevProps) {
-		if (prevProps.isMobileSite !== this.props.isMobileSite) {
-			this.state.openedApps.forEach((app) => {
-				const wdow = app.windowRef.current
-				if (this.props.isMobileSite) {
-					app.desktopState = { ...wdow.state }
-					if (app.isFocused && !wdow.state.isMinimized) wdow.maximize()
-					else wdow.minimize(['skipFocusBelowApp', 'skipFocusApp'])
-				} else if (app.desktopState) {
-					const { isMaximized: wasMax, isWindowed: wasWindow } = app.desktopState
-					if (wasMax) wdow.maximize(['skipFocusApp'])
-					else if (wasWindow) wdow.restore(['skipFocusApp'])
-				}
-			})
-		}
+		toggleFocusedAppNavDrawer: null,
 	}
 
 	openApp = (app) => {
+		const { openedApps } = this.state
+		const curOpenApp = openedApps.find((oApp) => oApp.class === app)
+		if (curOpenApp) {
+			curOpenApp.windowRef.current.toggleMinimize()
+			return
+		}
 		const newApp = {
 			id: ++uniqueID,
 			windowRef: React.createRef(),
@@ -122,50 +113,29 @@ export default class Display extends React.Component {
 			isFocused: true,
 			zIndex: ++zIndexLeader,
 		}
-		let nextOpenedApps = [...this.state.openedApps] // Copy currently opened apps array.
+		let nextOpenedApps = [...openedApps] // Copy currently opened apps array.
 		nextOpenedApps.forEach((app) => (app.isFocused = false)) // New app is focused, old ones aren't.
 		nextOpenedApps.push(newApp) // Add new app data to opened apps array copy.
 		this.setState({ openedApps: nextOpenedApps })
-		this.resetToggleDesktop()
 	}
 
 	closeApp = (curAppID) => {
 		// Don't need to 'focusBelowApp' since 'minimize()' will call it from the Window component.
 		this.setState((prevState) => ({
 			openedApps: prevState.openedApps.filter((app) => app.id !== curAppID),
+			focusedAppNavContent: null,
 		}))
 	}
 
-	// Mimics Win10 desktop toggle or iOS/Android home button.
-	toggleDesktop = () => {
-		if (!this.props.isMobileSite && !this.skipRestoreToggleDesktop && this.recentlyMinimizedApps.length > 0) {
-			this.recentlyMinimizedApps.forEach((app) => {
-				const wdow = app.windowRef.current
-				if (wdow.state.isMinimized) wdow.restore(['skipFocusApp'])
-			})
-			this.recentlyMinimizedApps = []
-		} else {
-			this.state.openedApps.forEach((app) => {
-				if (!app.windowRef.current.state.isMinimized) {
-					this.recentlyMinimizedApps.push(app)
-					app.windowRef.current.minimize(['skipFocusBelowApp'])
-				}
-			})
-			this.skipRestoreToggleDesktop = false
-		}
-	}
-
-	// Only way I can think of to replicate the behaviour of the Win10 toggle desktop feature which delays
-	// restoring apps because of closing/opening/animation/state changes.
-	resetToggleDesktop = () => {
-		this.skipRestoreToggleDesktop = true
+	handleHomeButton = () => {
+		this.state.openedApps.forEach((app) => app.windowRef.current.minimize())
 	}
 
 	focusBelowApp = (curAppZ) => {
 		const openedApps = [...this.state.openedApps]
 		let belowApp = null
 		openedApps.forEach((app) => {
-			if (app.windowRef.current.state.isMinimized) return
+			if (app.windowRef.current.animStates.isMinimized) return
 			else if (!belowApp && app.zIndex < curAppZ) belowApp = app
 			else if (belowApp && app.zIndex < curAppZ && app.zIndex > belowApp.zIndex) belowApp = app
 		})
@@ -175,70 +145,90 @@ export default class Display extends React.Component {
 	focusApp = (curAppID) => {
 		const curApp = this.state.openedApps.find((app) => app.id === curAppID)
 		if (curApp && curApp.isFocused) return false
-		this.setState((prevState) => ({
-			openedApps: prevState.openedApps.map((app) => {
-				const matched = app.id === curAppID
-				return {
-					...app,
-					isFocused: matched ? true : false,
-					zIndex: matched ? ++zIndexLeader : app.zIndex,
-				}
-			}),
-		}))
-		return !!curApp
+
+		let matched = false
+		const nextOpenedApps = [...this.state.openedApps].map((app) => {
+			matched = app.id === curAppID
+			return {
+				...app,
+				isFocused: matched ? true : false,
+				zIndex: matched ? ++zIndexLeader : app.zIndex,
+			}
+		})
+		this.setState({
+			openedApps: nextOpenedApps,
+			...(!matched && { toggleFocusedAppNavDrawer: null }),
+		})
+		return matched
 	}
 
-	setMobileMenuCallback = (mobileMenuCallback) => this.setState({ mobileMenuCallback })
+	setToggleFocusedAppNavDrawer = (toggleFocusedAppNavDrawer) => {
+		this.setState({ toggleFocusedAppNavDrawer })
+	}
 
 	render() {
-		const { mountableApps, isMobileSite, children } = this.props
-		const { openedApps, mobileMenuCallback } = this.state
 		return (
-			<Root id='display'>
+			<Root>
 				{/* SVG pattern loaded inline because of styled-components Firefox bug which causes flickering? */}
 				<Background style={{ backgroundImage: `url(${TopographySVG})` }} theme={themes.light} />
 				<AllowedDragArea id='allowedDragArea'>
 					<Shortcuts>
-						{mountableApps.map((mountableApp) => (
-							<ShortcutButton
-								key={mountableApp.shared.title}
-								id={`sc-${mountableApp.shared.title}`}
-								onClick={() => this.openApp(mountableApp)}
-								svg={mountableApp.shared.logo}
-								variant='fancy'
-								size='large'
-								theme={mountableApp.shared.theme}
-							/>
-						))}
+						{this.props.mountableApps.map((mountableApp, i) => {
+							if (!mountableApp.shared) {
+								mountableApp.shared = {
+									title: `App#${new Date().getTime()}`,
+									logo: () => <span>?</span>,
+									theme: themes.blue,
+								}
+							}
+							const { title, logo, theme } = mountableApp.shared
+							return (
+								<ShortcutButton
+									key={title}
+									onClick={() => this.openApp(mountableApp)}
+									variant='fancy'
+									size='large'
+									svg={logo}
+									theme={theme}
+								>
+									{title}
+								</ShortcutButton>
+							)
+						})}
 					</Shortcuts>
-					{children}
-					<WindowWireframe id='window-wireframe' isMobileSite={isMobileSite} />
+					{this.props.children}
+					<WindowWireframe id='window-wireframe' isMobileSite={this.props.isMobileSite} />
 					<TransitionGroup>
-						{openedApps.map((app, i) => (
+						{this.state.openedApps.map((app, i) => (
 							<Window
 								ref={app.windowRef}
 								key={app.id}
 								id={app.id}
-								isMobileSite={isMobileSite}
+								isMobileSite={this.props.isMobileSite}
 								isFocused={app.isFocused}
 								title={app.class.shared.title}
 								minWindowCSS={minWindowCSS}
 								closeApp={this.closeApp}
 								focusApp={this.focusApp}
 								focusBelowApp={this.focusBelowApp}
-								skipRestoreToggleDesktop={this.resetToggleDesktop}
 								zIndex={app.zIndex}
 							>
-								<App isFocused={app.isFocused} setMobileMenuCallback={this.setMobileMenuCallback} app={app} />
+								<AppNav
+									isFocused={app.isFocused}
+									isMobileSite={this.props.isMobileSite}
+									setToggleFocusedAppNavDrawer={this.setToggleFocusedAppNavDrawer}
+									app={app}
+								/>
 							</Window>
 						))}
 					</TransitionGroup>
 				</AllowedDragArea>
-				<Navigation
-					openedApps={openedApps}
-					isMobileSite={isMobileSite}
-					toggleDesktop={this.toggleDesktop}
-					mobileMenuCallback={mobileMenuCallback}
+				<Taskbar
+					openedApps={this.state.openedApps}
+					isMobileSite={this.props.isMobileSite}
+					handleHomeButton={this.handleHomeButton}
+					toggleFocusedAppNavDrawer={this.state.toggleFocusedAppNavDrawer}
+					closeApp={this.closeApp}
 				/>
 			</Root>
 		)

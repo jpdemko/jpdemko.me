@@ -118,7 +118,7 @@ export const usePrevious = (value) => {
 
 /* -------------------------------------------------------------------------- */
 
-export const useRefFromValue = (value) => {
+export const useUpdatedValRef = (value) => {
 	const ref = React.useRef()
 
 	React.useEffect(() => {
@@ -141,29 +141,43 @@ export const useEffectWithInitial = (callback, deps) => {
 
 /* -------------------------------------------------------------------------- */
 
-export const useResizeObserver = (throttleMS = 200, defaultWidth = 1, defaultHeight = 1) => {
-	const ref = React.useRef(null)
-	const isLoadedRef = React.useRef(true)
-	const [width, setWidth] = React.useState(defaultWidth)
-	const [height, setHeight] = React.useState(defaultHeight)
+/**
+ * @callback useResizeObserverCallback
+ * @param {DOMRectReadOnly} resizeEleRect
+ * @return {boolean}
+ */
 
-	const setWidthThrottled = React.useCallback(
-		throttle(throttleMS, (n) => isLoadedRef.current && setWidth(n)),
-		[],
-	)
-	const setHeightThrottled = React.useCallback(
-		throttle(throttleMS, (n) => isLoadedRef.current && setHeight(n)),
-		[],
+/**
+ * @param {useResizeObserverCallback} callback
+ * @param {number} throttleMS=number
+ */
+export const useResizeObserver = (callback, throttleMS = 200) => {
+	const eleRef = React.useRef()
+	const callbackRef = React.useRef(callback)
+	const isLoadedRef = React.useRef(true)
+
+	const [callbackOutput, setCallbackOutput] = React.useState()
+	const callbackOutputRef = useUpdatedValRef(callbackOutput)
+
+	const throttledCallback = React.useCallback(
+		throttle(throttleMS, (rect) => {
+			const prevOutput = callbackOutputRef.current
+			const nextOutput = callbackRef.current(rect)
+			if (prevOutput !== nextOutput) {
+				callbackOutputRef.current = nextOutput
+				setCallbackOutput(nextOutput)
+			}
+		}),
+		[callbackRef, callbackOutputRef],
 	)
 
 	React.useEffect(() => {
-		const element = ref.current
+		const element = eleRef.current
 		const resizeObserver = new ResizeObserver((entries) => {
 			if (!Array.isArray(entries) || !entries.length || !isLoadedRef.current) return
 
 			const entry = entries[0]
-			setWidthThrottled(entry.contentRect.width)
-			setHeightThrottled(entry.contentRect.height)
+			throttledCallback(entry.contentRect)
 		})
 		resizeObserver.observe(element)
 
@@ -171,7 +185,7 @@ export const useResizeObserver = (throttleMS = 200, defaultWidth = 1, defaultHei
 			isLoadedRef.current = false
 			resizeObserver.unobserve(element)
 		}
-	}, [setHeightThrottled, setWidthThrottled])
+	}, [throttledCallback])
 
-	return [ref, width, height]
+	return [eleRef, callbackOutput]
 }

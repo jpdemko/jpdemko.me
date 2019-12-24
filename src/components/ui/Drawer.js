@@ -17,7 +17,7 @@ const Root = styled.div`
 		left: ${side.charAt(0) === 'l' ? 0 : 'none'};
 		right: ${side.charAt(0) === 'r' ? 0 : 'none'};
 		background-color: ${theme.mainColor};
-		color: ${theme.bgContrastColor};
+		color: ${theme.contrastColor};
 		transition: ${animDuration}s;
 		transform: ${isShown ? safeTranslate('0, 0') : safeTranslate(`${side === 'left' ? '-' : ''}100%, 0`)};
 		opacity: ${isShown ? 1 : 0};

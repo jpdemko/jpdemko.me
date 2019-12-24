@@ -1,3 +1,4 @@
+import React from 'react'
 import { mix, transparentize } from 'polished'
 
 /* -------------------------------------------------------------------------- */
@@ -9,6 +10,14 @@ export const flags = {
 	// This is a flag to disable 3D transforms in Chrome.
 	// isChrome: !!window.chrome && (!!window.chrome.webstore || !!window.chrome.runtime),
 	isChrome: false,
+}
+
+/* -------------------------------------------------------------------------- */
+
+export const Contexts = {
+	AppNav: React.createContext(),
+	IsMobileWindow: React.createContext(),
+	IsMobileSite: React.createContext(),
 }
 
 /* -------------------------------------------------------------------------- */
@@ -39,23 +48,38 @@ export let themes = {
 // Adding mixed main/alt color, and background safe text depending on the color.
 Object.keys(themes).forEach((key) => {
 	themes[key].mixedColor = mix(0.5, themes[key].mainColor, themes[key].altColor)
-	themes[key].bgContrastColor = key !== 'light' ? themes.light.mainColor : themes.dark.mainColor
+	themes[key].contrastColor = key !== 'light' ? themes.light.mainColor : themes.dark.mainColor
+	themes[key].contrastTheme = key !== 'light' ? themes.light : themes.dark
 })
 
 export const mediaBreakpoints = { desktop: 813 }
 
 /* -------------------------------------------------------------------------- */
 
+const regexGetNums = /-?(,\d+|\d+)*\.?\d+/g
+
 /**
  * Condensed way to get the computed style values of an element.
  * @param {Element} ele - target DOM element you want to retrieve styles for
  * @param {string} prop - style property you want to get
- * @param {boolean} [parseValue=false] - sometimes you want an actual number w/o any units
- * @return {string|number}
+ * @param {Object} [options]
+ * @param {RegExp} [options.regex] - pass in custom regex on style prop
+ * @param {boolean} [options.parse] - convert string|string[] into floats and return
+ * @return {Array|undefined}
  */
-export function getStyleProperty(ele, prop, parseValue = false) {
-	const styleProp = window.getComputedStyle(ele).getPropertyValue(prop)
-	return parseValue ? parseFloat(styleProp.match(/\d+\.?\d*/)[0]) : styleProp
+export function getStyleProperty(ele, prop, options) {
+	try {
+		let style = window.getComputedStyle(ele).getPropertyValue(prop)
+		if (options?.regex) style = style.match(options.regex)
+		if (options?.parse) {
+			if (!Array.isArray(style)) style = style.match(regexGetNums)
+			style = style.map?.(parseFloat)
+		}
+		return Array.isArray(style) ? style : [style]
+	} catch (err) {
+		console.log(err)
+		return undefined
+	}
 }
 
 /* -------------------------------------------------------------------------- */
@@ -70,7 +94,6 @@ let curProxyIdx = 0
  * @return {Promise<Response>}
  */
 export function simplerFetch(url, useProxy = false) {
-	// useProxy = useProxy && process.env.NODE_ENV !== 'production' && curProxyIdx < corsProxies.length
 	const genURL = useProxy && curProxyIdx < corsProxies.length ? corsProxies[curProxyIdx] + url : url
 	return fetch(genURL)
 		.then((res) => {
@@ -88,7 +111,7 @@ export function simplerFetch(url, useProxy = false) {
 
 /**
  * Condensed way to get the DOMRect of something.
- * @param {Element|string} target - DOM element OR string element ID
+ * @param {Element|string} target - DOM element OR string element ID, eg: 'target' (no #)
  * @return {DOMRect|Object}
  */
 export function getRect(target) {
