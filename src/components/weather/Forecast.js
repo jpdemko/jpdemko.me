@@ -120,11 +120,19 @@ const MapEntry = styled.div`
 
 /* -------------------------------- COMPONENTS ------------------------------- */
 
-const DaySummary = ({ data, getTemp, name, ...props }) => {
-	const { icon, apparentTemperatureLow: low, apparentTemperatureHigh: high } = data
+const DaySummary = ({ data: { dayName, ordDay, timezone, day }, getTemp, ...props }) => {
+	const { icon, apparentTemperatureLow: low, apparentTemperatureHigh: high } = day
+
+	const checkDayName = (name) => {
+		const curOrdDay = DateTime.local()
+			.setZone(timezone)
+			.toFormat('o')
+		return curOrdDay === ordDay ? 'Today' : dayName
+	}
+
 	return (
 		<Card {...props}>
-			<div>{name}</div>
+			<div>{checkDayName(dayName)}</div>
 			<HR />
 			<Temps>
 				<span>H: {getTemp(high)}&deg;</span>
@@ -138,8 +146,8 @@ const DaySummary = ({ data, getTemp, name, ...props }) => {
 const DayDetailed = ({ data: { timezone, hours }, getTemp }) => (
 	<>
 		{hours.length === 0 ? (
-			<div style={{ textAlign: 'center', padding: '.25em' }}>
-				No data! Detailed hourly data isn't accurate past 48 hours!
+			<div style={{ textAlign: 'center', padding: '.35em .7em' }}>
+				Hourly data isn't supported past 48 hours due to it being fairly inaccurate.
 			</div>
 		) : (
 			<Table>
@@ -273,42 +281,44 @@ const Forecast = React.memo(({ curLocation, getTemp }) => {
 
 	const tabsContent = React.useMemo(() => {
 		if (!curLocation) return [bingMapRadar]
+		const { daily, hourly, timezone } = curLocation.weatherData
 
-		const getDay = (time) => {
-			const curDay = DateTime.local()
-				.setZone(curLocation.timezone)
-				.toFormat('ccc')
-			const targetDay = DateTime.fromSeconds(time)
-				.setZone(curLocation.timezone)
-				.toFormat('ccc')
-			return curDay !== targetDay ? targetDay : 'Today'
+		const getOrdinalDay = (time) => {
+			return DateTime.fromSeconds(time)
+				.setZone(timezone)
+				.toFormat('o')
 		}
 
-		const { daily, hourly, timezone } = curLocation.weatherData
-		const sortedData = daily.data.reduce(
-			(obj, day) => ({
+		const getDayName = (time) => {
+			return DateTime.fromSeconds(time)
+				.setZone(timezone)
+				.toFormat('ccc')
+		}
+
+		const sortedData = daily.data.reduce((obj, day) => {
+			const ordDay = getOrdinalDay(day.time)
+			return {
 				...obj,
-				[getDay(day.time)]: {
-					headerData: day,
-					contentData: {
-						timezone,
-						hours: [],
-					},
+				[ordDay]: {
+					dayName: getDayName(day.time),
+					ordDay,
+					day,
+					timezone,
+					hours: [],
 				},
-			}),
-			{},
-		)
+			}
+		}, {})
 		hourly.data.forEach((h, i) => {
-			if (i % 2 === 0) sortedData[getDay(h.time)].contentData.hours.push(h)
+			if (i % 2 === 0) sortedData[getOrdinalDay(h.time)].hours.push(h)
 		})
 
-		const genContent = Object.keys(sortedData).map((key) => ({
-			id: key,
-			tabHeader: <DaySummary data={sortedData[key].headerData} getTemp={getTemp} name={key} />,
-			tabContent: <DayDetailed data={sortedData[key].contentData} getTemp={getTemp} />,
+		const genContent = Object.keys(sortedData).map((ordDay) => ({
+			id: ordDay,
+			tabHeader: <DaySummary data={sortedData[ordDay]} getTemp={getTemp} />,
+			tabContent: <DayDetailed data={sortedData[ordDay]} getTemp={getTemp} />,
 		}))
-		genContent.push(bingMapRadar)
-		return genContent
+
+		return [bingMapRadar, ...genContent]
 	}, [bingMapRadar, curLocation, getTemp])
 
 	return <CustomTabs content={tabsContent} />

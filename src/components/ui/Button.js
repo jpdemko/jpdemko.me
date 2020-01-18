@@ -14,8 +14,8 @@ export const ButtonBase = styled.button.attrs(({ size = 1, svg }) => {
 
 	let varCSS = {
 		fontSize: `calc(1em * ${sizeModifier})`,
-		sidePadding: `calc(0.6em * ${sizeModifier})`,
-		verticalPadding: `calc(0.25em * ${sizeModifier})`,
+		sidePadding: `calc(0.75em * ${sizeModifier})`,
+		verticalPadding: `calc(0.35em * ${sizeModifier})`,
 	}
 
 	if (svg) {
@@ -36,13 +36,17 @@ export const ButtonBase = styled.button.attrs(({ size = 1, svg }) => {
 	transition: opacity 0.2s, background 0.15s, box-shadow 0.15s, outline 0.1s;
 	font-weight: 500;
 	outline: none;
-	${({ theme, varCSS, disabled }) => css`
+	${({ theme, varCSS, disabled, column }) => css`
+		flex-direction: ${column ? 'column' : 'row'};
 		box-shadow: 0 0 0 0 ${theme.mainColor};
 		font-size: ${varCSS.fontSize};
 		padding: ${varCSS.verticalPadding} ${varCSS.sidePadding};
 		color: ${theme.mainColor};
 		opacity: ${disabled ? 0.33 : 1};
 		cursor: ${disabled ? 'default' : 'pointer'};
+		span {
+			padding: ${column ? `${varCSS.verticalPadding} 0 0 0` : `0 0 0 ${varCSS.sidePadding}`};
+		}
 		&:active {
 			box-shadow: 0 0 0 3px ${theme.mainColor};
 		}
@@ -89,7 +93,7 @@ const FancyButton = styled(ButtonBase)`
 		}
 		&:hover {
 			box-shadow: 0 1px 16px 2px ${opac(0.3, theme.mixedColor)}, 0 0 0 1px ${theme.mixedColor};
-			opacity: 0.7;
+			opacity: 0.75;
 		}
 		&:active {
 			box-shadow: 0 1px 20px 2px ${opac(0.2, theme.mixedColor)}, 0 0 0 3px ${theme.mixedColor};
@@ -110,7 +114,7 @@ const Button = ({ tag, variant, disabled = false, children, ...props }) => {
 	return (
 		<ButtonVariant as={tag} disabled={disabled} {...props}>
 			{props.svg && <props.svg />}
-			<div>{children}</div>
+			{children && <span>{children}</span>}
 		</ButtonVariant>
 	)
 }

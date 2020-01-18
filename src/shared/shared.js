@@ -45,12 +45,19 @@ export let themes = {
 	},
 }
 
+export function addTheme(themeName, vars) {
+	vars.mixedColor = mix(0.5, vars.mainColor, vars.altColor)
+	vars.contrastColor = themeName !== 'light' ? themes.light.mainColor : themes.dark.mainColor
+	vars.contrastTheme = themeName !== 'light' ? themes.light : themes.dark
+	themes = {
+		...themes,
+		[themeName]: vars,
+	}
+	return themes[themeName]
+}
+
 // Adding mixed main/alt color, and background safe text depending on the color.
-Object.keys(themes).forEach((key) => {
-	themes[key].mixedColor = mix(0.5, themes[key].mainColor, themes[key].altColor)
-	themes[key].contrastColor = key !== 'light' ? themes.light.mainColor : themes.dark.mainColor
-	themes[key].contrastTheme = key !== 'light' ? themes.light : themes.dark
-})
+Object.keys(themes).forEach((key) => addTheme(key, themes[key]))
 
 export const mediaBreakpoints = { desktop: 813 }
 

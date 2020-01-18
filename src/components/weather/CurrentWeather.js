@@ -72,6 +72,12 @@ const Info = styled.div`
 
 const CurrentWeather = React.memo(({ curLocation, getTemp, isLandscape, ...props }) => {
 	const { mapData, weatherData } = curLocation ?? {}
+	// if (weatherData)
+	// 	console.log(
+	// 		weatherData.daily.data[0].apparentTemperatureLow,
+	// 		Math.round(weatherData.daily.data[0].apparentTemperatureLow),
+	// 		getTemp(weatherData.daily.data[0].apparentTemperatureLow),
+	// 	)
 	return (
 		<Root {...props} curWeatherBG={curLocation?.curWeatherBG}>
 			{curLocation ? (

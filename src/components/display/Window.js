@@ -119,7 +119,7 @@ export default class Window extends React.Component {
 	constructor(props) {
 		super(props)
 		this.rootRef = React.createRef()
-		this.handleViewportResizeThrottled = throttle(100, this.handleViewportResize)
+		this.handleViewportResizeThrottled = throttle(200, this.handleViewportResize)
 
 		this.state = { isMobileWindow: props.isMobileSite, isMaximized: props.isMobileSite }
 
@@ -165,12 +165,12 @@ export default class Window extends React.Component {
 		const windowElement = this.rootRef.current
 
 		// Get all the dimensions needed for resize calculations.
-		let { width, height } = getRect('window-wireframe')
+		const { width, height } = getRect('window-wireframe')
 		this.windowRect = { width, height }
 		this.handleViewportResize()
 
 		// Prevent 'this' conflicts later.
-		const { windowRect, dragAreaRect, recalcDragAreaRect, handleViewportResizeThrottled } = this
+		const wdow = this
 
 		this.draggableWindow = Draggable.create(windowElement, {
 			type: 'x,y',
@@ -184,7 +184,6 @@ export default class Window extends React.Component {
 			allowContextMenu: true,
 		})
 
-		const draggableWindow = this.draggableWindow
 		const genResizeDraggable = (vars) => {
 			const parent = document.getElementById('allowedDragArea')
 			const nextEle = document.createElement('div')
@@ -195,11 +194,12 @@ export default class Window extends React.Component {
 				type: 'x,y',
 				onPress: () => {
 					focusApp(id)
-					recalcDragAreaRect()
-					draggableWindow[0].disable()
+					wdow.recalcDragAreaRect()
+					wdow.draggableWindow[0].disable()
 				},
 				onRelease: () => {
-					draggableWindow[0].enable()
+					wdow.draggableWindow[0].enable()
+					wdow.draggableWindow[0].applyBounds()
 				},
 				allowContextMenu: true,
 			})
@@ -211,16 +211,16 @@ export default class Window extends React.Component {
 				trigger: `#side-top-${id}, #corner-nw-${id}, #corner-ne-${id}`,
 				cursor: 'n-resize', // ^-negative-^   v-positive-v
 				onDrag: function() {
-					const nextHeightBelowMin = windowRect.height - this.deltaY < minWindowCSS.height
-					const nextHeightAboveMax = windowRect.height - this.deltaY > dragAreaRect.height
+					const nextHeightBelowMin = wdow.windowRect.height - this.deltaY < minWindowCSS.height
+					const nextHeightAboveMax = wdow.windowRect.height - this.deltaY > wdow.dragAreaRect.height
 
-					if (nextHeightBelowMin) this.deltaY = windowRect.height - minWindowCSS.height
-					else if (nextHeightAboveMax) this.deltaY = dragAreaRect.height - windowRect.height
-					windowRect.height = windowRect.height - this.deltaY
+					if (nextHeightBelowMin) this.deltaY = wdow.windowRect.height - minWindowCSS.height
+					else if (nextHeightAboveMax) this.deltaY = wdow.dragAreaRect.height - wdow.windowRect.height
+					wdow.windowRect.height = wdow.windowRect.height - this.deltaY
 
-					handleViewportResizeThrottled()
+					wdow.handleViewportResizeThrottled()
 					gsap.set(windowElement, {
-						height: windowRect.height,
+						height: wdow.windowRect.height,
 						y: `+=${this.deltaY}`,
 					})
 				},
@@ -229,46 +229,46 @@ export default class Window extends React.Component {
 				trigger: `#side-right-${id}, #corner-ne-${id}, #corner-se-${id}`,
 				cursor: 'e-resize', // negative <--   ---> positive
 				onDrag: function() {
-					const nextWidthBelowMin = windowRect.width + this.deltaX < minWindowCSS.width
-					const nextWidthAboveMax = windowRect.width + this.deltaX > dragAreaRect.width
+					const nextWidthBelowMin = wdow.windowRect.width + this.deltaX < minWindowCSS.width
+					const nextWidthAboveMax = wdow.windowRect.width + this.deltaX > wdow.dragAreaRect.width
 
-					if (nextWidthBelowMin) windowRect.width = minWindowCSS.width
-					else if (nextWidthAboveMax) windowRect.width = dragAreaRect.width
-					else windowRect.width += this.deltaX
+					if (nextWidthBelowMin) wdow.windowRect.width = minWindowCSS.width
+					else if (nextWidthAboveMax) wdow.windowRect.width = wdow.dragAreaRect.width
+					else wdow.windowRect.width += this.deltaX
 
-					handleViewportResizeThrottled()
-					gsap.set(windowElement, { width: windowRect.width })
+					wdow.handleViewportResizeThrottled()
+					gsap.set(windowElement, { width: wdow.windowRect.width })
 				},
 			}),
 			genResizeDraggable({
 				trigger: `#side-bottom-${id}, #corner-sw-${id}, #corner-se-${id}`,
 				cursor: 's-resize', // ^-negative-^   v-positive-v
 				onDrag: function() {
-					const nextHeightBelowMin = windowRect.height + this.deltaY < minWindowCSS.height
-					const nextHeightAboveMax = windowRect.height + this.deltaY > dragAreaRect.height
+					const nextHeightBelowMin = wdow.windowRect.height + this.deltaY < minWindowCSS.height
+					const nextHeightAboveMax = wdow.windowRect.height + this.deltaY > wdow.dragAreaRect.height
 
-					if (nextHeightBelowMin) windowRect.height = minWindowCSS.height
-					else if (nextHeightAboveMax) windowRect.height = dragAreaRect.height
-					else windowRect.height += this.deltaY
+					if (nextHeightBelowMin) wdow.windowRect.height = minWindowCSS.height
+					else if (nextHeightAboveMax) wdow.windowRect.height = wdow.dragAreaRect.height
+					else wdow.windowRect.height += this.deltaY
 
-					handleViewportResizeThrottled()
-					gsap.set(windowElement, { height: windowRect.height })
+					wdow.handleViewportResizeThrottled()
+					gsap.set(windowElement, { height: wdow.windowRect.height })
 				},
 			}),
 			genResizeDraggable({
 				trigger: `#side-left-${id}, #corner-nw-${id}, #corner-sw-${id}`,
 				cursor: 'w-resize', // negative <--   ---> positive
 				onDrag: function() {
-					const nextWidthBelowMin = windowRect.width - this.deltaX < minWindowCSS.width
-					const nextWidthAboveMax = windowRect.width - this.deltaX > dragAreaRect.width
+					const nextWidthBelowMin = wdow.windowRect.width - this.deltaX < minWindowCSS.width
+					const nextWidthAboveMax = wdow.windowRect.width - this.deltaX > wdow.dragAreaRect.width
 
-					if (nextWidthBelowMin) this.deltaX = windowRect.width - minWindowCSS.width
-					else if (nextWidthAboveMax) this.deltaX = windowRect.width - dragAreaRect.width
-					windowRect.width = windowRect.width - this.deltaX
+					if (nextWidthBelowMin) this.deltaX = wdow.windowRect.width - minWindowCSS.width
+					else if (nextWidthAboveMax) this.deltaX = wdow.windowRect.width - wdow.dragAreaRect.width
+					wdow.windowRect.width = wdow.windowRect.width - this.deltaX
 
-					handleViewportResizeThrottled()
+					wdow.handleViewportResizeThrottled()
 					gsap.set(windowElement, {
-						width: windowRect.width,
+						width: wdow.windowRect.width,
 						x: `+=${this.deltaX}`,
 					})
 				},
@@ -280,15 +280,17 @@ export default class Window extends React.Component {
 
 	componentWillUnmount() {
 		this.dragInstances.forEach((i) => i[0].kill())
+		this.handleViewportResizeThrottled.cancel()
 		window.removeEventListener('resize', this.handleViewportResizeThrottled)
 	}
 
 	componentDidUpdate(prevProps, prevState) {
-		const { isMobileSite } = this.props
+		const { isMobileSite, isFocused } = this.props
 		if (prevProps.isMobileSite !== isMobileSite) {
 			this.dragInstances.forEach((i) => i[0].enabled(!isMobileSite))
 			if (isMobileSite) {
-				if (this.props.isFocused) this.maximize()
+				if (isFocused) this.maximize()
+				else if (this.animStates.isMinimized) this.setAnimStates({ isWindowed: false, isMaximized: true })
 				else this.minimize()
 				this.setState({ isMobileWindow: true })
 			}
@@ -328,8 +330,8 @@ export default class Window extends React.Component {
 		if (this.animStates.isMinimized) return
 
 		const { isFocused, focusBelowApp, zIndex } = this.props
-		this.setAnimStates({ isMinimized: true })
 		this.animate(this.animStatesCSS.minimized, [...options, 'skipFocusApp'])
+		this.setAnimStates({ isMinimized: true, isWindowed: false })
 		if (!options.includes('skipFocusBelowApp') && isFocused) focusBelowApp(zIndex)
 	}
 
@@ -340,18 +342,20 @@ export default class Window extends React.Component {
 	}
 
 	restore = (options) => {
-		if (this.animStates.isMinimized && this.animStates.isMaximized) {
+		const { isMinimized, isWindowed, isMaximized } = this.animStates
+		if (isWindowed) return
+		if (isMinimized && isMaximized) {
 			this.maximize(options)
 			return
 		}
 
-		this.setAnimStates({ isMinimized: false, isMaximized: false })
 		this.animate(this.animStatesCSS.windowed, options)
+		this.setAnimStates({ isMinimized: false, isWindowed: true, isMaximized: false })
 	}
 
 	maximize = (options) => {
-		this.setAnimStates({ isMinimized: false, isMaximized: true })
 		this.animate(this.animStatesCSS.maximized, options)
+		this.setAnimStates({ isMinimized: false, isWindowed: false, isMaximized: true })
 	}
 
 	toggleMaximize = () => {
@@ -364,21 +368,20 @@ export default class Window extends React.Component {
 		if (!options.includes('skipFocusApp')) this.props.focusApp(this.props.id)
 
 		// Prevent 'this' conflicts later.
-		const { windowRect, handleViewportResizeThrottled } = this
-		const { sharedSettings } = this.animStatesCSS
+		const wdow = this
 
 		// Clone vars so GSAP doesn't alter original...
 		gsap.to(this.rootRef.current, {
 			...tweenVars,
-			...sharedSettings,
+			...wdow.animStatesCSS.sharedSettings,
 			onComplete: () => {
 				// Prevent error if scale of element is 0.
 				if (!this.animStates.isMinimized) this.draggableWindow[0].applyBounds()
 			},
 			onUpdate: function() {
-				windowRect.width = this._targets[0].offsetWidth
-				windowRect.height = this._targets[0].offsetHeight
-				handleViewportResizeThrottled()
+				wdow.windowRect.width = this._targets[0].offsetWidth
+				wdow.windowRect.height = this._targets[0].offsetHeight
+				wdow.handleViewportResizeThrottled()
 			},
 		})
 	}
@@ -413,13 +416,12 @@ export default class Window extends React.Component {
 	}
 
 	render() {
-		const { id, title, isMobileSite, isFocused, zIndex, minWindowCSS, in: show } = this.props
-		const { closeApp, focusApp } = this.props
+		const { id, title, isMobileSite, isFocused, zIndex, minWindowCSS, in: show, ...props } = this.props
 		const { isMaximized } = this.state
+		const { closeApp, focusApp } = this.props
 		return (
 			<Transition
-				mountOnEnter
-				unmountOnExit
+				{...props}
 				in={show}
 				timeout={{
 					appear: 100,
@@ -428,6 +430,7 @@ export default class Window extends React.Component {
 				}}
 				onEnter={this.enterAnim}
 				onExit={() => this.minimize()}
+				unmountOnExit
 			>
 				<Root
 					id={`window-${id}`}

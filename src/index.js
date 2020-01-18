@@ -11,6 +11,7 @@ import { useMedia } from './shared/customHooks'
 import { themes, mediaBreakpoints, Contexts } from './shared/shared'
 import Display from './components/display/Display'
 import Weather from './components/weather/Weather'
+import About from './components/about/About'
 
 const GlobalStyle = createGlobalStyle`
 	html {
@@ -33,11 +34,8 @@ const GlobalStyle = createGlobalStyle`
 		height: 100%;
 	}
 `
-const Test = () => {
-	return <div style={{ background: 'red' }}></div>
-}
 
-const mountableApps = [Weather, Test]
+const mountableApps = [Weather, About]
 
 function FakeOS() {
 	const isMobileSite = useMedia([`(min-width: ${mediaBreakpoints.desktop}px)`], [false], true)

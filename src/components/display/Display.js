@@ -76,9 +76,7 @@ const Shortcuts = styled.div`
 
 const ShortcutButton = styled(Button)`
 	margin: 1em 0 0 1em;
-	display: flex;
-	flex-direction: column;
-	&& > *:first-child {
+	&& > :first-child {
 		width: 100%;
 		height: auto;
 	}
@@ -103,7 +101,7 @@ export default class Display extends React.Component {
 		const { openedApps } = this.state
 		const curOpenApp = openedApps.find((oApp) => oApp.class === app)
 		if (curOpenApp) {
-			curOpenApp.windowRef.current.toggleMinimize()
+			this.focusApp(curOpenApp.id)
 			return
 		}
 		const newApp = {
@@ -121,10 +119,7 @@ export default class Display extends React.Component {
 
 	closeApp = (curAppID) => {
 		// Don't need to 'focusBelowApp' since 'minimize()' will call it from the Window component.
-		this.setState((prevState) => ({
-			openedApps: prevState.openedApps.filter((app) => app.id !== curAppID),
-			focusedAppNavContent: null,
-		}))
+		this.setState((prevState) => ({ openedApps: prevState.openedApps.filter((app) => app.id !== curAppID) }))
 	}
 
 	handleHomeButton = () => {
@@ -190,6 +185,7 @@ export default class Display extends React.Component {
 									size='large'
 									svg={logo}
 									theme={theme}
+									column
 								>
 									{title}
 								</ShortcutButton>
@@ -224,10 +220,12 @@ export default class Display extends React.Component {
 					</TransitionGroup>
 				</AllowedDragArea>
 				<Taskbar
+					mountableApps={this.props.mountableApps}
 					openedApps={this.state.openedApps}
 					isMobileSite={this.props.isMobileSite}
 					handleHomeButton={this.handleHomeButton}
 					toggleFocusedAppNavDrawer={this.state.toggleFocusedAppNavDrawer}
+					openApp={this.openApp}
 					closeApp={this.closeApp}
 				/>
 			</Root>

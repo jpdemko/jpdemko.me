@@ -168,6 +168,7 @@ const Weather = React.memo(({ ...props }) => {
 	}
 
 	const fetchData = async (mapData) => {
+		console.log('fetching weather data')
 		try {
 			const { latitude: lat, longitude: lng } = mapData.location
 			const weatherData = await fetchWeatherData(lat, lng)
