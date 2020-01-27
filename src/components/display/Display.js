@@ -6,21 +6,21 @@ import TopographySVG from '../../shared/assets/backgrounds/topography.svg'
 import { themes } from '../../shared/shared'
 import Button from '../ui/Button'
 import Window from './Window'
-import Taskbar from './Taskbar'
+import Nav from './Nav'
 import AppNav from './AppNav'
 
 /* --------------------------------- STYLES --------------------------------- */
 
 const Root = styled.div`
+	--nav-height: 2em;
 	height: 100%;
-	display: flex;
-	flex-direction: column;
 	overflow: hidden;
 `
 
 const AllowedDragArea = styled.div`
 	position: relative;
-	flex: 1 1 auto;
+	height: calc(100% - var(--nav-height));
+	overflow: hidden;
 `
 
 const Background = styled.div`
@@ -36,7 +36,7 @@ const Background = styled.div`
 	`}
 `
 
-// Only shared between Display/Window, doesn't really belong in 'variables.js' file, which is used everywhere.
+// Didn't use CSS vars since used in JS computations and didn't export since only it's direct children use it.
 const minWindowCSS = {
 	width: 480,
 	height: 320,
@@ -60,24 +60,21 @@ const WindowWireframe = styled.div`
 `
 
 const Shortcuts = styled.div`
-	font-size: 0.8rem;
 	height: 100%;
 	position: relative;
-	z-index: 10; /* Need this because of absolute positioned background div */
-	display: flex;
-	flex-wrap: wrap;
-	align-items: flex-start;
-	align-content: flex-start;
-	justify-content: flex-start;
-	> * {
-		flex: 0 0 auto;
-	}
+	z-index: 10; /* Need this because of absolute positioned background div. */
+	--sc-padding: 0.75em;
+	padding: var(--sc-padding);
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(5em, 7em));
+	grid-template-rows: repeat(auto-fit, minmax(5em, 7em));
+	grid-auto-flow: column;
+	grid-gap: var(--sc-padding);
 `
 
 const ShortcutButton = styled(Button)`
-	margin: 1em 0 0 1em;
-	&& > :first-child {
-		width: 100%;
+	&& svg {
+		width: auto;
 		height: auto;
 	}
 `
@@ -154,6 +151,7 @@ export default class Display extends React.Component {
 			openedApps: nextOpenedApps,
 			...(!matched && { toggleFocusedAppNavDrawer: null }),
 		})
+
 		return matched
 	}
 
@@ -171,7 +169,7 @@ export default class Display extends React.Component {
 						{this.props.mountableApps.map((mountableApp, i) => {
 							if (!mountableApp.shared) {
 								mountableApp.shared = {
-									title: `App#${new Date().getTime()}`,
+									title: `App#${Math.round(new Date().getTime() / 100000) + i}`,
 									logo: () => <span>?</span>,
 									theme: themes.blue,
 								}
@@ -219,7 +217,7 @@ export default class Display extends React.Component {
 						))}
 					</TransitionGroup>
 				</AllowedDragArea>
-				<Taskbar
+				<Nav
 					mountableApps={this.props.mountableApps}
 					openedApps={this.state.openedApps}
 					isMobileSite={this.props.isMobileSite}

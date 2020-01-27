@@ -26,19 +26,19 @@ const Root = styled.div`
 
 const NavButton = styled(Button)`
 	font-weight: 500;
+	justify-content: flex-start;
+	svg {
+		flex: 0 0 auto;
+	}
 	${({ theme }) => css`
 		color: ${theme.mainColor};
 	`}
 `
 
-const BottomNav = styled.div`
-	height: 2em;
+const Taskbar = styled.div`
+	height: var(--nav-height);
 	display: flex;
-	flex: 0 0 auto;
 	z-index: 4000;
-	left: 0;
-	bottom: 0;
-	width: 100vw;
 	opacity: 0.95;
 	${({ theme }) => css`
 		background: ${theme.mainColor};
@@ -54,7 +54,7 @@ const DrawerButtonsContainer = styled.div`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-const Taskbar = ({
+const Nav = ({
 	mountableApps,
 	openedApps,
 	isMobileSite,
@@ -106,7 +106,7 @@ const Taskbar = ({
 
 	return (
 		<Root>
-			<BottomNav isMobileSite={isMobileSite}>
+			<Taskbar isMobileSite={isMobileSite}>
 				<ThemeProvider theme={curTheme.contrastTheme}>
 					<NavButton
 						svg={AppsSVG}
@@ -129,7 +129,7 @@ const Taskbar = ({
 						openedAppsButtons
 					)}
 				</ThemeProvider>
-			</BottomNav>
+			</Taskbar>
 			<Drawer animDuraton={0.25} isShown={mainDrawerOpened} onClose={() => setMainDrawerOpened(false)}>
 				<ThemeProvider theme={curTheme.contrastTheme}>
 					<DrawerButtonsContainer>
@@ -147,4 +147,4 @@ const Taskbar = ({
 	)
 }
 
-export default Taskbar
+export default Nav

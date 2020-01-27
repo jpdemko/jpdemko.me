@@ -14,9 +14,14 @@ const Anchor = styled.a`
 	`}
 `
 
-const Link = ({ children, openNewTab = true, ...props }) => {
+const Link = ({ children, openNewTab = true, trustedLink = false, ...props }) => {
+	const attrs = {
+		...(openNewTab && { target: '_blank' }),
+		...(!trustedLink && { rel: 'noopener noreferrer' }),
+	}
+
 	return (
-		<Anchor {...props} {...(openNewTab && { target: '_blank', rel: 'noopener noreferrer' })}>
+		<Anchor {...props} {...attrs}>
 			{children}
 		</Anchor>
 	)

@@ -54,16 +54,13 @@ const About = ({ ...props }) => {
 				</Title>
 				<Para>
 					This website is an ongoing collection of projects I've made to push myself and learn new things.
-					I've encapsulated it all into the fun conecpt of an 'OS' with apps/programs for each project.
+					I've encapsulated it all into the fun concept of an 'OS' with apps/programs for each project.
 				</Para>
 				<Para>
 					If you're interested in working together,{' '}
-					<Link href='mailto:prestondemko@gmail.com'>shoot me an e-mail</Link> or{' '}
-					<Link href='https://docs.google.com/document/d/1a19nDz1XXdn2LKKqtJDU2SR9OFcEwS09iUrUMwjNeUs/edit?usp=sharing'>
-						check out my resume
-					</Link>
-					. Also be sure to <Link href='https://github.com/jpdemko/jpdemko.me'>check out my GitHub</Link> if
-					you want to check out the source code of this project or any of the others.
+					<Link href='mailto:prestondemko@gmail.com'>shoot me an e-mail</Link>. Also be sure to{' '}
+					<Link href='https://github.com/jpdemko/jpdemko.me'>check out my GitHub</Link> if you want to see the
+					source code of this project or any of the others.
 				</Para>
 			</Root>
 		</Background>

@@ -30,7 +30,6 @@ export const ButtonBase = styled.button.attrs(({ size = 1, svg }) => {
 })`
 	display: inline-flex;
 	justify-content: center;
-	align-items: center;
 	border: none;
 	background: none;
 	transition: opacity 0.2s, background 0.15s, box-shadow 0.15s, outline 0.1s;
@@ -38,6 +37,7 @@ export const ButtonBase = styled.button.attrs(({ size = 1, svg }) => {
 	outline: none;
 	${({ theme, varCSS, disabled, column }) => css`
 		flex-direction: ${column ? 'column' : 'row'};
+		align-items: ${column ? 'stretch' : 'center'};
 		box-shadow: 0 0 0 0 ${theme.mainColor};
 		font-size: ${varCSS.fontSize};
 		padding: ${varCSS.verticalPadding} ${varCSS.sidePadding};
@@ -46,16 +46,14 @@ export const ButtonBase = styled.button.attrs(({ size = 1, svg }) => {
 		cursor: ${disabled ? 'default' : 'pointer'};
 		span {
 			padding: ${column ? `${varCSS.verticalPadding} 0 0 0` : `0 0 0 ${varCSS.sidePadding}`};
+			flex: 0 0 auto;
 		}
 		&:active {
 			box-shadow: 0 0 0 3px ${theme.mainColor};
 		}
 	`}
-	> * {
-		flex: 1 0 auto;
-	}
 	> svg {
-		flex: 0 0 auto;
+		flex: 1 0 auto;
 	}
 `
 

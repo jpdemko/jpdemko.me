@@ -289,11 +289,13 @@ export default class Window extends React.Component {
 		if (prevProps.isMobileSite !== isMobileSite) {
 			this.dragInstances.forEach((i) => i[0].enabled(!isMobileSite))
 			if (isMobileSite) {
-				if (isFocused) this.maximize()
-				else if (this.animStates.isMinimized) this.setAnimStates({ isWindowed: false, isMaximized: true })
-				else this.minimize()
-				this.setState({ isMobileWindow: true })
+				if (isFocused && !this.animStates.isMaximized) this.maximize()
+				else if (!this.animStates.isMinimized && !isFocused) this.minimize(['skipFocusBelowApp'])
+				if (!this.state.isMobileWindow) this.setState({ isMobileWindow: true })
 			}
+		}
+		if (!prevProps.isFocused && isFocused && this.animStates.isMinimized) {
+			this.restore()
 		}
 	}
 
