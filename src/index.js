@@ -35,10 +35,7 @@ const GlobalStyle = createGlobalStyle`
 	}
 `
 
-const RedBox = ({ ...props }) => <div {...props} style={{ background: 'red' }} />
-const BlueBox = ({ ...props }) => <div {...props} style={{ background: 'blue' }} />
-
-const mountableApps = [Weather, About, RedBox, BlueBox]
+const mountableApps = [About, Weather]
 
 function FakeOS() {
 	const isMobileSite = useMedia([`(min-width: ${mediaBreakpoints.desktop}px)`], [false], true)

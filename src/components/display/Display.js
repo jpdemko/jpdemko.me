@@ -3,11 +3,12 @@ import styled, { css } from 'styled-components/macro'
 import { TransitionGroup } from 'react-transition-group'
 
 import TopographySVG from '../../shared/assets/backgrounds/topography.svg'
-import { themes } from '../../shared/shared'
+import { themes, getRect } from '../../shared/shared'
 import Button from '../ui/Button'
 import Window from './Window'
 import Nav from './Nav'
 import AppNav from './AppNav'
+import { throttle } from 'throttle-debounce'
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -66,10 +67,12 @@ const Shortcuts = styled.div`
 	--sc-padding: 0.75em;
 	padding: var(--sc-padding);
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(5em, 7em));
-	grid-template-rows: repeat(auto-fit, minmax(5em, 7em));
-	grid-auto-flow: column;
-	grid-gap: var(--sc-padding);
+	${({ grid }) => css`
+		grid-template-columns: repeat(${grid.cols}, 1fr);
+		grid-template-rows: repeat(${grid.rows}, 1fr);
+		grid-auto-flow: column;
+		grid-gap: var(--sc-padding);
+	`}
 `
 
 const ShortcutButton = styled(Button)`
@@ -89,9 +92,39 @@ let zIndexLeader = 999
 let uniqueID = 0
 
 export default class Display extends React.Component {
-	state = {
-		openedApps: [],
-		toggleFocusedAppNavDrawer: null,
+	constructor(props) {
+		super(props)
+		this.state = {
+			openedApps: [],
+			toggleFocusedAppNavDrawer: null,
+			grid: {
+				rows: 1,
+				cols: 1,
+			},
+		}
+		this.setGridDimsThrottled = throttle(200, this.setGridDims)
+		this.dragAreaRef = React.createRef()
+	}
+
+	componentDidMount() {
+		this.setGridDims()
+		window.addEventListener('resize', this.setGridDimsThrottled)
+	}
+
+	componentWillUnmount() {
+		this.setGridDimsThrottled.cancel()
+		window.removeEventListener('resize', this.setGridDimsThrottled)
+	}
+
+	setGridDims = () => {
+		const { width, height } = getRect(this.dragAreaRef.current)
+		const optCell = 7 * 16 + (16 * 0.75 * 2) / 2 // (font-size * 7 = 7em) + (font-size * .75em = grid gap)
+		const nextGrid = {
+			rows: Math.floor(height / optCell) || 1,
+			cols: Math.floor(width / optCell) || 1,
+		}
+		const { grid } = this.state
+		if (nextGrid.rows !== grid.rows || nextGrid.cols !== grid.cols) this.setState({ grid: nextGrid })
 	}
 
 	openApp = (app) => {
@@ -164,8 +197,8 @@ export default class Display extends React.Component {
 			<Root>
 				{/* SVG pattern loaded inline because of styled-components Firefox bug which causes flickering? */}
 				<Background style={{ backgroundImage: `url(${TopographySVG})` }} theme={themes.light} />
-				<AllowedDragArea id='allowedDragArea'>
-					<Shortcuts>
+				<AllowedDragArea ref={this.dragAreaRef} id='allowedDragArea'>
+					<Shortcuts grid={this.state.grid}>
 						{this.props.mountableApps.map((mountableApp, i) => {
 							if (!mountableApp.shared) {
 								mountableApp.shared = {

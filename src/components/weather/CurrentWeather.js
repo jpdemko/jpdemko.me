@@ -20,6 +20,7 @@ const Root = styled.div`
 	`}
 	> * {
 		flex: 0 0 auto;
+		margin-top: 0.75rem;
 	}
 `
 
@@ -29,11 +30,7 @@ const Address = styled.div`
 	opacity: 0.9;
 `
 
-const TextSummary = styled.div`
-	${({ isLandscape }) => css`
-		margin: 0.25em 0 ${isLandscape ? '.25em' : '.5em'};
-	`}
-`
+const TextSummary = styled.div``
 
 const LayoutSwitch = styled.div`
 	display: flex;
@@ -51,6 +48,9 @@ const Temps = styled.div`
 	> * {
 		flex: 0 0 auto;
 	}
+	${({ isLandscape }) => css`
+		margin-top: ${isLandscape ? '.75rem' : null};
+	`}
 `
 
 const Icon = styled.div`
@@ -72,12 +72,6 @@ const Info = styled.div`
 
 const CurrentWeather = React.memo(({ curLocation, getTemp, isLandscape, ...props }) => {
 	const { mapData, weatherData } = curLocation ?? {}
-	// if (weatherData)
-	// 	console.log(
-	// 		weatherData.daily.data[0].apparentTemperatureLow,
-	// 		Math.round(weatherData.daily.data[0].apparentTemperatureLow),
-	// 		getTemp(weatherData.daily.data[0].apparentTemperatureLow),
-	// 	)
 	return (
 		<Root {...props} curWeatherBG={curLocation?.curWeatherBG}>
 			{curLocation ? (
@@ -88,7 +82,7 @@ const CurrentWeather = React.memo(({ curLocation, getTemp, isLandscape, ...props
 						<Icon>
 							<WeatherIcon iconName={weatherData.currently.icon} />
 						</Icon>
-						<Temps>
+						<Temps isLandscape={isLandscape}>
 							<Range>H: {getTemp(weatherData.daily.data[0].apparentTemperatureHigh)}&deg;</Range>
 							<div style={{ marginBottom: '.1em' }}>
 								{getTemp(weatherData.currently.apparentTemperature)}&deg;

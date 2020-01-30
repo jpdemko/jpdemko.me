@@ -44,7 +44,7 @@ export const ButtonBase = styled.button.attrs(({ size = 1, svg }) => {
 		color: ${theme.mainColor};
 		opacity: ${disabled ? 0.33 : 1};
 		cursor: ${disabled ? 'default' : 'pointer'};
-		span {
+		> span {
 			padding: ${column ? `${varCSS.verticalPadding} 0 0 0` : `0 0 0 ${varCSS.sidePadding}`};
 			flex: 0 0 auto;
 		}

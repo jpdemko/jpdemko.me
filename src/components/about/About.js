@@ -14,9 +14,9 @@ const Background = styled.div`
 `
 
 const Root = styled.section`
-	font-size: 1.25em;
-	max-width: 1024px; /* Fallback. */
-	max-width: 75ch;
+	font-size: 1.35em;
+	max-width: 1024px;
+	max-width: 70ch;
 	margin: 0 auto;
 	padding: 1em;
 	> * {

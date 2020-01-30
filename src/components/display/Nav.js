@@ -12,7 +12,7 @@ import Drawer from '../ui/Drawer'
 
 /* --------------------------------- STYLES --------------------------------- */
 
-const Root = styled.div`
+const OpenedApp = styled.div`
 	.react-contextmenu-wrapper {
 		display: flex;
 		button {
@@ -38,7 +38,8 @@ const NavButton = styled(Button)`
 const Taskbar = styled.div`
 	height: var(--nav-height);
 	display: flex;
-	z-index: 4000;
+	position: relative;
+	z-index: 4999;
 	opacity: 0.95;
 	${({ theme }) => css`
 		background: ${theme.mainColor};
@@ -82,8 +83,8 @@ const Nav = ({
 	}
 
 	const openedAppsButtons = openedApps.map((app) => (
-		<React.Fragment key={app.id}>
-			<ContextMenuTrigger key={app.id} id={`nav-button-${app.id}`} holdToDisplay={-1}>
+		<OpenedApp key={app.id}>
+			<ContextMenuTrigger id={`nav-button-${app.id}`} holdToDisplay={-1}>
 				<NavButton
 					onClick={() => appShortcutClicked(app)}
 					svg={app.class.shared.logo}
@@ -101,11 +102,11 @@ const Nav = ({
 					<Button onClick={() => handleClose(app.id)} svg={CloseSVG} variant='fancy' theme={themes.red} />
 				</MenuItem>
 			</ContextMenu>
-		</React.Fragment>
+		</OpenedApp>
 	))
 
 	return (
-		<Root>
+		<>
 			<Taskbar isMobileSite={isMobileSite}>
 				<ThemeProvider theme={curTheme.contrastTheme}>
 					<NavButton
@@ -143,7 +144,7 @@ const Nav = ({
 					</DrawerButtonsContainer>
 				</ThemeProvider>
 			</Drawer>
-		</Root>
+		</>
 	)
 }
 
