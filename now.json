@@ -1,8 +1,0 @@
-{
-	"build": {
-		"env": {
-			"REACT_APP_BING_MAPS_API_KEY": "@bing-maps-api-key",
-			"REACT_APP_DARK_SKY_API_KEY": "@dark-sky-api-key"
-		}
-	}
-}
