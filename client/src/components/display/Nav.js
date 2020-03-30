@@ -1,12 +1,12 @@
 import React from 'react'
 import styled, { css, ThemeProvider, ThemeContext } from 'styled-components/macro'
-
-import { ReactComponent as MenuSVG } from '../../shared/assets/material-icons/menu.svg'
-import { ReactComponent as AppsSVG } from '../../shared/assets/material-icons/apps.svg'
-import { ReactComponent as HomeSVG } from '../../shared/assets/material-icons/home.svg'
-import { ReactComponent as CloseSVG } from '../../shared/assets/material-icons/close.svg'
-import { themes } from '../../shared/shared'
 import { ContextMenuTrigger, ContextMenu, MenuItem } from 'react-contextmenu'
+
+import { ReactComponent as MenuSVG } from '../../shared/assets/icons/menu.svg'
+import { ReactComponent as AppsSVG } from '../../shared/assets/icons/apps.svg'
+import { ReactComponent as HomeSVG } from '../../shared/assets/icons/home.svg'
+import { ReactComponent as CloseSVG } from '../../shared/assets/icons/close.svg'
+import { themes } from '../../shared/constants'
 import Button from '../ui/Button'
 import Drawer from '../ui/Drawer'
 
@@ -62,31 +62,26 @@ function Nav({
 	handleHomeButton,
 	openApp,
 	closeApp,
-	toggleFocusedAppNavDrawer,
+	mainNavBurgerCB,
 }) {
 	const [mainDrawerOpened, setMainDrawerOpened] = React.useState(false)
 	const curTheme = React.useContext(ThemeContext)
-
-	const appShortcutClicked = React.useCallback((app) => {
-		app.windowRef.current.toggleMinimize()
-		setMainDrawerOpened(false)
-	}, [])
 
 	function handleClose(id) {
 		setMainDrawerOpened(false)
 		closeApp(id)
 	}
 
-	function handleOpen(app) {
+	function handleOpen(title) {
 		setMainDrawerOpened(false)
-		openApp(app)
+		openApp(title)
 	}
 
 	const openedAppsButtons = openedApps.map((app) => (
 		<OpenedApp key={app.id}>
 			<ContextMenuTrigger id={`nav-button-${app.id}`} holdToDisplay={-1}>
 				<NavButton
-					onClick={() => appShortcutClicked(app)}
+					onClick={() => handleOpen(app.title)}
 					svg={app.class.shared.logo}
 					isFocused={app.isFocused}
 					theme={app.isFocused ? themes.blue : curTheme.contrastTheme}
@@ -123,8 +118,8 @@ function Nav({
 						<NavButton
 							style={{ marginLeft: 'auto' }}
 							svg={MenuSVG}
-							onClick={toggleFocusedAppNavDrawer}
-							disabled={!toggleFocusedAppNavDrawer}
+							onClick={mainNavBurgerCB}
+							disabled={!mainNavBurgerCB}
 						/>
 					) : (
 						openedAppsButtons
@@ -136,9 +131,9 @@ function Nav({
 					<DrawerButtonsContainer>
 						{isMobileSite
 							? openedAppsButtons
-							: mountableApps.map((app) => (
-									<NavButton key={app.shared.title} svg={app.shared.logo} onClick={() => handleOpen(app)}>
-										{app.shared.title}
+							: Object.keys(mountableApps).map((key) => (
+									<NavButton key={key} svg={mountableApps[key].shared.logo} onClick={() => handleOpen(key)}>
+										{key}
 									</NavButton>
 							  ))}
 					</DrawerButtonsContainer>

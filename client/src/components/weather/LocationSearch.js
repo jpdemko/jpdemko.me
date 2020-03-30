@@ -3,8 +3,8 @@
 import React from 'react'
 import styled, { css } from 'styled-components/macro'
 
-import { useUpdatedValRef } from '../../shared/customHooks'
-import { ReactComponent as LocationSVG } from '../../shared/assets/material-icons/location.svg'
+import { useUpdatedValRef } from '../../shared/hooks'
+import { ReactComponent as LocationSVG } from '../../shared/assets/icons/location.svg'
 import Button from '../ui/Button'
 
 /* --------------------------------- STYLES --------------------------------- */
@@ -71,20 +71,25 @@ function LocationSearch({ map, modulesLoaded, onLocationFound }) {
 	const managersLoadedRef = React.useRef(false)
 	React.useEffect(() => {
 		if (map && modulesLoaded && !managersLoadedRef.current) {
-			managersLoadedRef.current = true
-			mapManagersRef.current = {
-				autoSuggest: new Microsoft.Maps.AutosuggestManager({
-					maxResults: 5,
-					map,
-				}),
-				search: new Microsoft.Maps.Search.SearchManager(map),
+			try {
+				mapManagersRef.current = {
+					autoSuggest: new Microsoft.Maps.AutosuggestManager({
+						maxResults: 5,
+						map,
+					}),
+					search: new Microsoft.Maps.Search.SearchManager(map),
+				}
+				const id = idRef.current
+				mapManagersRef.current.autoSuggest.attachAutosuggest(
+					`#searchInput${id}`,
+					`#searchRoot${id}`,
+					(mapData) => onLocationFoundRef.current(mapData),
+				)
+				managersLoadedRef.current = true
+			} catch (error) {
+				managersLoadedRef.current = false
+				console.log(error)
 			}
-			const id = idRef.current
-			mapManagersRef.current.autoSuggest.attachAutosuggest(
-				`#searchInput${id}`,
-				`#searchRoot${id}`,
-				(mapData) => onLocationFoundRef.current(mapData),
-			)
 		}
 
 		return () => {
@@ -95,6 +100,7 @@ function LocationSearch({ map, modulesLoaded, onLocationFound }) {
 	}, [map, modulesLoaded, onLocationFoundRef])
 
 	function onGeolocateCurrentPosition() {
+		if (!managersLoadedRef.current) return
 		navigator.geolocation.getCurrentPosition(
 			({ coords }) => {
 				const location = new Microsoft.Maps.Location(coords.latitude, coords.longitude)

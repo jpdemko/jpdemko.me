@@ -2,9 +2,9 @@ import React from 'react'
 import styled, { css, ThemeProvider } from 'styled-components/macro'
 import { DateTime } from 'luxon'
 
-import { ReactComponent as CloseCircleSVG } from '../../shared/assets/material-icons/close-circle.svg'
-import { useInterval } from '../../shared/customHooks'
-import { themes, Contexts } from '../../shared/shared'
+import { ReactComponent as CloseCircleSVG } from '../../shared/assets/icons/close-circle.svg'
+import { useInterval } from '../../shared/hooks'
+import { themes, Contexts } from '../../shared/constants'
 import Button from '../ui/Button'
 import LocationSearch from './LocationSearch'
 import WeatherIcon from './WeatherIcon'
@@ -89,7 +89,7 @@ function WeatherNav({
 	...props
 }) {
 	const isMobileWindow = React.useContext(Contexts.IsMobileWindow)
-	const { setNavContentCallback } = React.useContext(Contexts.AppNav)
+	const { setDrawerContent } = React.useContext(Contexts.AppNav)
 
 	// Update clock for all locations every minute.
 	const [date, setDate] = React.useState(DateTime.local())
@@ -127,7 +127,7 @@ function WeatherNav({
 			</Root>
 		</ThemeProvider>
 	)
-	React.useEffect(() => setNavContentCallback(navContent))
+	setDrawerContent(navContent)
 
 	return !isMobileWindow && <DesktopNav>{navContent}</DesktopNav>
 }

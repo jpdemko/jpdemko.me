@@ -1,14 +1,18 @@
 import React from 'react'
 import styled, { css } from 'styled-components/macro'
 import { TransitionGroup } from 'react-transition-group'
+import { throttle } from 'throttle-debounce'
 
 import TopographySVG from '../../shared/assets/backgrounds/topography.svg'
-import { themes, getRect } from '../../shared/shared'
+import { getRect, ls } from '../../shared/helpers'
+import { themes } from '../../shared/constants'
+import About from '../about/About'
+import Weather from '../weather/Weather'
+import Chat from '../chat/Chat'
 import Button from '../ui/Button'
 import Window from './Window'
 import Nav from './Nav'
 import AppNav from './AppNav'
-import { throttle } from 'throttle-debounce'
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -84,24 +88,26 @@ const ShortcutButton = styled(Button)`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-// GSAP's Draggable has a shared z-index updater across all instances, however it doesn't update
-// in every circumstance we need it to.
-let zIndexLeader = 999
+export const mountableApps = {}
+const appClasses = [About, Weather, Chat]
+appClasses.forEach((app) => (mountableApps[app.shared.title] = app))
 
-// Each app gets a unique ID for their React key prop.
-let uniqueID = 0
-
-export default class Display extends React.Component {
+class Display extends React.Component {
 	constructor(props) {
 		super(props)
+		const prevOpenedApps = (ls.get('Display-openedApps') || []).map((app) => this.genApp(app.title, app))
 		this.state = {
-			openedApps: [],
-			toggleFocusedAppNavDrawer: null,
+			openedApps: prevOpenedApps,
+			mainNavBurgerCB: null,
 			grid: {
 				rows: 1,
 				cols: 1,
 			},
 		}
+
+		// GSAP's Draggable has a shared z-index updater across all instances, however it doesn't update
+		// in every circumstance we need it to.
+		this.zIndexLeader = ls.get('Display-zIndexLeader') || 999
 		this.setGridDimsThrottled = throttle(200, this.setGridDims)
 		this.dragAreaRef = React.createRef()
 	}
@@ -109,16 +115,32 @@ export default class Display extends React.Component {
 	componentDidMount() {
 		this.setGridDims()
 		window.addEventListener('resize', this.setGridDimsThrottled)
+		window.addEventListener('beforeunload', this.save)
 	}
 
 	componentWillUnmount() {
 		this.setGridDimsThrottled.cancel()
+		window.removeEventListener('beforeunload', this.save)
 		window.removeEventListener('resize', this.setGridDimsThrottled)
+	}
+
+	save = () => {
+		let deconApps = []
+		this.state.openedApps.forEach((app) =>
+			deconApps.push({
+				id: app.id,
+				title: app.title,
+				isFocused: app.isFocused,
+				zIndex: app.zIndex,
+			}),
+		)
+		ls.set('Display-openedApps', deconApps)
+		ls.set('Display-zIndexLeader', this.zIndexLeader)
 	}
 
 	setGridDims = () => {
 		const { width, height } = getRect(this.dragAreaRef.current)
-		const optCell = 7 * 16 + (16 * 0.75 * 2) / 2 // (font-size * 7 = 7em) + (font-size * .75em = grid gap)
+		const optCell = 16 * 7 + 16 * 0.75 // 7em + (1em * .75)
 		const nextGrid = {
 			rows: Math.floor(height / optCell) || 1,
 			cols: Math.floor(width / optCell) || 1,
@@ -127,23 +149,28 @@ export default class Display extends React.Component {
 		if (nextGrid.rows !== grid.rows || nextGrid.cols !== grid.cols) this.setState({ grid: nextGrid })
 	}
 
-	openApp = (app) => {
-		const { openedApps } = this.state
-		const curOpenApp = openedApps.find((oApp) => oApp.class === app)
-		if (curOpenApp) {
-			this.focusApp(curOpenApp.id)
-			return
-		}
-		const newApp = {
-			id: ++uniqueID,
+	genApp = (title, prevData = {}) => {
+		return {
+			title,
+			id: Date.now(),
+			class: mountableApps[title],
 			windowRef: React.createRef(),
-			class: app,
 			isFocused: true,
-			zIndex: ++zIndexLeader,
+			zIndex: ++this.zIndexLeader,
+			...prevData,
+		}
+	}
+
+	openApp = (title) => {
+		const { openedApps } = this.state
+		const curOpenApp = openedApps.find((oApp) => oApp.title === title)
+		if (curOpenApp) {
+			curOpenApp.windowRef.current.toggleMinimize()
+			return
 		}
 		let nextOpenedApps = [...openedApps] // Copy currently opened apps array.
 		nextOpenedApps.forEach((app) => (app.isFocused = false)) // New app is focused, old ones aren't.
-		nextOpenedApps.push(newApp) // Add new app data to opened apps array copy.
+		nextOpenedApps.push(this.genApp(title)) // Add new app data to opened apps array copy.
 		this.setState({ openedApps: nextOpenedApps })
 	}
 
@@ -160,7 +187,7 @@ export default class Display extends React.Component {
 		const openedApps = [...this.state.openedApps]
 		let belowApp = null
 		openedApps.forEach((app) => {
-			if (app.windowRef.current.animStates.isMinimized) return
+			if (app.windowRef.current.state.isMinimized) return
 			else if (!belowApp && app.zIndex < curAppZ) belowApp = app
 			else if (belowApp && app.zIndex < curAppZ && app.zIndex > belowApp.zIndex) belowApp = app
 		})
@@ -177,19 +204,19 @@ export default class Display extends React.Component {
 			return {
 				...app,
 				isFocused: matched ? true : false,
-				zIndex: matched ? ++zIndexLeader : app.zIndex,
+				zIndex: matched ? ++this.zIndexLeader : app.zIndex,
 			}
 		})
 		this.setState({
 			openedApps: nextOpenedApps,
-			...(!matched && { toggleFocusedAppNavDrawer: null }),
+			...(!matched && { mainNavBurgerCB: null }),
 		})
 
 		return matched
 	}
 
-	setToggleFocusedAppNavDrawer = (toggleFocusedAppNavDrawer) => {
-		this.setState({ toggleFocusedAppNavDrawer })
+	setMainNavBurgerCB = (mainNavBurgerCB) => {
+		this.setState({ mainNavBurgerCB })
 	}
 
 	render() {
@@ -199,19 +226,12 @@ export default class Display extends React.Component {
 				<Background style={{ backgroundImage: `url(${TopographySVG})` }} theme={themes.light} />
 				<AllowedDragArea ref={this.dragAreaRef} id='allowedDragArea'>
 					<Shortcuts grid={this.state.grid}>
-						{this.props.mountableApps.map((mountableApp, i) => {
-							if (!mountableApp.shared) {
-								mountableApp.shared = {
-									title: `App#${Math.round(new Date().getTime() / 100000) + i}`,
-									logo: () => <span>?</span>,
-									theme: themes.blue,
-								}
-							}
-							const { title, logo, theme } = mountableApp.shared
+						{Object.keys(mountableApps).map((key) => {
+							const { title, logo, theme } = mountableApps[key].shared
 							return (
 								<ShortcutButton
 									key={title}
-									onClick={() => this.openApp(mountableApp)}
+									onClick={() => this.openApp(title)}
 									variant='fancy'
 									size='large'
 									svg={logo}
@@ -243,7 +263,7 @@ export default class Display extends React.Component {
 								<AppNav
 									isFocused={app.isFocused}
 									isMobileSite={this.props.isMobileSite}
-									setToggleFocusedAppNavDrawer={this.setToggleFocusedAppNavDrawer}
+									setMainNavBurgerCB={this.setMainNavBurgerCB}
 									app={app}
 								/>
 							</Window>
@@ -251,11 +271,11 @@ export default class Display extends React.Component {
 					</TransitionGroup>
 				</AllowedDragArea>
 				<Nav
-					mountableApps={this.props.mountableApps}
+					mountableApps={mountableApps}
 					openedApps={this.state.openedApps}
 					isMobileSite={this.props.isMobileSite}
 					handleHomeButton={this.handleHomeButton}
-					toggleFocusedAppNavDrawer={this.state.toggleFocusedAppNavDrawer}
+					mainNavBurgerCB={this.state.mainNavBurgerCB}
 					openApp={this.openApp}
 					closeApp={this.closeApp}
 				/>
@@ -263,3 +283,5 @@ export default class Display extends React.Component {
 		)
 	}
 }
+
+export default Display

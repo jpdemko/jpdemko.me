@@ -1,0 +1,22 @@
+{
+	"name": "jpdemko.me",
+	"version": "1.0.0",
+	"scripts": {
+		"start-client": "npm start --prefix client",
+		"start-server": "npm start --prefix server",
+		"start": "concurrently \"npm run start-client\" \"npm run start-server\""
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/jpdemko/jpdemko.me.git"
+	},
+	"author": "Joseph P Demko",
+	"license": "ISC",
+	"bugs": {
+		"url": "https://github.com/jpdemko/jpdemko.me/issues"
+	},
+	"homepage": "https://github.com/jpdemko/jpdemko.me#readme",
+	"devDependencies": {
+		"concurrently": "^5.1.0"
+	}
+}

@@ -130,17 +130,6 @@ export function useUpdatedValRef(value) {
 
 /* -------------------------------------------------------------------------- */
 
-export function useEffectWithInitial(callback, deps) {
-	if (!deps) throw new Error('useEffectWithInitial() requires dependancy array...')
-	deps.push(callback)
-	// eslint-disable-next-line react-hooks/exhaustive-deps
-	React.useEffect(() => callback(), [])
-	// eslint-disable-next-line react-hooks/exhaustive-deps
-	React.useEffect(() => callback(), deps)
-}
-
-/* -------------------------------------------------------------------------- */
-
 /**
  * @callback useResizeObserverCallback
  * @param {DOMRectReadOnly} resizeEleRect

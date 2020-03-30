@@ -1,20 +1,20 @@
-import 'sanitize.css'
-import 'sanitize.css/typography.css'
-import 'sanitize.css/forms.css'
+import "sanitize.css"
+import "sanitize.css/typography.css"
+import "sanitize.css/forms.css"
 
-import React from 'react'
-import ReactDOM from 'react-dom'
-import { createGlobalStyle, ThemeProvider } from 'styled-components/macro'
-import { Router } from 'react-router-dom'
-import { createBrowserHistory } from 'history'
+import React from "react"
+import ReactDOM from "react-dom"
+import { createGlobalStyle, ThemeProvider } from "styled-components/macro"
+import { Router } from "react-router-dom"
+import { createBrowserHistory } from "history"
 
-import registerServiceWorker from './registerServiceWorker'
-import { useMedia } from './shared/customHooks'
-import { themes, mediaBreakpoints, Contexts } from './shared/shared'
-import Display from './components/display/Display'
-import Weather from './components/weather/Weather'
-import About from './components/about/About'
-import Chat from './components/chat/Chat'
+import * as serviceWorker from "./serviceWorker"
+import { useMedia } from "./shared/hooks"
+import { themes, mediaBreakpoints, Contexts } from "./shared/constants"
+import Display from "./components/display/Display"
+import AuthProvider from "./components/auth/AuthProvider"
+
+/* --------------------------------- STYLES --------------------------------- */
 
 const GlobalStyle = createGlobalStyle`
 	html {
@@ -38,26 +38,32 @@ const GlobalStyle = createGlobalStyle`
 	}
 `
 
-const history = createBrowserHistory()
+/* -------------------------------- COMPONENT ------------------------------- */
 
-const mountableApps = [About, Weather, Chat]
+const history = createBrowserHistory()
 
 function FakeOS() {
 	const isMobileSite = useMedia([`(min-width: ${mediaBreakpoints.desktop}px)`], [false], true)
-
+	//TODO: try and fix themeing across the app, looks ugly
 	return (
 		<>
 			<GlobalStyle />
-			<Contexts.IsMobileSite.Provider value={isMobileSite}>
-				<ThemeProvider theme={themes.dark}>
-					<Router history={history}>
-						<Display isMobileSite={isMobileSite} mountableApps={mountableApps} />
-					</Router>
-				</ThemeProvider>
-			</Contexts.IsMobileSite.Provider>
+			<ThemeProvider theme={themes.dark}>
+				<Router history={history}>
+					<AuthProvider>
+						<Contexts.Settings.Provider value={isMobileSite}>
+							<Display isMobileSite={isMobileSite} />
+						</Contexts.Settings.Provider>
+					</AuthProvider>
+				</Router>
+			</ThemeProvider>
 		</>
 	)
 }
 
-ReactDOM.render(<FakeOS />, document.getElementById('root'))
-registerServiceWorker()
+ReactDOM.render(<FakeOS />, document.getElementById("root"))
+
+// If you want your app to work offline and load faster, you can change
+// unregister() to register() below. Note this comes with some pitfalls.
+// https://bit.ly/CRA-PWA
+serviceWorker.unregister()

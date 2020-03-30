@@ -6,8 +6,9 @@ import { DateTime, Interval } from 'luxon'
 
 import { getCurWeatherBG } from './WeatherIcon'
 import { ReactComponent as SunnySVG } from '../../shared/assets/weather-icons/wi-day-sunny.svg'
-import { themes, simplerFetch, Contexts } from '../../shared/shared'
-import { useLocalStorage, useInterval, useResizeObserver } from '../../shared/customHooks'
+import { simplerFetch, setupAppSharedOptions } from '../../shared/helpers'
+import { themes, Contexts } from '../../shared/constants'
+import { useLocalStorage, useInterval, useResizeObserver } from '../../shared/hooks'
 import WeatherNav from './WeatherNav'
 import CurrentWeather from './CurrentWeather'
 import Forecast from './Forecast'
@@ -65,27 +66,35 @@ function Weather({ ...props }) {
 	const [map, setMap] = React.useState()
 	const [modulesLoaded, setModulesLoaded] = React.useState(false)
 	React.useEffect(() => {
-		const genMap = new Microsoft.Maps.Map('#BingMapRadar', {
-			navigationBarMode: Microsoft.Maps.NavigationBarMode.minified,
-			supportedMapTypes: [
-				Microsoft.Maps.MapTypeId.road,
-				Microsoft.Maps.MapTypeId.aerial,
-				Microsoft.Maps.MapTypeId.canvasLight,
-			],
-			zoom: 5,
-			...(curLocation && {
-				center: curLocation.mapData.location,
-				zoom: 8,
-			}),
-		})
-		Microsoft.Maps.loadModule(['Microsoft.Maps.AutoSuggest', 'Microsoft.Maps.Search'], {
-			callback: () => setModulesLoaded(true),
-			errorCallback: console.log,
-		})
+		try {
+			const genMap = new Microsoft.Maps.Map('#BingMapRadar', {
+				navigationBarMode: Microsoft.Maps.NavigationBarMode.minified,
+				supportedMapTypes: [
+					Microsoft.Maps.MapTypeId.road,
+					Microsoft.Maps.MapTypeId.aerial,
+					Microsoft.Maps.MapTypeId.canvasLight,
+				],
+				zoom: 5,
+				...(curLocation && {
+					center: curLocation.mapData.location,
+					zoom: 8,
+				}),
+			})
+			Microsoft.Maps.loadModule(['Microsoft.Maps.AutoSuggest', 'Microsoft.Maps.Search'], {
+				callback: () => setModulesLoaded(true),
+				errorCallback: (error) => {
+					console.log(error)
+					setModulesLoaded(false)
+				},
+			})
 
-		if (curLocation) genMap.entities.push(new Microsoft.Maps.Pushpin(genMap.getCenter()))
-		updateRadar(genMap)
-		setMap(genMap)
+			if (curLocation) genMap.entities.push(new Microsoft.Maps.Pushpin(genMap.getCenter()))
+			updateRadar(genMap)
+			setMap(genMap)
+		} catch (error) {
+			console.log(error)
+			setModulesLoaded(false)
+		}
 
 		return () => {
 			if (map) map.dispose()
@@ -243,10 +252,9 @@ function Weather({ ...props }) {
 	)
 }
 
-Weather.shared = {
+Weather.shared = setupAppSharedOptions({
 	title: 'Weather',
 	logo: SunnySVG,
-	theme: themes.blue,
-}
+})
 
 export default Weather

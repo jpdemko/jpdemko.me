@@ -2,8 +2,9 @@ import React from 'react'
 import styled, { css } from 'styled-components/macro'
 import { DateTime } from 'luxon'
 
-import { themes, opac } from '../../shared/shared'
-import { ReactComponent as RadarSVG } from '../../shared/assets/misc-icons/radar.svg'
+import { opac } from '../../shared/helpers'
+import { themes } from '../../shared/constants'
+import { ReactComponent as RadarSVG } from '../../shared/assets/weather-icons/radar.svg'
 import WeatherIcon from './WeatherIcon'
 import Tabs from '../ui/Tabs'
 

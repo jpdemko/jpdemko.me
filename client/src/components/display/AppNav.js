@@ -1,11 +1,13 @@
 import React from 'react'
 import styled, { ThemeProvider } from 'styled-components/macro'
 
-import { useUpdatedValRef } from '../../shared/customHooks'
-import { ReactComponent as MenuSVG } from '../../shared/assets/material-icons/menu.svg'
-import { themes, Contexts } from '../../shared/shared'
+import { useUpdatedValRef } from '../../shared/hooks'
+import { ReactComponent as MenuSVG } from '../../shared/assets/icons/menu.svg'
+import { themes, Contexts } from '../../shared/constants'
 import Drawer from '../ui/Drawer'
+import Modal from '../ui/Modal'
 import Button from '../ui/Button'
+import SocialLogin from '../auth/SocialLogin'
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -30,9 +32,16 @@ const MobileContextButtons = styled.div`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function AppNav({ app, isFocused, isMobileSite, setToggleFocusedAppNavDrawer }) {
-	const [navContent, setNavContent] = React.useState(null)
+function AppNav({ app, isFocused, isMobileSite, setMainNavBurgerCB }) {
+	const [drawerContent, setDrawerContent] = React.useState(null)
 	const [drawerOpened, setDrawerOpened] = React.useState(false)
+
+	const [modalContent, setModalContent] = React.useState()
+	const [modalShown, setModalShown] = React.useState(false)
+
+	function toggleModal() {
+		setModalShown((prev) => !prev)
+	}
 
 	// Prevents possible UI confusion where if the app's drawer is open in mobile and the layout switches
 	// to desktop there could be two navs open if the app implements a visible desktop one.
@@ -56,43 +65,62 @@ function AppNav({ app, isFocused, isMobileSite, setToggleFocusedAppNavDrawer }) 
 		}
 	}, [isFocusedRef])
 
-	const setNavContentCallback = React.useCallback((content) => setNavContent(content), [])
-
-	// Callback functions that apps might care about. Open/close nav drawer and setting nav content.
-	const appNavContextCallbacks = React.useMemo(() => ({ toggleMobileMenu, setNavContentCallback }), [
-		setNavContentCallback,
-		toggleMobileMenu,
-	])
+	// Context callback functions that most apps care about.
+	const appNavContextCallbacks = React.useMemo(
+		() => ({
+			setDrawerContent,
+			toggleMobileMenu,
+			setModalContent,
+			toggleModal,
+		}),
+		[toggleMobileMenu],
+	)
 
 	// Sets the appropriate callback for the global nav/taskbar mobile menu nav button.
 	React.useEffect(() => {
-		if (isFocused && navContent) setToggleFocusedAppNavDrawer(toggleMobileMenu)
-	}, [isFocused, navContent, setToggleFocusedAppNavDrawer, toggleMobileMenu])
+		if (isFocused && drawerContent) setMainNavBurgerCB(toggleMobileMenu)
+	}, [isFocused, drawerContent, setMainNavBurgerCB, toggleMobileMenu])
 
 	// Prevent renders for apps. They only care about context which will override memo.
 	const memoApp = React.useMemo(() => <app.class />, [])
 
-	return (
-		<>
-			{navContent && (
+	// Some apps require the user to be logged in. We check this per 'app' config and the Auth context.
+	const authContext = React.useContext(Contexts.Auth)
+
+	if (app && (!app.class.shared.authRequired || (app.class.shared.authRequired && authContext.isAuthed))) {
+		return (
+			<>
+				{drawerContent && (
+					<>
+						<Drawer side='right' isShown={drawerOpened} onClose={toggleMobileMenu}>
+							{drawerContent}
+						</Drawer>
+						{isMobileWindow && !isMobileSite && (
+							<ThemeProvider theme={themes.blue}>
+								<MobileContextButtons>
+									<Button variant='fancy' onClick={toggleMobileMenu} svg={MenuSVG} />
+								</MobileContextButtons>
+							</ThemeProvider>
+						)}
+					</>
+				)}
 				<>
-					<Drawer side='right' isShown={drawerOpened} onClose={toggleMobileMenu}>
-						{navContent}
-					</Drawer>
-					{isMobileWindow && !isMobileSite && (
-						<ThemeProvider theme={themes.blue}>
-							<MobileContextButtons>
-								<Button variant='fancy' onClick={toggleMobileMenu} svg={MenuSVG} />
-							</MobileContextButtons>
-						</ThemeProvider>
-					)}
+					<Modal isShown={modalShown} onClose={toggleModal}>
+						{modalContent}
+					</Modal>
+					<Root>
+						<Contexts.AppNav.Provider value={appNavContextCallbacks}>{memoApp}</Contexts.AppNav.Provider>
+					</Root>
 				</>
-			)}
+			</>
+		)
+	} else {
+		return (
 			<Root>
-				<Contexts.AppNav.Provider value={appNavContextCallbacks}>{memoApp}</Contexts.AppNav.Provider>
+				<SocialLogin />
 			</Root>
-		</>
-	)
+		)
+	}
 }
 
 export default AppNav

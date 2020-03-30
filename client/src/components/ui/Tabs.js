@@ -2,7 +2,7 @@ import React from 'react'
 import styled, { css } from 'styled-components/macro'
 
 import { ButtonBase } from './Button'
-import { usePrevious } from '../../shared/customHooks'
+import { usePrevious } from '../../shared/hooks'
 
 /* --------------------------------- STYLES --------------------------------- */
 

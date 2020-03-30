@@ -1,65 +1,39 @@
-import React from 'react'
 import { mix, transparentize } from 'polished'
 
-/* -------------------------------------------------------------------------- */
-
-export const flags = {
-	isIE: !!window.navigator.userAgent.match(/(MSIE|Trident)/),
-	// Might be fixed in newer versions of Chrome?
-	// Chrome WebKit bug causes blurry text/images on child elements upon parent 3D transform.
-	// This is a flag to disable 3D transforms in Chrome.
-	// isChrome: !!window.chrome && (!!window.chrome.webstore || !!window.chrome.runtime),
-	isChrome: false,
-}
+import { ReactComponent as WrenchSVG } from '../shared/assets/icons/wrench.svg'
+import { themes, flags } from './constants'
 
 /* -------------------------------------------------------------------------- */
-
-export const Contexts = {
-	AppNav: React.createContext(),
-	IsMobileWindow: React.createContext(),
-	IsMobileSite: React.createContext(),
-}
-
-/* -------------------------------------------------------------------------- */
-
-export let themes = {
-	dark: {
-		mainColor: '#333',
-		altColor: '#666',
-		gradient: 'linear-gradient(45deg, #333 20%, #666 85%)',
-	},
-	light: {
-		mainColor: '#f9f9f9',
-		altColor: '#e0e0e0',
-		gradient: 'linear-gradient(45deg, #f9f9f9 20%, #e0e0e0 85%)',
-	},
-	blue: {
-		mainColor: '#1976d2',
-		altColor: '#21CBF3',
-		gradient: 'linear-gradient(45deg, #1976d2 20%, #21CBF3 85%)',
-	},
-	red: {
-		mainColor: '#e10050',
-		altColor: '#FF8E53',
-		gradient: 'linear-gradient(45deg, #e10050 20%, #FF8E53 85%)',
-	},
-}
 
 export function addTheme(themeName, vars) {
 	vars.mixedColor = mix(0.5, vars.mainColor, vars.altColor)
 	vars.contrastColor = themeName !== 'light' ? themes.light.mainColor : themes.dark.mainColor
 	vars.contrastTheme = themeName !== 'light' ? themes.light : themes.dark
-	themes = {
-		...themes,
-		[themeName]: vars,
-	}
+	themes[themeName] = vars
 	return themes[themeName]
 }
 
-// Adding mixed main/alt color, and background safe text depending on the color.
-Object.keys(themes).forEach((key) => addTheme(key, themes[key]))
+/* -------------------------------------------------------------------------- */
 
-export const mediaBreakpoints = { desktop: 813 }
+/**
+ * Mainly for getting intellisense on what options there when setting up each app's shared field.
+ * Also used for testing when I need some default app options.
+ * @param {Object} options
+ * @param {string} options.title
+ * @param {React.FunctionComponent<React.SVGProps<SVGSVGElement>>} options.logo
+ * @param {Object} options.theme
+ * @param {boolean} options.authRequired
+ * @return {Object}
+ */
+export function setupAppSharedOptions(options = {}) {
+	return {
+		title: `Gen. Title#${Math.round(new Date().getTime() / 1000000 + Math.random() * 100)}`,
+		logo: WrenchSVG,
+		theme: themes.blue,
+		authRequired: false,
+		...options,
+	}
+}
 
 /* -------------------------------------------------------------------------- */
 
@@ -170,4 +144,31 @@ export function isDoubleTouch(e) {
  */
 export function opac(opacityAmount, color) {
 	return transparentize(1 - opacityAmount, color)
+}
+
+/* -------------------------------------------------------------------------- */
+
+export const ls = {
+	get: function(key, parse = true) {
+		try {
+			if (typeof key !== 'string') key = JSON.stringify(key)
+			let item = localStorage.getItem(key)
+			if (item && parse) item = JSON.parse(item)
+			return item
+		} catch (error) {
+			// console.log('localstorage error: ', error)
+			return null
+		}
+	},
+	set: function(key, value) {
+		try {
+			if (typeof key !== 'string') key = JSON.stringify(key)
+			if (typeof value !== 'string') value = JSON.stringify(value)
+			// console.log('ls store item as: ', value)
+			localStorage.setItem(key, value)
+		} catch (error) {
+			// console.log('localstorage error: ', error)
+			return null
+		}
+	},
 }

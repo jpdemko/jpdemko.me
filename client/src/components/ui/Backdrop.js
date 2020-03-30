@@ -2,13 +2,13 @@ import React from 'react'
 import styled, { css } from 'styled-components/macro'
 import { Transition } from 'react-transition-group'
 
-import { themes } from '../../shared/shared'
+import { themes } from '../../shared/constants'
 
 /* --------------------------------- STYLES --------------------------------- */
 
 const Root = styled.div`
 	position: absolute;
-	z-index: 5000;
+	z-index: 150000;
 	top: 0;
 	right: 0;
 	bottom: 0;

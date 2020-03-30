@@ -1,8 +1,9 @@
 import React from 'react'
 import styled, { css } from 'styled-components/macro'
 
-import { addTheme, themes } from '../../shared/shared'
-import { ReactComponent as SmileSVG } from '../../shared/assets/material-icons/smile.svg'
+import { addTheme, setupAppSharedOptions } from '../../shared/helpers'
+import { themes } from '../../shared/constants'
+import { ReactComponent as SmileSVG } from '../../shared/assets/icons/smile.svg'
 import Link from '../ui/Link'
 
 /* --------------------------------- STYLES --------------------------------- */
@@ -67,7 +68,7 @@ function About({ ...props }) {
 	)
 }
 
-About.shared = {
+About.shared = setupAppSharedOptions({
 	title: 'About',
 	logo: SmileSVG,
 	theme: addTheme('about', {
@@ -75,6 +76,6 @@ About.shared = {
 		altColor: '#7fd245',
 		gradient: 'linear-gradient(45deg, #2bcbec 30%, #7fd245 100%)',
 	}),
-}
+})
 
 export default About

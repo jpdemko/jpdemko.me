@@ -1,15 +1,15 @@
 import React from 'react'
 import styled, { css } from 'styled-components/macro'
 
-import { safeTranslate } from '../../shared/shared'
-import { useOnClickOutside } from '../../shared/customHooks'
+import { safeTranslate } from '../../shared/helpers'
+import { useOnClickOutside } from '../../shared/hooks'
 import Backdrop from './Backdrop'
 
 /* --------------------------------- STYLES --------------------------------- */
 
 const Root = styled.div`
 	position: absolute;
-	z-index: 5001;
+	z-index: 150001;
 	top: 0;
 	bottom: 0;
 	max-width: 85%;

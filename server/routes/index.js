@@ -1,9 +1,19 @@
 const express = require('express')
 const router = express.Router()
+const path = require('path')
 
-router.get('/', (req, res, next) => {
-	console.log('req from client from index route /')
-	res.json('index route hello')
+// router.use(
+// 	express.static('client/build', {
+// 		index: false,
+// 	}),
+// )
+
+// router.get('*', function(req, res) {
+// 	res.sendFile(path.join(__dirname, '../../client/public/index.html'))
+// })
+
+router.get('/', function(req, res) {
+	console.log('router.get() index')
 })
 
 module.exports = router
