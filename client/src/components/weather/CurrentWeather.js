@@ -1,7 +1,8 @@
-import React from 'react'
-import styled, { css } from 'styled-components/macro'
+import React from "react"
+import styled, { css } from "styled-components/macro"
 
-import WeatherIcon from './WeatherIcon'
+import WeatherIcon from "./WeatherIcon"
+import { themes } from "../../shared/shared"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -15,8 +16,10 @@ const Root = styled.div`
 	align-items: center;
 	justify-content: center;
 	text-align: center;
-	${({ theme, curWeatherBG }) => css`
-		background-image: ${curWeatherBG ? curWeatherBG : theme.gradient};
+	${({ theme, curWeatherBG, isLandscape }) => css`
+		background-image: ${curWeatherBG ? curWeatherBG : theme.color};
+		color: ${themes.dark.contrast};
+		border-${isLandscape ? "right" : "bottom"}: 1px solid ${theme.accent};
 	`}
 	> * {
 		flex: 0 0 auto;
@@ -35,7 +38,7 @@ const TextSummary = styled.div``
 const LayoutSwitch = styled.div`
 	display: flex;
 	${({ isLandscape }) => css`
-		flex-direction: ${isLandscape ? 'column' : 'row'};
+		flex-direction: ${isLandscape ? "column" : "row"};
 	`}
 `
 
@@ -49,7 +52,7 @@ const Temps = styled.div`
 		flex: 0 0 auto;
 	}
 	${({ isLandscape }) => css`
-		margin-top: ${isLandscape ? '.75rem' : null};
+		margin-top: ${isLandscape ? ".75rem" : null};
 	`}
 `
 
@@ -73,10 +76,10 @@ const Info = styled.div`
 const CurrentWeather = React.memo(({ curLocation, getTemp, isLandscape, ...props }) => {
 	const { mapData, weatherData } = curLocation ?? {}
 	return (
-		<Root {...props} curWeatherBG={curLocation?.curWeatherBG}>
+		<Root {...props} curWeatherBG={curLocation?.curWeatherBG} isLandscape={isLandscape}>
 			{curLocation ? (
 				<>
-					<Address>{mapData.address.formattedAddress}</Address>
+					<Address>{mapData?.address?.formattedAddress}</Address>
 					<TextSummary isLandscape={isLandscape}>{weatherData.currently.summary}</TextSummary>
 					<LayoutSwitch isLandscape={isLandscape}>
 						<Icon>
@@ -84,7 +87,7 @@ const CurrentWeather = React.memo(({ curLocation, getTemp, isLandscape, ...props
 						</Icon>
 						<Temps isLandscape={isLandscape}>
 							<Range>H: {getTemp(weatherData.daily.data[0].apparentTemperatureHigh)}&deg;</Range>
-							<div style={{ marginBottom: '.1em' }}>
+							<div style={{ marginBottom: ".1em" }}>
 								{getTemp(weatherData.currently.apparentTemperature)}&deg;
 							</div>
 							<Range>L: {getTemp(weatherData.daily.data[0].apparentTemperatureLow)}&deg;</Range>
@@ -93,7 +96,8 @@ const CurrentWeather = React.memo(({ curLocation, getTemp, isLandscape, ...props
 				</>
 			) : (
 				<Info>
-					You don't have any locations added for weather data. Search for a location in the navigation menu.
+					You don't have any locations added for weather data. Search for a location in the navigation
+					menu.
 				</Info>
 			)}
 		</Root>

@@ -1,14 +1,13 @@
-import React from 'react'
-import styled, { css, ThemeProvider, ThemeContext } from 'styled-components/macro'
-import { ContextMenuTrigger, ContextMenu, MenuItem } from 'react-contextmenu'
+import React from "react"
+import styled, { css } from "styled-components/macro"
+import { ContextMenuTrigger, ContextMenu, MenuItem } from "react-contextmenu"
 
-import { ReactComponent as MenuSVG } from '../../shared/assets/icons/menu.svg'
-import { ReactComponent as AppsSVG } from '../../shared/assets/icons/apps.svg'
-import { ReactComponent as HomeSVG } from '../../shared/assets/icons/home.svg'
-import { ReactComponent as CloseSVG } from '../../shared/assets/icons/close.svg'
-import { themes } from '../../shared/constants'
-import Button from '../ui/Button'
-import Drawer from '../ui/Drawer'
+import { ReactComponent as MenuSVG } from "../../shared/assets/icons/menu.svg"
+import { ReactComponent as AppsSVG } from "../../shared/assets/icons/apps.svg"
+import { ReactComponent as HomeSVG } from "../../shared/assets/icons/home.svg"
+import { ReactComponent as CloseSVG } from "../../shared/assets/icons/close.svg"
+import Button from "../ui/Button"
+import Drawer from "../ui/Drawer"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -30,9 +29,6 @@ const NavButton = styled(Button)`
 	svg {
 		flex: 0 0 auto;
 	}
-	${({ theme }) => css`
-		color: ${theme.mainColor};
-	`}
 `
 
 const Taskbar = styled.div`
@@ -42,7 +38,8 @@ const Taskbar = styled.div`
 	z-index: 4999;
 	opacity: 0.95;
 	${({ theme }) => css`
-		background: ${theme.mainColor};
+		background: ${theme.background};
+		border-top: 1px solid ${theme.accent};
 	`}
 `
 
@@ -65,7 +62,6 @@ function Nav({
 	mainNavBurgerCB,
 }) {
 	const [mainDrawerOpened, setMainDrawerOpened] = React.useState(false)
-	const curTheme = React.useContext(ThemeContext)
 
 	function handleClose(id) {
 		setMainDrawerOpened(false)
@@ -84,17 +80,16 @@ function Nav({
 					onClick={() => handleOpen(app.title)}
 					svg={app.class.shared.logo}
 					isFocused={app.isFocused}
-					theme={app.isFocused ? themes.blue : curTheme.contrastTheme}
 				>
 					{app.class.shared.title}
 				</NavButton>
 				{isMobileSite && (
-					<Button onClick={() => handleClose(app.id)} svg={CloseSVG} variant='fancy' theme={themes.red} />
+					<Button onClick={() => handleClose(app.id)} svg={CloseSVG} variant="fancy" color="red" />
 				)}
 			</ContextMenuTrigger>
 			<ContextMenu id={`nav-button-${app.id}`}>
 				<MenuItem>
-					<Button onClick={() => handleClose(app.id)} svg={CloseSVG} variant='fancy' theme={themes.red} />
+					<Button onClick={() => handleClose(app.id)} svg={CloseSVG} variant="fancy" color="red" />
 				</MenuItem>
 			</ContextMenu>
 		</OpenedApp>
@@ -103,41 +98,41 @@ function Nav({
 	return (
 		<>
 			<Taskbar isMobileSite={isMobileSite}>
-				<ThemeProvider theme={curTheme.contrastTheme}>
+				<NavButton
+					svg={AppsSVG}
+					onClick={() => setMainDrawerOpened(true)}
+					disabled={isMobileSite && openedApps?.length < 1}
+				/>
+				<NavButton
+					svg={HomeSVG}
+					onClick={handleHomeButton}
+					disabled={!openedApps.find((app) => app.isFocused) || openedApps.length < 1}
+				/>
+				{isMobileSite ? (
 					<NavButton
-						svg={AppsSVG}
-						onClick={() => setMainDrawerOpened(true)}
-						disabled={isMobileSite && openedApps?.length < 1}
+						style={{ marginLeft: "auto" }}
+						svg={MenuSVG}
+						onClick={mainNavBurgerCB}
+						disabled={!mainNavBurgerCB}
 					/>
-					<NavButton
-						svg={HomeSVG}
-						onClick={handleHomeButton}
-						disabled={!openedApps.find((app) => app.isFocused) || openedApps.length < 1}
-					/>
-					{isMobileSite ? (
-						<NavButton
-							style={{ marginLeft: 'auto' }}
-							svg={MenuSVG}
-							onClick={mainNavBurgerCB}
-							disabled={!mainNavBurgerCB}
-						/>
-					) : (
-						openedAppsButtons
-					)}
-				</ThemeProvider>
+				) : (
+					openedAppsButtons
+				)}
 			</Taskbar>
 			<Drawer animDuraton={0.25} isShown={mainDrawerOpened} onClose={() => setMainDrawerOpened(false)}>
-				<ThemeProvider theme={curTheme.contrastTheme}>
-					<DrawerButtonsContainer>
-						{isMobileSite
-							? openedAppsButtons
-							: Object.keys(mountableApps).map((key) => (
-									<NavButton key={key} svg={mountableApps[key].shared.logo} onClick={() => handleOpen(key)}>
-										{key}
-									</NavButton>
-							  ))}
-					</DrawerButtonsContainer>
-				</ThemeProvider>
+				<DrawerButtonsContainer>
+					{isMobileSite
+						? openedAppsButtons
+						: Object.keys(mountableApps).map((key) => (
+								<NavButton
+									key={key}
+									svg={mountableApps[key].shared.logo}
+									onClick={() => handleOpen(key)}
+								>
+									{key}
+								</NavButton>
+						  ))}
+				</DrawerButtonsContainer>
 			</Drawer>
 		</>
 	)

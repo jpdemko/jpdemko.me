@@ -1,23 +1,22 @@
-import React from 'react'
-import styled, { css } from 'styled-components/macro'
-import { TransitionGroup } from 'react-transition-group'
-import { throttle } from 'throttle-debounce'
+import React from "react"
+import styled, { css } from "styled-components/macro"
+import { TransitionGroup } from "react-transition-group"
+import { throttle } from "throttle-debounce"
+import { gsap } from "gsap/all"
 
-import TopographySVG from '../../shared/assets/backgrounds/topography.svg'
-import { getRect, ls } from '../../shared/helpers'
-import { themes } from '../../shared/constants'
-import About from '../about/About'
-import Weather from '../weather/Weather'
-import Chat from '../chat/Chat'
-import Button from '../ui/Button'
-import Window from './Window'
-import Nav from './Nav'
-import AppNav from './AppNav'
+import { getRect, ls, themes } from "../../shared/shared"
+import About from "../about/About"
+import Weather from "../weather/Weather"
+import Chat from "../chat/Chat"
+import Button from "../ui/Button"
+import Window from "./Window"
+import Nav from "./Nav"
+import AppNav from "./AppNav"
 
 /* --------------------------------- STYLES --------------------------------- */
 
 const Root = styled.div`
-	--nav-height: 2em;
+	--nav-height: 2.25em;
 	height: 100%;
 	overflow: hidden;
 `
@@ -28,16 +27,33 @@ const AllowedDragArea = styled.div`
 	overflow: hidden;
 `
 
-const Background = styled.div`
-	position: absolute;
-	z-index: -1;
-	top: 0;
-	left: 0;
+// const Background = styled.div`
+// 	position: absolute;
+// 	z-index: -1;
+// 	top: 0;
+// 	left: 0;
+// 	height: 100%;
+// 	width: 100%;
+// 	opacity: 0.8;
+// 	${({ theme }) => css`
+// 		background-color: ${theme.background};
+// 	`}
+// `
+
+const DiagonalBG = styled.div`
 	height: 100%;
 	width: 100%;
-	opacity: 0.8;
+	position: absolute;
+	overflow: hidden;
+	z-index: -1;
 	${({ theme }) => css`
-		background-color: ${theme.mainColor};
+		background: ${theme.background};
+		> div {
+			height: 200%;
+			width: 200%;
+			background: ${theme.contrast};
+			transform: translateY(20%) rotate(-10deg);
+		}
 	`}
 `
 
@@ -80,6 +96,7 @@ const Shortcuts = styled.div`
 `
 
 const ShortcutButton = styled(Button)`
+	color: ${themes.dark.contrast};
 	&& svg {
 		width: auto;
 		height: auto;
@@ -95,7 +112,7 @@ appClasses.forEach((app) => (mountableApps[app.shared.title] = app))
 class Display extends React.Component {
 	constructor(props) {
 		super(props)
-		const prevOpenedApps = (ls.get('Display-openedApps') || []).map((app) => this.genApp(app.title, app))
+		const prevOpenedApps = (ls.get("Display-openedApps") || []).map((app) => this.genApp(app.title, app))
 		this.state = {
 			openedApps: prevOpenedApps,
 			mainNavBurgerCB: null,
@@ -107,21 +124,22 @@ class Display extends React.Component {
 
 		// GSAP's Draggable has a shared z-index updater across all instances, however it doesn't update
 		// in every circumstance we need it to.
-		this.zIndexLeader = ls.get('Display-zIndexLeader') || 999
+		this.zIndexLeader = ls.get("Display-zIndexLeader") || 999
 		this.setGridDimsThrottled = throttle(200, this.setGridDims)
 		this.dragAreaRef = React.createRef()
 	}
 
 	componentDidMount() {
 		this.setGridDims()
-		window.addEventListener('resize', this.setGridDimsThrottled)
-		window.addEventListener('beforeunload', this.save)
+		window.addEventListener("resize", this.setGridDimsThrottled)
+		window.addEventListener("beforeunload", this.save)
+		gsap.set(this.dragAreaRef.current, { css: { perspective: 600 } })
 	}
 
 	componentWillUnmount() {
 		this.setGridDimsThrottled.cancel()
-		window.removeEventListener('beforeunload', this.save)
-		window.removeEventListener('resize', this.setGridDimsThrottled)
+		window.removeEventListener("beforeunload", this.save)
+		window.removeEventListener("resize", this.setGridDimsThrottled)
 	}
 
 	save = () => {
@@ -132,10 +150,10 @@ class Display extends React.Component {
 				title: app.title,
 				isFocused: app.isFocused,
 				zIndex: app.zIndex,
-			}),
+			})
 		)
-		ls.set('Display-openedApps', deconApps)
-		ls.set('Display-zIndexLeader', this.zIndexLeader)
+		ls.set("Display-openedApps", deconApps)
+		ls.set("Display-zIndexLeader", this.zIndexLeader)
 	}
 
 	setGridDims = () => {
@@ -176,7 +194,9 @@ class Display extends React.Component {
 
 	closeApp = (curAppID) => {
 		// Don't need to 'focusBelowApp' since 'minimize()' will call it from the Window component.
-		this.setState((prevState) => ({ openedApps: prevState.openedApps.filter((app) => app.id !== curAppID) }))
+		this.setState((prevState) => ({
+			openedApps: prevState.openedApps.filter((app) => app.id !== curAppID),
+		}))
 	}
 
 	handleHomeButton = () => {
@@ -223,8 +243,11 @@ class Display extends React.Component {
 		return (
 			<Root>
 				{/* SVG pattern loaded inline because of styled-components Firefox bug which causes flickering? */}
-				<Background style={{ backgroundImage: `url(${TopographySVG})` }} theme={themes.light} />
-				<AllowedDragArea ref={this.dragAreaRef} id='allowedDragArea'>
+				{/* <Background style={{ backgroundImage: `url(${TopographySVG})` }} /> */}
+				<DiagonalBG>
+					<div />
+				</DiagonalBG>
+				<AllowedDragArea ref={this.dragAreaRef} id="allowedDragArea">
 					<Shortcuts grid={this.state.grid}>
 						{Object.keys(mountableApps).map((key) => {
 							const { title, logo, theme } = mountableApps[key].shared
@@ -232,11 +255,11 @@ class Display extends React.Component {
 								<ShortcutButton
 									key={title}
 									onClick={() => this.openApp(title)}
-									variant='fancy'
-									size='large'
+									variant="fancy"
+									size="large"
 									svg={logo}
-									theme={theme}
 									column
+									theme={theme}
 								>
 									{title}
 								</ShortcutButton>
@@ -244,8 +267,8 @@ class Display extends React.Component {
 						})}
 					</Shortcuts>
 					{this.props.children}
-					<WindowWireframe id='window-wireframe' isMobileSite={this.props.isMobileSite} />
-					<TransitionGroup>
+					<WindowWireframe id="window-wireframe" isMobileSite={this.props.isMobileSite} />
+					<TransitionGroup component={null}>
 						{this.state.openedApps.map((app, i) => (
 							<Window
 								ref={app.windowRef}

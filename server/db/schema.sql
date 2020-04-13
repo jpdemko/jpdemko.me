@@ -7,11 +7,11 @@ EXCEPTION
 END $$;
 
 CREATE TABLE users (
-	id SERIAL PRIMARY KEY,
+	uid SERIAL PRIMARY KEY,
 	provider_id VARCHAR(40) UNIQUE,
 	email valid_email,
-	username VARCHAR(50) NOT NULL
-	user_created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	username VARCHAR(50) NOT NULL,
+	user_created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX user_provider_id ON users(provider_id);
@@ -19,14 +19,14 @@ CREATE INDEX user_provider_id ON users(provider_id);
 --
 
 CREATE TABLE messages (
-	id BIGSERIAL PRIMARY KEY,
+	mid BIGSERIAL PRIMARY KEY,
 	room VARCHAR(80) NOT NULL,
 	message TEXT NOT NULL,
 	msg_created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-	user_id INT NOT NULL REFERENCES users(id)
+	author INT NOT NULL REFERENCES users(uid)
 );
 
-CREATE INDEX message_owner ON messages(user_id);
+CREATE INDEX msg_author ON messages(author);
 
 --
 

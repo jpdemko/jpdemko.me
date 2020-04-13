@@ -1,8 +1,8 @@
-import React from 'react'
-import styled, { css } from 'styled-components/macro'
-import { Transition } from 'react-transition-group'
+import React from "react"
+import styled, { css } from "styled-components/macro"
+import { Transition } from "react-transition-group"
 
-import { themes } from '../../shared/constants'
+import { themes } from "../../shared/shared"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -13,8 +13,8 @@ const Root = styled.div`
 	right: 0;
 	bottom: 0;
 	left: 0;
-	background: ${themes.dark.mainColor};
-	${({ isShown, animDuration }) => css`
+	${({ isShown, animDuration, theme }) => css`
+		background: ${theme.background};
 		transition: ${animDuration}s;
 		opacity: ${isShown ? 0.4 : 0};
 	`};

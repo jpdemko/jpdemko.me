@@ -1,8 +1,8 @@
-import React from 'react'
-import { useLocation } from 'react-router-dom'
-import axios from 'axios'
+import React from "react"
+import { useLocation } from "react-router-dom"
+import axios from "axios"
 
-import { Contexts } from '../../shared/constants'
+import { Contexts } from "../../shared/shared"
 
 function AuthProvider({ children }) {
 	const [isAuthed, setIsAuthed] = React.useState(false)
@@ -10,12 +10,12 @@ function AuthProvider({ children }) {
 	const location = useLocation()
 
 	React.useEffect(() => {
-		getUser()
+		// getUser()
 	}, [])
 
 	function getUser() {
 		axios
-			.get('/auth/user', { withCredentials: true })
+			.get("/auth/user", { withCredentials: true })
 			.then((res) => {
 				if (res.data?.error && isAuthed) setIsAuthed(false)
 				else if (res.data?.provider_id && !isAuthed) {

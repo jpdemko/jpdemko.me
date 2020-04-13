@@ -10,7 +10,7 @@ import { createBrowserHistory } from "history"
 
 import * as serviceWorker from "./serviceWorker"
 import { useMedia } from "./shared/hooks"
-import { themes, mediaBreakpoints, Contexts } from "./shared/constants"
+import { themes, mediaBreakpoints } from "./shared/shared"
 import Display from "./components/display/Display"
 import AuthProvider from "./components/auth/AuthProvider"
 
@@ -23,7 +23,6 @@ const GlobalStyle = createGlobalStyle`
 	}
 
 	body {
-		color: ${themes.dark.mainColor};
 		height: 100%;
 	}
 
@@ -44,16 +43,14 @@ const history = createBrowserHistory()
 
 function FakeOS() {
 	const isMobileSite = useMedia([`(min-width: ${mediaBreakpoints.desktop}px)`], [false], true)
-	//TODO: try and fix themeing across the app, looks ugly
+
 	return (
 		<>
 			<GlobalStyle />
-			<ThemeProvider theme={themes.dark}>
+			<ThemeProvider theme={themes.blue}>
 				<Router history={history}>
 					<AuthProvider>
-						<Contexts.Settings.Provider value={isMobileSite}>
-							<Display isMobileSite={isMobileSite} />
-						</Contexts.Settings.Provider>
+						<Display isMobileSite={isMobileSite} />
 					</AuthProvider>
 				</Router>
 			</ThemeProvider>
@@ -63,7 +60,5 @@ function FakeOS() {
 
 ReactDOM.render(<FakeOS />, document.getElementById("root"))
 
-// If you want your app to work offline and load faster, you can change
-// unregister() to register() below. Note this comes with some pitfalls.
-// https://bit.ly/CRA-PWA
+// Work offline and load faster? I can change unregister() to register()... https://bit.ly/CRA-PWA
 serviceWorker.unregister()

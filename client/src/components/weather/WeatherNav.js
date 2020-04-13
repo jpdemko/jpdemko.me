@@ -1,18 +1,21 @@
-import React from 'react'
-import styled, { css, ThemeProvider } from 'styled-components/macro'
-import { DateTime } from 'luxon'
+import React from "react"
+import styled, { css, ThemeProvider } from "styled-components/macro"
+import { DateTime } from "luxon"
 
-import { ReactComponent as CloseCircleSVG } from '../../shared/assets/icons/close-circle.svg'
-import { useInterval } from '../../shared/hooks'
-import { themes, Contexts } from '../../shared/constants'
-import Button from '../ui/Button'
-import LocationSearch from './LocationSearch'
-import WeatherIcon from './WeatherIcon'
+import { ReactComponent as CloseCircleSVG } from "../../shared/assets/icons/close-circle.svg"
+import { useInterval } from "../../shared/hooks"
+import { themes, Contexts } from "../../shared/shared"
+import Button from "../ui/Button"
+import LocationSearch from "./LocationSearch"
+import WeatherIcon from "./WeatherIcon"
 
 /* --------------------------------- STYLES --------------------------------- */
 
 const DesktopNav = styled.div`
 	flex: 1 1 auto;
+	${({ theme }) => css`
+		border-right: 1px solid ${theme.accent};
+	`}
 `
 
 const Root = styled.div`
@@ -20,10 +23,8 @@ const Root = styled.div`
 	flex-direction: column;
 	position: relative;
 	height: 100%;
-	${({ theme, isMobileWindow }) => css`
-		border-${isMobileWindow ? 'left' : 'right'}: 2px solid ${theme.mixedColor};
-		background-color: ${theme.mainColor};
-		color: ${theme.contrastColor};
+	${({ theme }) => css`
+		background-color: ${theme.altBackground};
 	`}
 	&& svg {
 		height: 1.5em;
@@ -33,6 +34,11 @@ const Root = styled.div`
 const LocationsList = styled.div`
 	flex: 1 1 auto;
 	overflow-y: auto;
+	${({ theme }) => css`
+		> * {
+			border-bottom: 1px solid ${theme.background};
+		}
+	`}
 `
 
 const Row = styled.div`
@@ -99,35 +105,39 @@ function WeatherNav({
 	}, 1000)
 
 	const navContent = (
-		<ThemeProvider theme={themes.light}>
-			<Root isMobileWindow={isMobileWindow} {...props} theme={themes.dark}>
-				<LocationSearch map={map} modulesLoaded={modulesLoaded} onLocationFound={onLocationFound} />
-				<LocationsList>
-					{locations.map(({ id, curWeatherBG, mapData, weatherData }) => (
+		<Root isMobileWindow={isMobileWindow} {...props}>
+			<LocationSearch map={map} modulesLoaded={modulesLoaded} onLocationFound={onLocationFound} />
+			<LocationsList>
+				{locations.map(({ id, curWeatherBG, mapData, weatherData }) => {
+					if (!mapData?.address?.formattedAddress) return null
+					return (
 						<Row key={id} curWeatherBG={curWeatherBG}>
-							<Location tag='div' onClick={() => onLocationFound(mapData)}>
-								<LocationAddress>{mapData.address.formattedAddress}</LocationAddress>
-								<LocationSummary>
-									<span>{getTemp(weatherData.currently.apparentTemperature)}&deg;</span>
-									<WeatherIcon iconName={weatherData.currently.icon} />
-									<span style={{ marginLeft: '.1em' }}>
-										{date.setZone(weatherData.timezone).toFormat('t')}
-									</span>
-								</LocationSummary>
-							</Location>
-							<Button svg={CloseCircleSVG} onClick={() => removeLocation(id)}></Button>
+							<ThemeProvider theme={themes.dark}>
+								<Location tag="div" onClick={() => onLocationFound(mapData)}>
+									<LocationAddress>{mapData.address.formattedAddress}</LocationAddress>
+									<LocationSummary>
+										<span>{getTemp(weatherData.currently.apparentTemperature)}&deg;</span>
+										<WeatherIcon iconName={weatherData.currently.icon} />
+										<span style={{ marginLeft: ".1em" }}>
+											{date.setZone(weatherData.timezone).toFormat("t")}
+										</span>
+									</LocationSummary>
+								</Location>
+							</ThemeProvider>
+							<Button svg={CloseCircleSVG} color="red" onClick={() => removeLocation(id)} />
 						</Row>
-					))}
-				</LocationsList>
-				<Footer>
-					<Button variant='fancy' theme={themes.blue} onClick={flipMetric}>
-						{isMetric ? 'Switch to Fahrenheit' : 'Switch to Celsius'}
-					</Button>
-				</Footer>
-			</Root>
-		</ThemeProvider>
+					)
+				})}
+			</LocationsList>
+			<Footer>
+				<Button variant="fancy" onClick={flipMetric}>
+					{/* <Button variant="fancy" color="blue" onClick={flipMetric}> */}
+					{isMetric ? "Switch to Fahrenheit" : "Switch to Celsius"}
+				</Button>
+			</Footer>
+		</Root>
 	)
-	setDrawerContent(navContent)
+	React.useEffect(() => setDrawerContent(navContent))
 
 	return !isMobileWindow && <DesktopNav>{navContent}</DesktopNav>
 }

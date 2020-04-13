@@ -8,9 +8,18 @@ import { ReactComponent as CloseSVG } from "../../shared/assets/icons/close.svg"
 import { ReactComponent as MinimizeSVG } from "../../shared/assets/icons/minimize.svg"
 import { ReactComponent as FullscreenExitSVG } from "../../shared/assets/icons/fullscreen-exit.svg"
 import { ReactComponent as FullscreenSVG } from "../../shared/assets/icons/fullscreen.svg"
-import { getRect, isDoubleTouch, opac, ls, getStyleProperty } from "../../shared/helpers"
-import { flags, mediaBreakpoints, Contexts, themes } from "../../shared/constants"
+import {
+	getRect,
+	isDoubleTouch,
+	opac,
+	ls,
+	getStyleProperty,
+	flags,
+	mediaBreakpoints,
+	Contexts,
+} from "../../shared/shared"
 import Button from "../ui/Button"
+import { rgba } from "polished"
 
 gsap.registerPlugin(Draggable)
 
@@ -23,29 +32,42 @@ const Root = styled.div`
 	max-width: 100vw;
 	max-height: 100vh;
 	opacity: 0;
+	backface-visibility: hidden;
 	${({ minWindowCSS, zIndex, isFocused, isMobileSite, isMaximized, theme }) => css`
 		z-index: ${zIndex};
-			${!isMobileSite &&
+			${
+				!isMobileSite &&
 				css`
 					min-height: ${minWindowCSS.height}px;
 					min-width: ${minWindowCSS.width}px;
-				`}
-		border: ${isMaximized ? "none" : `1px solid ${theme.mixedColor}`};
-		filter: ${isFocused ? `drop-shadow(0 1px 12px ${opac(0.3, theme.mixedColor)})` : "none"};
-	`};
+				`
+			}
+		border: ${
+			isMaximized
+				? "none"
+				: isFocused
+				? `1px solid ${theme.accent}`
+				: `1px solid ${opac(0.5, theme.accent)}`
+		};
+		filter: ${isFocused && `drop-shadow(0 1px 12px ${opac(0.2, theme.accent)})`} blur(0);
+	`}
 `
 
 const TitleBar = styled.div`
 	flex: 0 0 auto;
 	padding-left: 0.5em;
 	font-weight: 500;
-	opacity: 0.9;
 	align-items: center;
-	${({ isMobileSite, theme }) => css`
-		color: ${theme.contrastColor};
-		display: ${isMobileSite ? "none" : "flex"};
-		background-image: ${theme.gradient};
-	`}
+	height: var(--nav-height);
+	${({ isMobileSite, theme, isFocused }) => {
+		const bgColor = isFocused ? theme.color : theme.altBackground
+		return css`
+			color: ${theme.contrast};
+			border-bottom: 1px solid ${theme.accent};
+			display: ${isMobileSite ? "none" : "flex"};
+			background: ${rgba(bgColor, 0.9)};
+		`
+	}}
 `
 
 const Content = styled.div`
@@ -186,6 +208,14 @@ export default class Window extends React.Component {
 				wdow.draggableWindow[0].update(true)
 				wdow.setLastWindowedCSS()
 			},
+			liveSnap: {
+				x: function (x) {
+					return Math.round(x)
+				},
+				y: function (y) {
+					return Math.round(y)
+				},
+			},
 			allowContextMenu: true,
 		})
 
@@ -205,7 +235,7 @@ export default class Window extends React.Component {
 					wdow.draggableWindow[0].enable()
 					wdow.setLastWindowedCSS()
 				},
-				onDrag: function() {
+				onDrag: function () {
 					vars.onDrag(this, wdow.data.css.windowed)
 					wdow.data.css.current.width = wdow.data.css.windowed.width
 					wdow.data.css.current.height = wdow.data.css.windowed.height
@@ -224,7 +254,7 @@ export default class Window extends React.Component {
 			genResizeDraggable({
 				trigger: `#side-top-${id}, #corner-nw-${id}, #corner-ne-${id}`,
 				cursor: "n-resize",
-				onDrag: function(drag, wdowCSS) {
+				onDrag: function (drag, wdowCSS) {
 					const nextHeightBelowMin = wdowCSS.height - drag.deltaY < minWindowCSS.height
 					const nextHeightAboveMax = wdowCSS.height - drag.deltaY > drag.maxY
 
@@ -239,7 +269,7 @@ export default class Window extends React.Component {
 			genResizeDraggable({
 				trigger: `#side-right-${id}, #corner-ne-${id}, #corner-se-${id}`,
 				cursor: "e-resize", // negative <--   ---> positive
-				onDrag: function(drag, wdowCSS) {
+				onDrag: function (drag, wdowCSS) {
 					const nextWidthBelowMin = wdowCSS.width + drag.deltaX < minWindowCSS.width
 					const nextWidthAboveMax = wdowCSS.width + drag.deltaX > drag.maxX
 
@@ -253,7 +283,7 @@ export default class Window extends React.Component {
 			genResizeDraggable({
 				trigger: `#side-bottom-${id}, #corner-sw-${id}, #corner-se-${id}`,
 				cursor: "s-resize",
-				onDrag: function(drag, wdowCSS) {
+				onDrag: function (drag, wdowCSS) {
 					const nextHeightBelowMin = wdowCSS.height + drag.deltaY < minWindowCSS.height
 					const nextHeightAboveMax = wdowCSS.height + drag.deltaY > drag.maxY
 
@@ -267,7 +297,7 @@ export default class Window extends React.Component {
 			genResizeDraggable({
 				trigger: `#side-left-${id}, #corner-nw-${id}, #corner-sw-${id}`,
 				cursor: "w-resize",
-				onDrag: function(drag, wdowCSS) {
+				onDrag: function (drag, wdowCSS) {
 					const nextWidthBelowMin = wdowCSS.width - drag.deltaX < minWindowCSS.width
 					const nextWidthAboveMax = wdowCSS.width - drag.deltaX > drag.maxX
 
@@ -288,7 +318,6 @@ export default class Window extends React.Component {
 	}
 
 	componentWillUnmount() {
-		console.log(`${this.props.title} cWU()`)
 		this.handleViewportResizeThrottled.cancel()
 		window.removeEventListener("resize", this.handleViewportResizeThrottled)
 		window.removeEventListener("beforeunload", this.save)
@@ -297,7 +326,7 @@ export default class Window extends React.Component {
 	}
 
 	componentDidUpdate(prevProps, prevState) {
-		const { isMobileSite, isFocused, title } = this.props
+		const { isMobileSite, isFocused } = this.props
 		if (prevProps.isMobileSite !== isMobileSite) {
 			this.dragInstances.forEach((i) => i[0].enabled(!isMobileSite))
 			if (isMobileSite) {
@@ -311,13 +340,11 @@ export default class Window extends React.Component {
 	}
 
 	save = () => {
-		console.log(`${this.props.title} save()`)
 		ls.set(`${this.props.title}-window-state`, this.state)
 		ls.set(`${this.props.title}-window-data`, this.data)
 	}
 
 	handleExit = () => {
-		console.log(`${this.props.title} handleExit()`)
 		this.data.closedProperly = true
 		this.save()
 	}
@@ -325,7 +352,6 @@ export default class Window extends React.Component {
 	handleViewportResize = () => {
 		const width = this.data.css.current.width
 		const { isMobileWindow } = this.state
-		// console.log(`${this.props.title} is ${isMobileWindow ? 'mobile' : 'desktop'}`)
 		if (!isMobileWindow && width < mediaBreakpoints.desktop) {
 			this.setState({ isMobileWindow: true })
 		} else if (isMobileWindow && width >= mediaBreakpoints.desktop) {
@@ -382,8 +408,7 @@ export default class Window extends React.Component {
 				// Prevent error if scale of element is 0.
 				if (!wdow.state.isMinimized) wdow.draggableWindow[0].update(true)
 			},
-			onUpdate: function() {
-				// console.log(this)
+			onUpdate: function () {
 				wdow.data.css.current.width = this._targets[0].offsetWidth
 				wdow.data.css.current.height = this._targets[0].offsetHeight
 				wdow.handleViewportResizeThrottled()
@@ -406,7 +431,7 @@ export default class Window extends React.Component {
 
 	enterAnim = () => {
 		const wdow = this
-		const { css, animOptions } = this.data
+		const { css } = this.data
 		const { isMinimized, isMaximized } = this.state
 
 		if (this.data.closedProperly) {
@@ -423,7 +448,7 @@ export default class Window extends React.Component {
 						wdow.draggableWindow[0].update(true)
 						if (isMinimized) wdow.setState({ isMinimized: false })
 					},
-				},
+				}
 			)
 		} else {
 			if (isMinimized) gsap.set(wdow.rootRef.current, { ...css.minimized })
@@ -433,7 +458,6 @@ export default class Window extends React.Component {
 	}
 
 	exitAnim = () => {
-		console.log(`${this.props.title} exitAnim()`)
 		this.animate(this.data.css.minimized)
 	}
 
@@ -459,7 +483,6 @@ export default class Window extends React.Component {
 					isMobileSite={isMobileSite}
 					minWindowCSS={minWindowCSS}
 					zIndex={zIndex}
-					theme={isFocused ? themes.blue : themes.dark}
 				>
 					<TitleBar
 						id={`title-bar-${id}`}
@@ -470,17 +493,16 @@ export default class Window extends React.Component {
 							// 'onDoubleClick' doesn't work w/ touch events even though the normal 'onClick' does?
 							if (isDoubleTouch(e)) this.toggleMaximize()
 						}}
-						theme={isFocused ? themes.blue : themes.dark}
 					>
 						<div>{title}</div>
 						<div style={{ display: "flex", marginLeft: "auto" }}>
-							<Button theme={themes.light} onClick={() => this.minimize()} svg={MinimizeSVG} />
+							<Button onClick={() => this.minimize()} svg={MinimizeSVG} className="check-contrast" />
 							<Button
-								theme={themes.light}
 								onClick={this.toggleMaximize}
 								svg={isMaximized ? FullscreenExitSVG : FullscreenSVG}
+								className="check-contrast"
 							/>
-							<Button theme={themes.light} onClick={() => closeApp(id)} svg={CloseSVG} />
+							<Button color="red" onClick={() => closeApp(id)} svg={CloseSVG} />
 						</div>
 					</TitleBar>
 					<Content onClick={() => focusApp(id)}>

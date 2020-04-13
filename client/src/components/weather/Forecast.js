@@ -1,12 +1,12 @@
-import React from 'react'
-import styled, { css } from 'styled-components/macro'
-import { DateTime } from 'luxon'
+import React from "react"
+import styled, { css } from "styled-components/macro"
+import { DateTime } from "luxon"
 
-import { opac } from '../../shared/helpers'
-import { themes } from '../../shared/constants'
-import { ReactComponent as RadarSVG } from '../../shared/assets/weather-icons/radar.svg'
-import WeatherIcon from './WeatherIcon'
-import Tabs from '../ui/Tabs'
+import { opac } from "../../shared/shared"
+import { ReactComponent as RadarSVG } from "../../shared/assets/weather-icons/radar.svg"
+import WeatherIcon from "./WeatherIcon"
+import Tabs from "../ui/Tabs"
+import { rgba } from "polished"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -14,9 +14,6 @@ const CustomTabs = styled(Tabs)`
 	border: none;
 	flex: 2 0;
 	font-size: 0.8em;
-	${({ theme }) => css`
-		border-top: 2px solid ${theme.mixedColor};
-	`}
 `
 
 const InfoMessage = styled.div`
@@ -30,8 +27,8 @@ const InfoMessage = styled.div`
 	padding: 0.25em 0.5em;
 	transition: opacity 0.5s;
 	${({ theme, isValidZone }) => css`
-		background-color: ${opac(0.8, theme.mainColor)};
-		color: ${theme.contrastColor};
+		background-color: ${opac(0.8, theme.background)};
+		color: ${theme.contrast};
 		opacity: ${isValidZone ? 0 : 1};
 	`}
 `
@@ -44,7 +41,8 @@ const Card = styled.div`
 
 const HR = styled.div`
 	${({ theme }) => css`
-		border: 1px solid ${theme.mixedColor};
+		border-top: 1px solid ${theme.acent};
+		margin: 1px 0;
 	`}
 `
 
@@ -63,7 +61,7 @@ const Table = styled.table`
 	text-align: center;
 	${({ theme }) => css`
 		th {
-			background: ${theme.mainColor};
+			background: ${theme.altBackground};
 			position: sticky;
 			z-index: 1000;
 			top: 0;
@@ -73,12 +71,13 @@ const Table = styled.table`
 
 const THeader = styled.thead`
 	white-space: nowrap;
+	background: coral;
 	${({ theme }) => css`
+		tr {
+			padding: 0;
+		}
 		div {
-			position: absolute;
-			width: 100%;
-			left: 0;
-			border-bottom: 2px solid ${theme.mixedColor};
+			border-bottom: 1px solid ${theme.accent};
 		}
 	`}
 `
@@ -87,7 +86,7 @@ const TBody = styled.tbody`
 	overflow: auto;
 	${({ theme }) => css`
 		tr:nth-child(odd) {
-			background: ${opac(0.5, theme.mixedColor)};
+			background: ${opac(0.5, theme.background)};
 		}
 	`}
 `
@@ -125,10 +124,8 @@ function DaySummary({ data: { dayName, ordDay, timezone, day }, getTemp, ...prop
 	const { icon, apparentTemperatureLow: low, apparentTemperatureHigh: high } = day
 
 	function checkDayName(name) {
-		const curOrdDay = DateTime.local()
-			.setZone(timezone)
-			.toFormat('o')
-		return curOrdDay === ordDay ? 'Today' : dayName
+		const curOrdDay = DateTime.local().setZone(timezone).toFormat("o")
+		return curOrdDay === ordDay ? "Today" : dayName
 	}
 
 	return (
@@ -147,7 +144,7 @@ function DaySummary({ data: { dayName, ordDay, timezone, day }, getTemp, ...prop
 const DayDetailed = ({ data: { timezone, hours }, getTemp }) => (
 	<>
 		{hours.length === 0 ? (
-			<div style={{ textAlign: 'center', padding: '.35em .7em' }}>
+			<div style={{ textAlign: "center", padding: ".35em .7em" }}>
 				Hourly data isn't supported past 48 hours due to it being fairly inaccurate.
 			</div>
 		) : (
@@ -155,33 +152,26 @@ const DayDetailed = ({ data: { timezone, hours }, getTemp }) => (
 				<THeader>
 					<TRow>
 						<th>
-							Time
-							<div />
+							<div>Time</div>
 						</th>
 						<th>
-							Summary
-							<div />
+							<div>Summary</div>
 						</th>
 						<th>
-							Temp.
-							<div />
+							<div>Temp.</div>
 						</th>
 						<th>
-							Rain%
-							<div />
+							<div>Rain%</div>
 						</th>
 						<th>
-							Humid.%
-							<div />
+							<div>Humid.%</div>
 						</th>
 					</TRow>
 				</THeader>
 				<TBody>
 					{hours.map((hour) => {
-						const time = DateTime.fromSeconds(hour.time)
-							.setZone(timezone)
-							.toFormat('h a')
-						const [h, period] = time.split(' ')
+						const time = DateTime.fromSeconds(hour.time).setZone(timezone).toFormat("h a")
+						const [h, period] = time.split(" ")
 						return (
 							<TRow key={hour.time}>
 								<td>
@@ -219,36 +209,36 @@ const DayDetailed = ({ data: { timezone, hours }, getTemp }) => (
 )
 
 const usaZones = [
-	'America/Adak',
-	'America/Anchorage',
-	'America/Boise',
-	'America/Chicago',
-	'America/Denver',
-	'America/Detroit',
-	'America/Indiana/Indianapolis',
-	'America/Indiana/Knox',
-	'America/Indiana/Marengo',
-	'America/Indiana/Petersburg',
-	'America/Indiana/Tell_City',
-	'America/Indiana/Vevay',
-	'America/Indiana/Vincennes',
-	'America/Indiana/Winamac',
-	'America/Juneau',
-	'America/Kentucky/Louisville',
-	'America/Kentucky/Monticello',
-	'America/Los_Angeles',
-	'America/Menominee',
-	'America/Metlakatla',
-	'America/New_York',
-	'America/Nome',
-	'America/North_Dakota/Beulah',
-	'America/North_Dakota/Center',
-	'America/North_Dakota/New_Salem',
-	'America/Phoenix',
-	'America/Sitka',
-	'America/Toronto',
-	'America/Yakutat',
-	'Pacific/Honolulu',
+	"America/Adak",
+	"America/Anchorage",
+	"America/Boise",
+	"America/Chicago",
+	"America/Denver",
+	"America/Detroit",
+	"America/Indiana/Indianapolis",
+	"America/Indiana/Knox",
+	"America/Indiana/Marengo",
+	"America/Indiana/Petersburg",
+	"America/Indiana/Tell_City",
+	"America/Indiana/Vevay",
+	"America/Indiana/Vincennes",
+	"America/Indiana/Winamac",
+	"America/Juneau",
+	"America/Kentucky/Louisville",
+	"America/Kentucky/Monticello",
+	"America/Los_Angeles",
+	"America/Menominee",
+	"America/Metlakatla",
+	"America/New_York",
+	"America/Nome",
+	"America/North_Dakota/Beulah",
+	"America/North_Dakota/Center",
+	"America/North_Dakota/New_Salem",
+	"America/Phoenix",
+	"America/Sitka",
+	"America/Toronto",
+	"America/Yakutat",
+	"Pacific/Honolulu",
 ]
 
 const Forecast = React.memo(({ curLocation, getTemp }) => {
@@ -260,7 +250,7 @@ const Forecast = React.memo(({ curLocation, getTemp }) => {
 
 	const bingMapRadar = React.useMemo(
 		() => ({
-			id: 'bingMapRadar',
+			id: "bingMapRadar",
 			tabHeader: (
 				<Card>
 					<div>
@@ -270,14 +260,14 @@ const Forecast = React.memo(({ curLocation, getTemp }) => {
 				</Card>
 			),
 			tabContent: (
-				<MapEntry id='BingMapRadar'>
-					<InfoMessage theme={themes.dark} isValidZone={isValidZone}>
+				<MapEntry id="BingMapRadar">
+					<InfoMessage isValidZone={isValidZone}>
 						INFO: Radar loop overlay is only for the USA. I don't have international data.
 					</InfoMessage>
 				</MapEntry>
 			),
 		}),
-		[isValidZone],
+		[isValidZone]
 	)
 
 	const tabsContent = React.useMemo(() => {
@@ -285,15 +275,11 @@ const Forecast = React.memo(({ curLocation, getTemp }) => {
 		const { daily, hourly, timezone } = curLocation.weatherData
 
 		function getOrdinalDay(time) {
-			return DateTime.fromSeconds(time)
-				.setZone(timezone)
-				.toFormat('o')
+			return DateTime.fromSeconds(time).setZone(timezone).toFormat("o")
 		}
 
 		function getDayName(time) {
-			return DateTime.fromSeconds(time)
-				.setZone(timezone)
-				.toFormat('ccc')
+			return DateTime.fromSeconds(time).setZone(timezone).toFormat("ccc")
 		}
 
 		const sortedData = daily.data.reduce((obj, day) => {

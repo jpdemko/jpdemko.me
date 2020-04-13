@@ -1,16 +1,97 @@
-import { mix, transparentize } from 'polished'
+import React from "react"
+import { transparentize, readableColor } from "polished"
 
-import { ReactComponent as WrenchSVG } from '../shared/assets/icons/wrench.svg'
-import { themes, flags } from './constants'
+import { ReactComponent as WrenchSVG } from "../shared/assets/icons/wrench.svg"
 
 /* -------------------------------------------------------------------------- */
 
-export function addTheme(themeName, vars) {
-	vars.mixedColor = mix(0.5, vars.mainColor, vars.altColor)
-	vars.contrastColor = themeName !== 'light' ? themes.light.mainColor : themes.dark.mainColor
-	vars.contrastTheme = themeName !== 'light' ? themes.light : themes.dark
-	themes[themeName] = vars
-	return themes[themeName]
+export const flags = {
+	isIE: !!window.navigator.userAgent.match(/(MSIE|Trident)/),
+	// Chrome WebKit bug causes blurry text/images on child elements upon parent 3D transform.
+	// This flag is used to disable 3D transforms in Chrome.
+	// isChrome: !!window.chrome && (!!window.chrome.webstore || !!window.chrome.runtime),
+	isChrome: false,
+}
+
+/* -------------------------------------------------------------------------- */
+
+export const Contexts = {
+	AppNav: React.createContext(),
+	Auth: React.createContext(),
+	IsMobileWindow: React.createContext(),
+	Themes: React.createContext(),
+}
+
+/* -------------------------------------------------------------------------- */
+
+export let themes = localStorage.getItem("allThemes")
+themes = themes
+	? JSON.parse(themes)
+	: {
+			light: {
+				name: "light",
+				background: "#F5F8FA",
+				altBackground: "#DFE2E4",
+				contrast: "#15202B",
+				highlight: "#DB1A4A",
+				color: "#F5F8FA",
+				accent: "#2A343E",
+			},
+			dark: {
+				name: "dark",
+				background: "#15202B",
+				altBackground: "#2A343E",
+				contrast: "#F5F8FA",
+				highlight: "#1DA1F2",
+				color: "#15202B",
+				accent: "#DFE2E4",
+			},
+			blue: {
+				name: "blue",
+				background: "#061E2C",
+				altBackground: "#082C42",
+				contrast: "#F5F8FA",
+				highlight: "#1DA1F2",
+				color: "#1DA1F2",
+				accent: "#1884C7",
+			},
+			red: {
+				name: "red",
+				altBackground: "#E2DEDF",
+				background: "#F9F4F6",
+				contrast: "#3C0815",
+				highlight: "#DB1A4A",
+				color: "#DB1A4A",
+				accent: "#B4163D",
+			},
+	  }
+
+/* -------------------------------------------------------------------------- */
+
+export const mediaBreakpoints = { desktop: 813 }
+
+/* -------------------------------------------------------------------------- */
+
+export const ls = {
+	get: function (key, parse = true) {
+		try {
+			if (typeof key !== "string") key = JSON.stringify(key)
+			let item = localStorage.getItem(key)
+			if (item && parse) item = JSON.parse(item)
+			return item
+		} catch (error) {
+			return null
+		}
+	},
+	set: function (key, value) {
+		try {
+			if (typeof key !== "string") key = JSON.stringify(key)
+			if (typeof value !== "string") value = JSON.stringify(value)
+			localStorage.setItem(key, value)
+		} catch (error) {
+			return null
+		}
+	},
 }
 
 /* -------------------------------------------------------------------------- */
@@ -37,6 +118,26 @@ export function setupAppSharedOptions(options = {}) {
 
 /* -------------------------------------------------------------------------- */
 
+/**
+ * @param {string} name
+ * @param {Object} theme
+ * @param {string} theme.background Should be very light/dark
+ * @param {string} theme.altBackground Slight offset of regular background
+ * @param {string} theme.contrast Text color readable on both backgrounds
+ * @param {string} theme.highlight Color used to highlight/emphasis text (contrast)
+ * @param {string} theme.color The primary color of the theme
+ * @param {string} theme.accent Slight offset of primary theme color
+ */
+export function createTheme(name, theme) {
+	themes[name] = {
+		name,
+		...theme,
+	}
+	return themes[name]
+}
+
+/* -------------------------------------------------------------------------- */
+
 const regexGetNums = /-?(,\d+|\d+)*\.?\d+/g
 
 /**
@@ -59,13 +160,13 @@ export function getStyleProperty(ele, prop, options) {
 		return Array.isArray(style) ? style : [style]
 	} catch (err) {
 		console.log(err)
-		return undefined
+		return []
 	}
 }
 
 /* -------------------------------------------------------------------------- */
 
-const corsProxies = ['https://cors-anywhere.herokuapp.com/', 'https://crossorigin.me/']
+const corsProxies = ["https://cors-anywhere.herokuapp.com/", "https://crossorigin.me/"]
 let curProxyIdx = 0
 
 /**
@@ -96,7 +197,7 @@ export function simplerFetch(url, useProxy = false) {
  * @return {DOMRect|Object}
  */
 export function getRect(target) {
-	target = typeof target === 'string' ? document.getElementById(target) : target
+	target = typeof target === "string" ? document.getElementById(target) : target
 	return target ? target.getBoundingClientRect() : {}
 }
 
@@ -108,9 +209,9 @@ export function getRect(target) {
  * @return {string} - the resultant browser translation, eg: 'translate3d(0, -15%, 0)'
  */
 export function safeTranslate(adjustments) {
-	const is3D = adjustments.split(',').length > 2
-	const vars = `${adjustments}${flags.isChrome || is3D ? '' : ', 0'}`
-	const translateType = `translate${!flags.isChrome || is3D ? '3d' : ''}`
+	const is3D = adjustments.split(",").length > 2
+	const vars = `${adjustments}${flags.isChrome || is3D ? "" : ", 0"}`
+	const translateType = `translate${!flags.isChrome || is3D ? "3d" : ""}`
 	return `${translateType}(${vars})`
 }
 
@@ -144,31 +245,4 @@ export function isDoubleTouch(e) {
  */
 export function opac(opacityAmount, color) {
 	return transparentize(1 - opacityAmount, color)
-}
-
-/* -------------------------------------------------------------------------- */
-
-export const ls = {
-	get: function(key, parse = true) {
-		try {
-			if (typeof key !== 'string') key = JSON.stringify(key)
-			let item = localStorage.getItem(key)
-			if (item && parse) item = JSON.parse(item)
-			return item
-		} catch (error) {
-			// console.log('localstorage error: ', error)
-			return null
-		}
-	},
-	set: function(key, value) {
-		try {
-			if (typeof key !== 'string') key = JSON.stringify(key)
-			if (typeof value !== 'string') value = JSON.stringify(value)
-			// console.log('ls store item as: ', value)
-			localStorage.setItem(key, value)
-		} catch (error) {
-			// console.log('localstorage error: ', error)
-			return null
-		}
-	},
 }

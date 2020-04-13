@@ -1,5 +1,5 @@
-import React from 'react'
-import styled, { css } from 'styled-components/macro'
+import React from "react"
+import styled, { css } from "styled-components/macro"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -12,10 +12,10 @@ const Root = styled.div`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function UserList({ focusedRoom = {}, ...props }) {
+function UserList({ curRoom = {}, ...props }) {
 	return (
 		<Root {...props}>
-			{focusedRoom?.users?.map((u) => (
+			{curRoom?.users?.map((u) => (
 				<div key={u.name}>{u.name}</div>
 			))}
 		</Root>

@@ -1,28 +1,33 @@
-import React from 'react'
-import styled, { css } from 'styled-components/macro'
+import React from "react"
+import styled, { css } from "styled-components/macro"
 
-import { opac } from '../../shared/helpers'
+import { opac, themes } from "../../shared/shared"
+import { useCorrectTheme } from "../../shared/hooks"
 
 /* --------------------------------- STYLES --------------------------------- */
 
-export const ButtonBase = styled.button.attrs(({ size = 1, svg }) => {
+export const ButtonBase = styled.button.attrs(({ size = 1, svg, theme, color, ...props }) => {
 	let sizeModifier = 1
 	if (size) {
-		if (size === 'small') sizeModifier = 0.75
-		else if (size === 'large') sizeModifier = 1.25
+		if (size === "small") sizeModifier = 0.75
+		else if (size === "large") sizeModifier = 1.25
 	}
 
 	let varCSS = {
+		...props,
+		theme,
 		fontSize: `calc(1em * ${sizeModifier})`,
-		sidePadding: `calc(0.75em * ${sizeModifier})`,
-		verticalPadding: `calc(0.35em * ${sizeModifier})`,
+		sidePadding: `calc(0.8em * ${sizeModifier})`,
+		verticalPadding: `calc(0.4em * ${sizeModifier})`,
+		calcColor: !color ? theme.contrast : theme.color,
+		// calcColor: theme.accent,
 	}
 
 	if (svg) {
 		varCSS = {
 			...varCSS,
-			sidePadding: `calc(${varCSS.sidePadding} / 2)`,
-			verticalPadding: `calc(${varCSS.verticalPadding} / 2)`,
+			sidePadding: `calc(${varCSS.sidePadding} / 1.5)`,
+			verticalPadding: `calc(${varCSS.verticalPadding} / 1.5)`,
 		}
 	}
 
@@ -32,25 +37,23 @@ export const ButtonBase = styled.button.attrs(({ size = 1, svg }) => {
 	justify-content: center;
 	border: none;
 	background: none;
-	transition: opacity 0.2s, background 0.15s, box-shadow 0.15s, outline 0.1s;
-	font-weight: 500;
+	transition: 0.175s;
 	outline: none;
-	${({ theme, varCSS, disabled, column }) => css`
-		flex-direction: ${column ? 'column' : 'row'};
-		align-items: ${column ? 'stretch' : 'center'};
-		box-shadow: 0 0 0 0 ${theme.mainColor};
+	font-weight: 500;
+	${({ theme, varCSS, disabled, column, isFocused, color }) => css`
+		flex-direction: ${column ? "column" : "row"};
+		align-items: ${column ? "stretch" : "center"};
+		box-shadow: 0 0 0 0 ${theme.accent};
 		font-size: ${varCSS.fontSize};
 		padding: ${varCSS.verticalPadding} ${varCSS.sidePadding};
-		color: ${theme.mainColor};
+		color: ${varCSS.calcColor};
 		opacity: ${disabled ? 0.33 : 1};
-		cursor: ${disabled ? 'default' : 'pointer'};
+		cursor: ${disabled ? "default" : "pointer"};
 		> span {
 			padding: ${column ? `${varCSS.verticalPadding} 0 0 0` : `0 0 0 ${varCSS.sidePadding}`};
 			flex: 0 0 auto;
 		}
-		&:active {
-			box-shadow: 0 0 0 3px ${theme.mainColor};
-		}
+		${isFocused && `background: ${opac(0.3, varCSS.calcColor)};`}
 	`}
 	> svg {
 		flex: 1 0 auto;
@@ -58,43 +61,44 @@ export const ButtonBase = styled.button.attrs(({ size = 1, svg }) => {
 `
 
 const BasicButton = styled(ButtonBase)`
-	${({ theme, isFocused }) => css`
-		background: ${isFocused ? opac(0.2, theme.mainColor) : 'none'};
+	${({ theme, varCSS }) => css`
 		&:focus {
-			background: ${opac(0.1, theme.mainColor)};
+			background: ${opac(0.3, varCSS.calcColor)};
 		}
 		&:hover {
-			background: ${opac(0.3, theme.mainColor)};
+			background: ${opac(0.15, varCSS.calcColor)};
 		}
 		&:active {
-			background: ${opac(0.4, theme.mainColor)};
+			background: ${opac(0.4, varCSS.calcColor)};
 		}
 	`}
 `
 
 const OutlinedButton = styled(BasicButton)`
-	margin: 1px;
-	${({ theme }) => css`
-		box-shadow: 0 0 0 1px ${theme.mainColor};
+	${({ theme, varCSS }) => css`
+		box-shadow: 0 0 0 1px ${varCSS.calcColor};
+		&:active {
+			box-shadow: 0 0 0 3px ${varCSS.calcColor};
+		}
 	`}
 `
 
 const FancyButton = styled(ButtonBase)`
-	margin: 1px;
-	color: white;
-	${({ theme, isFocused }) => css`
-		background-image: ${theme.gradient};
-		box-shadow: 0 1px 13px 1px ${opac(0.4, theme.mixedColor)};
-		opacity: ${isFocused ? 0.85 : 1};
+	${({ theme, isFocused, varCSS }) => css`
+		color: ${varCSS.calcColor};
+		background: ${theme.color};
+		box-shadow: 0 1px 10px 1px ${opac(0.2, varCSS.calcColor)}, 0 0 0 1px ${theme.accent};
+		opacity: 1;
 		&:focus {
-			opacity: 0.85;
+			box-shadow: 0 1px 10px 1px ${opac(0.2, varCSS.calcColor)}, 0 0 0 2px ${theme.accent};
+			opacity: 0.9;
 		}
 		&:hover {
-			box-shadow: 0 1px 16px 2px ${opac(0.3, theme.mixedColor)}, 0 0 0 1px ${theme.mixedColor};
-			opacity: 0.75;
+			box-shadow: 0 1px 10px 1px ${opac(0.2, varCSS.calcColor)}, 0 0 0 2px ${theme.accent};
+			opacity: 0.9;
 		}
 		&:active {
-			box-shadow: 0 1px 20px 2px ${opac(0.2, theme.mixedColor)}, 0 0 0 3px ${theme.mixedColor};
+			box-shadow: 0 1px 10px 1px ${opac(0.2, varCSS.calcColor)}, 0 0 0 4px ${theme.accent};
 			opacity: 1;
 		}
 	`}
@@ -102,15 +106,16 @@ const FancyButton = styled(ButtonBase)`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function Button({ tag, variant, disabled = false, children, ...props }) {
+function Button({ tag, variant, color, disabled = false, children, ...props }) {
 	let ButtonVariant = BasicButton
 	if (variant) {
-		if (variant.includes('outline')) ButtonVariant = OutlinedButton
-		else if (variant === 'fancy') ButtonVariant = FancyButton
+		if (variant.includes("outline")) ButtonVariant = OutlinedButton
+		else if (variant === "fancy") ButtonVariant = FancyButton
 	}
+	const themeProps = useCorrectTheme(color)
 
 	return (
-		<ButtonVariant as={tag} disabled={disabled} {...props}>
+		<ButtonVariant {...props} as={tag} disabled={disabled} {...themeProps}>
 			{props.svg && <props.svg />}
 			{children && <span>{children}</span>}
 		</ButtonVariant>

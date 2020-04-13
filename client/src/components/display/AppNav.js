@@ -1,25 +1,29 @@
-import React from 'react'
-import styled, { ThemeProvider } from 'styled-components/macro'
+import React from "react"
+import styled, { css } from "styled-components/macro"
 
-import { useUpdatedValRef } from '../../shared/hooks'
-import { ReactComponent as MenuSVG } from '../../shared/assets/icons/menu.svg'
-import { themes, Contexts } from '../../shared/constants'
-import Drawer from '../ui/Drawer'
-import Modal from '../ui/Modal'
-import Button from '../ui/Button'
-import SocialLogin from '../auth/SocialLogin'
+import { useUpdatedValRef } from "../../shared/hooks"
+import { ReactComponent as MenuSVG } from "../../shared/assets/icons/menu.svg"
+import { Contexts } from "../../shared/shared"
+import Drawer from "../ui/Drawer"
+import Modal from "../ui/Modal"
+import Button from "../ui/Button"
+import SocialLogin from "../auth/SocialLogin"
 
 /* --------------------------------- STYLES --------------------------------- */
 
 const Root = styled.div`
-	> div {
-		overflow-x: hidden;
-		overflow-y: auto;
-		position: absolute;
-		top: 0;
-		height: 100%;
-		width: 100%;
-	}
+	${({ theme }) => css`
+		> div {
+			overflow-x: hidden;
+			overflow-y: auto;
+			position: absolute;
+			top: 0;
+			height: 100%;
+			width: 100%;
+			background: ${theme.background};
+			color: ${theme.contrast};
+		}
+	`}
 `
 
 const MobileContextButtons = styled.div`
@@ -73,7 +77,7 @@ function AppNav({ app, isFocused, isMobileSite, setMainNavBurgerCB }) {
 			setModalContent,
 			toggleModal,
 		}),
-		[toggleMobileMenu],
+		[toggleMobileMenu]
 	)
 
 	// Sets the appropriate callback for the global nav/taskbar mobile menu nav button.
@@ -92,15 +96,14 @@ function AppNav({ app, isFocused, isMobileSite, setMainNavBurgerCB }) {
 			<>
 				{drawerContent && (
 					<>
-						<Drawer side='right' isShown={drawerOpened} onClose={toggleMobileMenu}>
+						<Drawer side="right" isShown={drawerOpened} onClose={toggleMobileMenu}>
 							{drawerContent}
 						</Drawer>
 						{isMobileWindow && !isMobileSite && (
-							<ThemeProvider theme={themes.blue}>
-								<MobileContextButtons>
-									<Button variant='fancy' onClick={toggleMobileMenu} svg={MenuSVG} />
-								</MobileContextButtons>
-							</ThemeProvider>
+							<MobileContextButtons>
+								<Button variant="fancy" onClick={toggleMobileMenu} svg={MenuSVG} />
+								{/* <Button variant="fancy" color="blue" onClick={toggleMobileMenu} svg={MenuSVG} /> */}
+							</MobileContextButtons>
 						)}
 					</>
 				)}
@@ -109,7 +112,9 @@ function AppNav({ app, isFocused, isMobileSite, setMainNavBurgerCB }) {
 						{modalContent}
 					</Modal>
 					<Root>
-						<Contexts.AppNav.Provider value={appNavContextCallbacks}>{memoApp}</Contexts.AppNav.Provider>
+						<Contexts.AppNav.Provider value={appNavContextCallbacks}>
+							{memoApp}
+						</Contexts.AppNav.Provider>
 					</Root>
 				</>
 			</>

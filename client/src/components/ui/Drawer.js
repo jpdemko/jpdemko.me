@@ -1,9 +1,9 @@
-import React from 'react'
-import styled, { css } from 'styled-components/macro'
+import React from "react"
+import styled, { css } from "styled-components/macro"
 
-import { safeTranslate } from '../../shared/helpers'
-import { useOnClickOutside } from '../../shared/hooks'
-import Backdrop from './Backdrop'
+import { safeTranslate } from "../../shared/shared"
+import { useOnClickOutside } from "../../shared/hooks"
+import Backdrop from "./Backdrop"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -14,19 +14,20 @@ const Root = styled.div`
 	bottom: 0;
 	max-width: 85%;
 	${({ isShown, animDuration, side, theme }) => css`
-		left: ${side.charAt(0) === 'l' ? 0 : 'none'};
-		right: ${side.charAt(0) === 'r' ? 0 : 'none'};
-		background-color: ${theme.mainColor};
-		color: ${theme.contrastColor};
+		left: ${side === "left" ? 0 : "none"};
+		right: ${side === "left" ? "none" : 0};
+		border-${side === "left" ? "right" : "left"}: 1px solid ${theme.accent};
+		background-color: ${theme.background};
+		color: ${theme.contrast};
 		transition: ${animDuration}s;
-		transform: ${isShown ? safeTranslate('0, 0') : safeTranslate(`${side === 'left' ? '-' : ''}100%, 0`)};
+		transform: ${isShown ? safeTranslate("0, 0") : safeTranslate(`${side === "left" ? "-" : ""}100%, 0`)};
 		opacity: ${isShown ? 1 : 0};
 	`}
 `
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function Drawer({ isShown = false, onClose, animDuration = 0.5, side = 'left', children, ...props }) {
+function Drawer({ isShown = false, onClose, animDuration = 0.5, side = "left", children, ...props }) {
 	const drawerRef = React.useRef()
 
 	// 'useOnClickOutside()' will keep creating/removing event handlers on each render unless this is done.

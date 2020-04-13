@@ -20,81 +20,77 @@ const users = {}
 // 	return users[socket.id]
 // }
 
-function trimUser(user) {
-	return {
-		socketID: user.socketID,
-		dbID: user.dbID,
-		name: user.name,
-	}
-}
-
-module.exports = function(io, sessionMiddleware, db) {
-	io.use(function(socket, next) {
+module.exports = function (io, sessionMiddleware, db) {
+	io.use(function (socket, next) {
 		sessionMiddleware(socket.request, {}, next)
 	})
 
-	io.on("connection", function(socket) {
+	io.on("connection", function (socket) {
 		console.log(`socket#${socket.id} connected`)
+		let setupUserCalled = false
+		const reconnectInterval = setInterval(function () {
+			if (!setupUserCalled) socket.emit("reconnect")
+		}, 5000)
 
-		socket.on("setupUser", function({ name }, clientCB) {
+		socket.on("setupUser", function (name, clientCB) {
 			if (!name) {
-				clientCB({ error: "ERROR - IO SETUP USER - NO USERNAME GIVEN" })
+				clientCB({ error: "SERVER ERROR - IO SETUP USER - NO USERNAME GIVEN" })
 				return
 			}
+			if (!setupUserCalled) setupUserCalled = true
 			let user = users[name]
 			if (user && user.socketID === socket.id) {
-				//same user, figure out what to do
-				clientCB({ success: "SUCCESS - IO SETUP USER - YOU'RE ALREADY SETUP", user })
-			} else if (user && user.socketID !== socket.id) {
-				//different user trying to get active name
-				clientCB({ error: "ERROR - IO SETUP USER - USERNAME TAKEN" })
+				// Handle same user.
+				clientCB({ success: "SERVER SUCCESS - IO SETUP USER - YOU'RE ALREADY SETUP", user })
+			} else if (user && user.socketID && user.socketID !== socket.id) {
+				// New user trying to get taken name.
+				clientCB({ error: "SERVER ERROR - IO SETUP USER - USERNAME ALREADY TAKEN" })
 			} else {
-				//user doesn't exist, create user
+				// Username not taken on server, handle this with DB info.
 				user = {
 					socketID: socket.id,
 					rooms: [],
 					name,
 				}
-				db.query("SELECT id FROM users WHERE username = $1", [name], function(selectErr, selectRes) {
+				db.query("SELECT uid FROM users WHERE username = $1", [name], function (selectErr, selectRes) {
 					if (selectErr) {
-						clientCB({ error: `ERROR - IO SETUP USER - DB SELECT ERROR: ${selectErr}` })
-						return
+						clientCB({ error: `SERVER ERROR - IO SETUP USER - DB SELECT ERROR: ${selectErr}` })
 					} else if (selectRes.rows.length === 0) {
-						db.query("INSERT INTO users(username) VALUES($1) RETURNING *", [name], function(
+						// If you can't find the user, create a row for them in the DB.
+						db.query("INSERT INTO users(username) VALUES($1) RETURNING *", [name], function (
 							insertErr,
-							insertRes,
+							insertRes
 						) {
 							if (insertErr) {
-								clientCB({ error: `ERROR - IO SETUP USER - DB INSERT ERROR: ${insertErr}` })
-								return
+								clientCB({ error: `SERVER ERROR - IO SETUP USER - DB INSERT ERROR: ${insertErr}` })
 							} else {
-								user.dbID = insertRes.rows[0].id
-								clientCB({ success: "SUCCESS - IO SETUP USER - DB USER CREATED", user })
+								user.uid = insertRes.rows[0].uid
+								clientCB({ success: "SERVER SUCCESS - IO SETUP USER - DB USER CREATED", user })
 							}
 						})
 					} else {
-						user.dbID = selectRes.rows[0].id
-						clientCB({ success: "SUCCESS - IO SETUP USER - USERNAME TAKEN", user })
+						// Else, user was already in DB, but is available for taking currently.
+						user.uid = selectRes.rows[0].uid
+						clientCB({ success: "SERVER SUCCESS - IO SETUP USER - USERNAME WAS AVAILABLE", user })
 					}
 					users[name] = user
 				})
 			}
 		})
 
-		socket.on("joinRoom", function({ username, name: roomName, password: roomPassword }, clientCB) {
+		socket.on("joinRoom", function ({ username, roomName, password: roomPassword, lastMsgTS }, clientCB) {
 			if (!roomName || !username) {
-				console.log(username, roomName, roomPassword)
-				clientCB({ error: "ERROR - IO JOIN ROOM - INVALID VARS" })
+				clientCB({ error: "SERVER ERROR - IO JOIN ROOM - INVALID VARS" })
 				return
 			}
 			const user = users[username]
 			let room = rooms[roomName]
 			if (room) {
 				if (room.users.find((u) => u.socketID === socket.id)) {
-					clientCB({ success: "SUCCESS - IO JOIN ROOM - USER ALREADY IN ROOM", room: {} })
+					clientCB({ success: "SERVER SUCCESS - IO JOIN ROOM - USER ALREADY IN ROOM" })
 					return
 				} else if (room.password && room.password !== roomPassword) {
-					clientCB({ error: "ERROR - IO JOIN ROOM - INVALID PASSWORD" })
+					clientCB({ error: "SERVER ERROR - IO JOIN ROOM - INVALID PASSWORD" })
 					return
 				}
 			} else {
@@ -107,47 +103,61 @@ module.exports = function(io, sessionMiddleware, db) {
 			}
 			socket.join(roomName)
 			user.rooms.push(roomName)
-			room.users.push(trimUser(user))
-			clientCB({ success: "SUCCESS - IO JOIN ROOM - SUCCESSFULLY JOINED ROOM", room })
-			// room = {name,users,password}
-			socket.to(roomName).emit("updateRoom", room)
-		})
+			room.users.push(user)
 
-		socket.on("getRoomMsgs", function({ roomName, daysToFetch = "60 DAYS" }, clientCB) {
-			const getRoomMsgsQuery = `SELECT u.id, u.username, m.message, m.msg_created_at FROM messages m
-				INNER JOIN users u ON m.user_id = u.id
-				WHERE m.room = $1 AND m.msg_created_at >= NOW() - INTERVAL '$2'
+			// TODO - What is the best work-flow to get msgs between client/server that minimizes queries.
+			const getRoomMsgsQuery = `SELECT u.username, m.mid, m.message, m.msg_created_at, m.author
+				FROM messages m INNER JOIN users u ON m.author = u.uid
+				WHERE m.room = $1 AND m.msg_created_at > ${lastMsgTS ? "$2" : "NOW() - INTERVAL '60 DAYS'"}
 				ORDER BY m.msg_created_at ASC`
-			db.query(getRoomMsgsQuery, [roomName, daysToFetch], function(selectErr, selectRes) {
+			const getRoomMsgsParams = [roomName, ...(lastMsgTS ? [lastMsgTS] : [])]
+			db.query(getRoomMsgsQuery, getRoomMsgsParams, function (selectErr, selectRes) {
 				if (selectErr) {
-					clientCB({ error: `ERROR - IO GET ROOM MSGS - DB SELECT ERROR: ${selectErr}` })
+					clientCB({ error: `SERVER ERROR - IO GET ROOM MSGS - DB SELECT ERROR: ${selectErr}` })
 					return
 				}
-				clientCB({ success: "SUCCESS - IO GET ROOM MSGS - DB SELECT SUCCESS", data: selectRes.rows })
+				msgs = selectRes.rows
+				io.in(roomName).emit("updateRoom", room)
+				clientCB({
+					success: "SERVER SUCCESS - IO JOIN ROOM - SUCCESSFULLY JOINED ROOM",
+					room: { ...room, msgs: selectRes.rows },
+				})
 			})
 		})
 
-		socket.on("disconnect", function() {
+		socket.on("sendMsg", function ({ msg, roomName, uid }, clientCB) {
+			const sendMsgQuery = `WITH m AS (
+				INSERT INTO messages(room, message, author) VALUES ($1, $2, $3) RETURNING * )
+				SELECT m.mid, m.message, m.msg_created_at, m.author, u.username FROM m
+				INNER JOIN users u ON m.author = u.uid`
+			db.query(sendMsgQuery, [roomName, msg, uid], function (insertErr, insertRes) {
+				if (insertErr) {
+					clientCB({ error: `SERVER ERROR - IO SEND MSG - DB INSERT ERROR: ${insertErr}` })
+					return
+				}
+				io.in(roomName).emit("updateRoom", { ...rooms[roomName], msgs: insertRes.rows })
+				clientCB({ success: "SERVER SUCCESS - IO SEND MSG - DB CREATED MSG", msgs: insertRes.rows })
+			})
+		})
+
+		socket.on("disconnect", function () {
+			console.log(`socket#${socket.id} disconnected`)
 			const name = Object.keys(users).find((n) => users[n].socketID === socket.id)
 			const user = users[name]
 			if (!user) {
-				console.log("WHY IS THIS HAPPENING")
+				console.log("SERVER ERROR - Prob. server restart not getting data from reconnecting clients.")
 				return
 			}
-			console.log(`user#${user.name} disconnected`)
-			console.log("current rooms", rooms)
+			// Go through user's rooms and remove him from them.
 			user.rooms.forEach((roomName, i) => {
 				const room = rooms[roomName]
 				room.users = room.users.filter((u) => u.socketID !== user.socketID)
-				if (room.users < 1) {
-					console.log("no users in room, deleting field from server")
-					delete rooms[roomName]
-				} else io.in(roomName).emit("updateRoom", room)
-				console.log(`user room #${i + 1}`, room ? room : "no users, deleted")
+				// If there are no users left after removing disconnecting user then delete room.
+				if (room.users < 1) delete rooms[roomName]
+				else io.in(roomName).emit("updateRoom", room)
 			})
-			console.log(`deleted user ${socket.id}`)
 			delete users[name]
-			console.log("remaining users: ", users)
+			// clearInterval(reconnectInterval)
 		})
 	})
 }

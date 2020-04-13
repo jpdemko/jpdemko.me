@@ -1,8 +1,8 @@
-import React from 'react'
-import styled, { css } from 'styled-components/macro'
+import React from "react"
+import styled, { css } from "styled-components/macro"
 
-import { ButtonBase } from './Button'
-import { usePrevious } from '../../shared/hooks'
+import { ButtonBase } from "./Button"
+import { usePrevious } from "../../shared/hooks"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -11,18 +11,17 @@ const Root = styled.div`
 	flex-direction: column;
 	overflow: hidden;
 	${({ theme }) => css`
-		background: ${theme.mainColor};
-		border: 2px solid ${theme.mixedColor};
+		background: ${theme.altBackground};
+		border: 1px solid ${theme.accent};
 	`}
 `
 
 const TabButton = styled(ButtonBase)`
 	${({ isFocused, theme }) => css`
-		color: ${theme.contrastColor};
+		color: ${theme.contrast};
 		opacity: ${isFocused ? 1 : 0.65};
-		background: ${isFocused ? theme.mainColor : null};
-		border-right: 2px solid ${theme.mixedColor};
-		border-bottom: 2px solid ${!isFocused ? theme.mixedColor : theme.mainColor};
+		background: ${isFocused ? theme.altBackground : null};
+		border-right: 1px solid ${theme.altBackground};
 	`}
 `
 
@@ -32,7 +31,7 @@ const TabsHeader = styled.div`
 	display: flex;
 	overflow-x: auto;
 	${({ theme }) => css`
-		background: ${theme.gradient};
+		background: ${theme.background};
 		> * {
 			flex: 0 0 auto;
 		}
@@ -48,10 +47,10 @@ const SelectedContent = styled.div`
 const TabContents = styled.div`
 	height: 100%;
 	${({ isFocused, theme }) => css`
-		background: ${theme.mainColor};
-		color: ${theme.contrastColor};
-		position: ${isFocused ? 'initial' : 'absolute'};
-		display: ${isFocused ? 'initial' : 'none'};
+		background: ${theme.background};
+		color: ${theme.contrast};
+		position: ${isFocused ? "initial" : "absolute"};
+		display: ${isFocused ? "initial" : "none"};
 	`}
 `
 
@@ -76,7 +75,11 @@ function Tabs({ content = defaultContent, ...props }) {
 		<Root {...props}>
 			<TabsHeader>
 				{content.map(({ id, tabHeader }) => (
-					<TabButton key={`tab-header-${id}`} isFocused={id === focusedID} onClick={() => setFocusedID(id)}>
+					<TabButton
+						key={`tab-header-${id}`}
+						isFocused={id === focusedID}
+						onClick={() => setFocusedID(id)}
+					>
 						{tabHeader}
 					</TabButton>
 				))}

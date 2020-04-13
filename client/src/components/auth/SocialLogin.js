@@ -1,8 +1,7 @@
-import React from 'react'
-import styled, { css } from 'styled-components/macro'
+import React from "react"
+import styled, { css } from "styled-components/macro"
 
-import Button from '../ui/Button'
-import { themes, Contexts } from '../../shared/constants'
+import { Contexts } from "../../shared/shared"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -11,9 +10,6 @@ const Root = styled.div`
 	justify-content: center;
 	align-items: center;
 	flex-direction: column;
-	${({ theme }) => css`
-		background: ${theme.contrastColor};
-	`}
 `
 
 /* -------------------------------- COMPONENT ------------------------------- */
@@ -23,7 +19,7 @@ function SocialLogin() {
 
 	return (
 		<Root>
-			<a href='/auth/google'>normal anchor link login</a>
+			<a href="/auth/google">normal anchor link login</a>
 		</Root>
 	)
 }

@@ -1,17 +1,16 @@
 /* global Microsoft */
 
-import React from 'react'
-import styled, { css } from 'styled-components/macro'
-import { DateTime, Interval } from 'luxon'
+import React from "react"
+import styled, { css } from "styled-components/macro"
+import { DateTime, Interval } from "luxon"
 
-import { getCurWeatherBG } from './WeatherIcon'
-import { ReactComponent as SunnySVG } from '../../shared/assets/weather-icons/wi-day-sunny.svg'
-import { simplerFetch, setupAppSharedOptions } from '../../shared/helpers'
-import { themes, Contexts } from '../../shared/constants'
-import { useLocalStorage, useInterval, useResizeObserver } from '../../shared/hooks'
-import WeatherNav from './WeatherNav'
-import CurrentWeather from './CurrentWeather'
-import Forecast from './Forecast'
+import { getCurWeatherBG } from "./WeatherIcon"
+import { ReactComponent as SunnySVG } from "../../shared/assets/weather-icons/wi-day-sunny.svg"
+import { simplerFetch, setupAppSharedOptions, themes, Contexts } from "../../shared/shared"
+import { useLocalStorage, useInterval, useResizeObserver } from "../../shared/hooks"
+import WeatherNav from "./WeatherNav"
+import CurrentWeather from "./CurrentWeather"
+import Forecast from "./Forecast"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -20,9 +19,9 @@ const Root = styled.div`
 	height: 100%;
 	display: flex;
 	${({ theme, weatherBG }) => css`
-		background-color: ${theme.mainColor};
+		background-color: ${theme.background};
 		background-image: ${weatherBG};
-		color: ${theme.contrastColor};
+		color: ${theme.contrast};
 	`}
 `
 
@@ -33,7 +32,7 @@ const Data = styled.div`
 	display: flex;
 	overflow: hidden;
 	${({ isLandscape }) => css`
-		flex-direction: ${isLandscape ? 'row' : 'column'};
+		flex-direction: ${isLandscape ? "row" : "column"};
 	`}
 `
 
@@ -42,64 +41,72 @@ const Data = styled.div`
 export const updateInterval = 30
 
 const radar = {
-	api: 'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-{timestamp}/{zoom}/{x}/{y}.png',
+	api: "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-{timestamp}/{zoom}/{x}/{y}.png",
 	timestamps: [
-		'900913-m50m',
-		'900913-m45m',
-		'900913-m40m',
-		'900913-m35m',
-		'900913-m30m',
-		'900913-m25m',
-		'900913-m20m',
-		'900913-m15m',
-		'900913-m10m',
-		'900913-m05m',
-		'900913',
+		"900913-m50m",
+		"900913-m45m",
+		"900913-m40m",
+		"900913-m35m",
+		"900913-m30m",
+		"900913-m25m",
+		"900913-m20m",
+		"900913-m15m",
+		"900913-m10m",
+		"900913-m05m",
+		"900913",
 	],
 }
 
 function Weather({ ...props }) {
-	const [curLocation, setCurLocation] = useLocalStorage('curLocation')
-	const [locations, setLocations] = useLocalStorage('locations', [])
+	const [curLocation, setCurLocation] = useLocalStorage("curLocation")
+	const [locations, setLocations] = useLocalStorage("locations", [])
 
 	// Setup map and add radar data.
 	const [map, setMap] = React.useState()
 	const [modulesLoaded, setModulesLoaded] = React.useState(false)
 	React.useEffect(() => {
-		try {
-			const genMap = new Microsoft.Maps.Map('#BingMapRadar', {
-				navigationBarMode: Microsoft.Maps.NavigationBarMode.minified,
-				supportedMapTypes: [
-					Microsoft.Maps.MapTypeId.road,
-					Microsoft.Maps.MapTypeId.aerial,
-					Microsoft.Maps.MapTypeId.canvasLight,
-				],
-				zoom: 5,
-				...(curLocation && {
-					center: curLocation.mapData.location,
-					zoom: 8,
-				}),
-			})
-			Microsoft.Maps.loadModule(['Microsoft.Maps.AutoSuggest', 'Microsoft.Maps.Search'], {
-				callback: () => setModulesLoaded(true),
-				errorCallback: (error) => {
-					console.log(error)
-					setModulesLoaded(false)
-				},
-			})
+		function initMap() {
+			try {
+				const genMap = new Microsoft.Maps.Map("#BingMapRadar", {
+					navigationBarMode: Microsoft.Maps.NavigationBarMode.minified,
+					supportedMapTypes: [
+						Microsoft.Maps.MapTypeId.road,
+						Microsoft.Maps.MapTypeId.aerial,
+						Microsoft.Maps.MapTypeId.canvasLight,
+					],
+					zoom: 5,
+					...(curLocation && {
+						center: curLocation.mapData.location,
+						zoom: 8,
+					}),
+				})
+				Microsoft.Maps.loadModule(["Microsoft.Maps.AutoSuggest", "Microsoft.Maps.Search"], {
+					callback: () => setModulesLoaded(true),
+					errorCallback: (error) => {
+						console.log(error)
+						setModulesLoaded(false)
+					},
+				})
 
-			if (curLocation) genMap.entities.push(new Microsoft.Maps.Pushpin(genMap.getCenter()))
-			updateRadar(genMap)
-			setMap(genMap)
-		} catch (error) {
-			console.log(error)
-			setModulesLoaded(false)
+				if (curLocation) genMap.entities.push(new Microsoft.Maps.Pushpin(genMap.getCenter()))
+				updateRadar(genMap)
+				setMap(genMap)
+				return true
+			} catch (error) {
+				console.log(error)
+				setModulesLoaded(false)
+				return false
+			}
 		}
+		let doneLoading = false
+		const interval = setInterval(() => {
+			if (!doneLoading && initMap()) doneLoading = true
+		}, 1000)
 
 		return () => {
 			if (map) map.dispose()
+			if (interval) clearInterval(interval)
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
 
 	function updateRadar(mapParam) {
@@ -109,8 +116,8 @@ function Weather({ ...props }) {
 		const tileSources = radar.timestamps.map(
 			(ts) =>
 				new Microsoft.Maps.TileSource({
-					uriConstructor: radar.api.replace('{timestamp}', ts),
-				}),
+					uriConstructor: radar.api.replace("{timestamp}", ts),
+				})
 		)
 		const animatedLayer = new Microsoft.Maps.AnimatedTileLayer({ mercator: tileSources, frameRate: 500 })
 		localMap.layers.insert(animatedLayer)
@@ -162,22 +169,19 @@ function Weather({ ...props }) {
 
 	function fetchSunData(lat, lng, weatherData) {
 		const { currently, timezone } = weatherData
-		const locDate = DateTime.fromSeconds(currently.time)
-			.setZone(timezone)
-			.toFormat('yyyy-MM-dd')
-		const sunAPI = 'https://api.sunrise-sunset.org/json'
+		const locDate = DateTime.fromSeconds(currently.time).setZone(timezone).toFormat("yyyy-MM-dd")
+		const sunAPI = "https://api.sunrise-sunset.org/json"
 		const params = `?lat=${lat}&lng=${lng}&formatted=0&date=${locDate}`
 		return simplerFetch(sunAPI + params).then((res) => res.results)
 	}
 
 	function fetchWeatherData(lat, lng) {
-		const darkskyAPI = 'https://api.darksky.net/forecast/'
+		const darkskyAPI = "https://api.darksky.net/forecast/"
 		const params = `${process.env.REACT_APP_DARK_SKY_API_KEY}/${lat},${lng}?exclude=minutely`
 		return simplerFetch(darkskyAPI + params, true).then((res) => res)
 	}
 
 	async function fetchData(mapData) {
-		// console.log('fetching weather data')
 		try {
 			const { latitude: lat, longitude: lng } = mapData.location
 			const weatherData = await fetchWeatherData(lat, lng)
@@ -190,7 +194,7 @@ function Weather({ ...props }) {
 				weatherData,
 			}
 		} catch (err) {
-			console.log('<Weather /> fetchData() error: ', err)
+			console.log("<Weather /> fetchData() error: ", err)
 			return Promise.reject(err)
 		}
 	}
@@ -223,12 +227,12 @@ function Weather({ ...props }) {
 	const flipMetric = () => setIsMetric((prev) => !prev)
 	const getTemp = React.useCallback(
 		(temp) => (isMetric ? Math.round((5 / 9) * (temp - 32)) : Math.round(temp)),
-		[isMetric],
+		[isMetric]
 	)
 
 	const checkIfLandscape = React.useCallback(
 		(resizeEleRect) => resizeEleRect.width > resizeEleRect.height * 1.25,
-		[],
+		[]
 	)
 	const [dataRef, isLandscape] = useResizeObserver(checkIfLandscape)
 
@@ -253,7 +257,7 @@ function Weather({ ...props }) {
 }
 
 Weather.shared = setupAppSharedOptions({
-	title: 'Weather',
+	title: "Weather",
 	logo: SunnySVG,
 })
 

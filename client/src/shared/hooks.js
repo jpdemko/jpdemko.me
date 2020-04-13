@@ -1,5 +1,8 @@
-import React from 'react'
-import { throttle } from 'throttle-debounce'
+import React from "react"
+import { throttle } from "throttle-debounce"
+import { ThemeContext } from "styled-components/macro"
+
+import { Contexts, themes } from "./shared"
 
 /* -------------------------------------------------------------------------- */
 
@@ -12,7 +15,7 @@ import { throttle } from 'throttle-debounce'
 export function useLocalStorage(key, initValue) {
 	const [value, setValue] = React.useState(() => {
 		let item = localStorage.getItem(key)
-		if (item && item !== 'undefined') {
+		if (item && item !== "undefined") {
 			item = JSON.parse(item)
 		} else if (initValue) {
 			item = initValue
@@ -26,7 +29,7 @@ export function useLocalStorage(key, initValue) {
 	 * @param {*} value
 	 */
 	function set(value) {
-		localStorage.setItem(key, JSON.stringify(typeof value !== 'undefined' ? value : null))
+		localStorage.setItem(key, JSON.stringify(typeof value !== "undefined" ? value : null))
 		setValue(value)
 	}
 
@@ -47,7 +50,7 @@ export function useMedia(queries = [], values, defaultValue = null) {
 
 	function getValue() {
 		const index = mediaQueryLists.findIndex((mql) => mql.matches)
-		return typeof values[index] !== 'undefined' ? values[index] : defaultValue
+		return typeof values[index] !== "undefined" ? values[index] : defaultValue
 	}
 
 	const [value, setValue] = React.useState(getValue)
@@ -76,12 +79,12 @@ export function useOnClickOutside(ref, handler) {
 				handledRecentlyRef.current = false
 			}, 200)
 		}
-		document.addEventListener('mousedown', listener)
-		document.addEventListener('touchstart', listener)
+		document.addEventListener("mousedown", listener)
+		document.addEventListener("touchstart", listener)
 
 		return () => {
-			document.removeEventListener('mousedown', listener)
-			document.removeEventListener('touchstart', listener)
+			document.removeEventListener("mousedown", listener)
+			document.removeEventListener("touchstart", listener)
 		}
 	}, [ref, handler])
 }
@@ -95,9 +98,12 @@ export function useInterval(callback, delay) {
 		callbackRef.current = callback
 	}, [callback])
 
+	const finishedRef = React.useRef(false)
 	React.useEffect(() => {
-		const tick = (...args) => callbackRef.current(...args)
-		if (delay !== null) {
+		const tick = (...args) => {
+			if (callbackRef.current(...args)) finishedRef.current = true
+		}
+		if (delay !== null || !finishedRef.current) {
 			let id = setInterval(tick, delay)
 			return () => clearInterval(id)
 		}
@@ -157,7 +163,7 @@ export function useResizeObserver(callback, throttleMS = 200) {
 				setCallbackOutput(nextOutput)
 			}
 		}),
-		[callbackRef, callbackOutputRef],
+		[callbackRef, callbackOutputRef]
 	)
 
 	React.useEffect(() => {
@@ -177,4 +183,17 @@ export function useResizeObserver(callback, throttleMS = 200) {
 	}, [throttledCallback])
 
 	return [eleRef, callbackOutput]
+}
+
+/* -------------------------------------------------------------------------- */
+
+export function useCorrectTheme(color) {
+	const curTheme = React.useContext(ThemeContext)
+	const output = {}
+	if (color && Object.keys(themes).find((name) => name === color)) {
+		if (curTheme.name === color) color = "dark"
+		output.color = color
+		output.theme = themes[color]
+	}
+	return output
 }
