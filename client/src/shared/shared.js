@@ -33,6 +33,7 @@ themes = themes
 				background: "#F5F8FA",
 				altBackground: "#DFE2E4",
 				contrast: "#15202B",
+				readableColor: (bgColor) => readableColor(bgColor, "#15202B", "#F5F8FA"),
 				highlight: "#DB1A4A",
 				color: "#F5F8FA",
 				accent: "#2A343E",
@@ -42,6 +43,7 @@ themes = themes
 				background: "#15202B",
 				altBackground: "#2A343E",
 				contrast: "#F5F8FA",
+				readableColor: (bgColor) => readableColor(bgColor, "#15202B", "#F5F8FA"),
 				highlight: "#1DA1F2",
 				color: "#15202B",
 				accent: "#DFE2E4",
@@ -51,6 +53,7 @@ themes = themes
 				background: "#061E2C",
 				altBackground: "#082C42",
 				contrast: "#F5F8FA",
+				readableColor: (bgColor) => readableColor(bgColor, "#061E2C", "#F5F8FA"),
 				highlight: "#1DA1F2",
 				color: "#1DA1F2",
 				accent: "#1884C7",
@@ -60,6 +63,7 @@ themes = themes
 				altBackground: "#E2DEDF",
 				background: "#F9F4F6",
 				contrast: "#3C0815",
+				readableColor: (bgColor) => readableColor(bgColor, "#F9F4F6", "#3C0815"),
 				highlight: "#DB1A4A",
 				color: "#DB1A4A",
 				accent: "#B4163D",
@@ -124,13 +128,16 @@ export function setupAppSharedOptions(options = {}) {
  * @param {string} theme.background Should be very light/dark
  * @param {string} theme.altBackground Slight offset of regular background
  * @param {string} theme.contrast Text color readable on both backgrounds
+ * @param {Array<string>} theme.contrastColors [dark color for light bg, light color for dark bg]
  * @param {string} theme.highlight Color used to highlight/emphasis text (contrast)
  * @param {string} theme.color The primary color of the theme
  * @param {string} theme.accent Slight offset of primary theme color
  */
 export function createTheme(name, theme) {
+	const [lightRet, darkRet] = theme.contrastColors
 	themes[name] = {
 		name,
+		readableColor: (bgColor) => readableColor(bgColor, lightRet, darkRet),
 		...theme,
 	}
 	return themes[name]

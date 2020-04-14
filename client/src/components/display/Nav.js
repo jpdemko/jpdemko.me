@@ -14,6 +14,7 @@ import Drawer from "../ui/Drawer"
 const OpenedApp = styled.div`
 	.react-contextmenu-wrapper {
 		display: flex;
+		height: 100%;
 		button {
 			flex: 0 0 auto;
 		}
@@ -23,9 +24,20 @@ const OpenedApp = styled.div`
 	}
 `
 
-const NavButton = styled(Button)`
-	font-weight: 500;
+const TaskbarButton = styled(Button)`
 	justify-content: flex-start;
+	svg {
+		flex: 0 0 auto;
+	}
+`
+
+const DrawerRow = styled.div`
+	display: flex;
+`
+
+const DrawerButton = styled(Button)`
+	justify-content: flex-start;
+	flex: 1;
 	svg {
 		flex: 0 0 auto;
 	}
@@ -73,21 +85,18 @@ function Nav({
 		openApp(title)
 	}
 
-	const openedAppsButtons = openedApps.map((app) => (
+	const taskbarButtons = openedApps.map((app) => (
 		<OpenedApp key={app.id}>
-			<ContextMenuTrigger id={`nav-button-${app.id}`} holdToDisplay={-1}>
-				<NavButton
+			<ContextMenuTrigger id={`nav-tb-button-${app.id}`} holdToDisplay={-1}>
+				<TaskbarButton
 					onClick={() => handleOpen(app.title)}
 					svg={app.class.shared.logo}
 					isFocused={app.isFocused}
 				>
 					{app.class.shared.title}
-				</NavButton>
-				{isMobileSite && (
-					<Button onClick={() => handleClose(app.id)} svg={CloseSVG} variant="fancy" color="red" />
-				)}
+				</TaskbarButton>
 			</ContextMenuTrigger>
-			<ContextMenu id={`nav-button-${app.id}`}>
+			<ContextMenu id={`nav-tb-button-${app.id}`}>
 				<MenuItem>
 					<Button onClick={() => handleClose(app.id)} svg={CloseSVG} variant="fancy" color="red" />
 				</MenuItem>
@@ -95,44 +104,54 @@ function Nav({
 		</OpenedApp>
 	))
 
+	function genDrawerButtons(isTaskbar = false) {
+		return Object.keys(mountableApps).map((name) => {
+			const mApp = mountableApps[name]
+			const title = mApp.shared.title
+			const oApp = openedApps.find((a) => a.class.shared.title === title)
+			return (
+				<DrawerRow key={title}>
+					<DrawerButton
+						onClick={() => handleOpen(title)}
+						svg={mApp.shared.logo}
+						isFocused={oApp?.isFocused}
+					>
+						{title}
+					</DrawerButton>
+					{oApp && !isTaskbar && (
+						<Button onClick={() => handleClose(oApp.id)} svg={CloseSVG} variant="fancy" color="red" />
+					)}
+				</DrawerRow>
+			)
+		})
+	}
+
 	return (
 		<>
 			<Taskbar isMobileSite={isMobileSite}>
-				<NavButton
+				<TaskbarButton
 					svg={AppsSVG}
 					onClick={() => setMainDrawerOpened(true)}
 					disabled={isMobileSite && openedApps?.length < 1}
 				/>
-				<NavButton
+				<TaskbarButton
 					svg={HomeSVG}
 					onClick={handleHomeButton}
 					disabled={!openedApps.find((app) => app.isFocused) || openedApps.length < 1}
 				/>
 				{isMobileSite ? (
-					<NavButton
+					<TaskbarButton
 						style={{ marginLeft: "auto" }}
 						svg={MenuSVG}
 						onClick={mainNavBurgerCB}
 						disabled={!mainNavBurgerCB}
 					/>
 				) : (
-					openedAppsButtons
+					taskbarButtons
 				)}
 			</Taskbar>
 			<Drawer animDuraton={0.25} isShown={mainDrawerOpened} onClose={() => setMainDrawerOpened(false)}>
-				<DrawerButtonsContainer>
-					{isMobileSite
-						? openedAppsButtons
-						: Object.keys(mountableApps).map((key) => (
-								<NavButton
-									key={key}
-									svg={mountableApps[key].shared.logo}
-									onClick={() => handleOpen(key)}
-								>
-									{key}
-								</NavButton>
-						  ))}
-				</DrawerButtonsContainer>
+				<DrawerButtonsContainer>{genDrawerButtons()}</DrawerButtonsContainer>
 			</Drawer>
 		</>
 	)

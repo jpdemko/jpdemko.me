@@ -20,7 +20,6 @@ export const ButtonBase = styled.button.attrs(({ size = 1, svg, theme, color, ..
 		sidePadding: `calc(0.8em * ${sizeModifier})`,
 		verticalPadding: `calc(0.4em * ${sizeModifier})`,
 		calcColor: !color ? theme.contrast : theme.color,
-		// calcColor: theme.accent,
 	}
 
 	if (svg) {
@@ -75,6 +74,7 @@ const BasicButton = styled(ButtonBase)`
 `
 
 const OutlinedButton = styled(BasicButton)`
+	margin: 1px;
 	${({ theme, varCSS }) => css`
 		box-shadow: 0 0 0 1px ${varCSS.calcColor};
 		&:active {
@@ -84,9 +84,10 @@ const OutlinedButton = styled(BasicButton)`
 `
 
 const FancyButton = styled(ButtonBase)`
+	margin: 1px;
 	${({ theme, isFocused, varCSS }) => css`
-		color: ${varCSS.calcColor};
 		background: ${theme.color};
+		color: ${theme.readableColor(theme.color)};
 		box-shadow: 0 1px 10px 1px ${opac(0.2, varCSS.calcColor)}, 0 0 0 1px ${theme.accent};
 		opacity: 1;
 		&:focus {

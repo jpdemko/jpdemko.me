@@ -178,12 +178,11 @@ export default class Window extends React.Component {
 			...(ls.get(`${props.title}-window-data`) || {}),
 		}
 		this.state = {
-			isMinimized: false,
-			isWindowed: !props.isMobileSite,
+			isMinimized: true,
+			isWindowed: false,
 			isMaximized: props.isMobileSite,
 			isMobileWindow: props.isMobileSite,
 			...(ls.get(`${props.title}-window-state`) || {}),
-			...(props.isMobileSite && { isWindowed: false, isMaximized: true }),
 		}
 	}
 
@@ -191,8 +190,6 @@ export default class Window extends React.Component {
 		const { id, focusApp, minWindowCSS, isMobileSite } = this.props
 		const wdowEle = this.rootRef.current
 		const wdow = this
-
-		this.enterAnim()
 
 		this.draggableWindow = Draggable.create(wdowEle, {
 			type: "x,y",
@@ -311,6 +308,9 @@ export default class Window extends React.Component {
 				},
 			}),
 		]
+
+		this.enterAnim()
+
 		if (isMobileSite) this.dragInstances.forEach((i) => i[0].disable())
 		window.addEventListener("resize", this.handleViewportResizeThrottled)
 		window.addEventListener("beforeunload", this.save)
@@ -360,11 +360,11 @@ export default class Window extends React.Component {
 		if (this.draggableWindow) this.draggableWindow[0].update(true)
 	}
 
-	minimize = () => {
+	minimize = (extraVars = {}) => {
 		if (this.state.isMinimized) return
 
 		const { isFocused, focusBelowApp, zIndex } = this.props
-		this.animate(this.data.css.minimized)
+		this.animate({ ...this.data.css.minimized, ...extraVars })
 		this.setState({ isMinimized: true, isWindowed: false })
 		if (isFocused) focusBelowApp(zIndex)
 	}
@@ -375,7 +375,7 @@ export default class Window extends React.Component {
 		else this.props.focusApp(this.props.id)
 	}
 
-	restore = () => {
+	restore = (extraVars = {}) => {
 		const { isMinimized, isWindowed, isMaximized } = this.state
 		if (isWindowed) return
 		if (isMinimized && isMaximized) {
@@ -383,12 +383,12 @@ export default class Window extends React.Component {
 			return
 		}
 
-		this.animate(this.data.css.windowed)
+		this.animate({ ...this.data.css.windowed, ...extraVars })
 		this.setState({ isMinimized: false, isWindowed: true, isMaximized: false })
 	}
 
-	maximize = () => {
-		this.animate(this.data.css.maximized)
+	maximize = (extraVars = {}) => {
+		this.animate({ ...this.data.css.maximized, ...extraVars })
 		this.setState({ isMinimized: false, isWindowed: false, isMaximized: true })
 	}
 
@@ -401,7 +401,6 @@ export default class Window extends React.Component {
 		this.setLastWindowedCSS()
 		if (!this.props.isFocused) this.props.focusApp(this.props.id)
 		const wdow = this
-		// Clone vars so GSAP doesn't alter original...
 		gsap.to(wdow.rootRef.current, {
 			...tweenVars,
 			onComplete: () => {
@@ -437,28 +436,13 @@ export default class Window extends React.Component {
 		if (this.data.closedProperly) {
 			const curStateOptions = isMaximized ? css.maximized : css.windowed
 			const animTime = css.minimized.duration + curStateOptions.duration
-			gsap.fromTo(
-				wdow.rootRef.current,
-				{ ...css.minimized },
-				{
-					...curStateOptions,
-					duration: animTime,
-					onUpdate: () => wdow.handleViewportResizeThrottled(),
-					onComplete: () => {
-						wdow.draggableWindow[0].update(true)
-						if (isMinimized) wdow.setState({ isMinimized: false })
-					},
-				}
-			)
+			gsap.set(wdow.rootRef.current, { ...css.minimized })
+			wdow.restore({ duration: animTime })
 		} else {
 			if (isMinimized) gsap.set(wdow.rootRef.current, { ...css.minimized })
 			else gsap.set(wdow.rootRef.current, { ...(isMaximized ? css.maximized : css.windowed) })
 		}
 		this.data.closedProperly = false
-	}
-
-	exitAnim = () => {
-		this.animate(this.data.css.minimized)
 	}
 
 	render() {
@@ -470,7 +454,7 @@ export default class Window extends React.Component {
 				{...props}
 				in={show}
 				timeout={{ appear: 50, enter: 50, exit: this.data.css.minimized.duration * 1000 }}
-				onExit={this.exitAnim}
+				onExit={this.minimize}
 				mountOnEnter
 				unmountOnExit
 				appear

@@ -70,10 +70,10 @@ About.shared = setupAppSharedOptions({
 		altBackground: "#DEE2E1",
 		background: "#F4F9F7",
 		contrast: "#204234",
+		contrastColors: ["#204234", "#F4F9F7"],
 		highlight: "#1BDC8C",
 		color: "#1BDC8C",
 		accent: "#17B573",
-		contrastOptions: ["#204234", "#F4F9F7"],
 	}),
 })
 
