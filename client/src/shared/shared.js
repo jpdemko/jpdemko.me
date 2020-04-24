@@ -1,4 +1,4 @@
-import React from "react"
+import * as React from "react"
 import { transparentize, readableColor } from "polished"
 
 import { ReactComponent as WrenchSVG } from "../shared/assets/icons/wrench.svg"

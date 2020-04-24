@@ -20,6 +20,14 @@ const users = {}
 // 	return users[socket.id]
 // }
 
+function leaveRoom(socket, user, roomName) {
+	const room = rooms[roomName]
+	if (!room) return console.log("ERROR: leaveRoom() called on room that doesn't exist!")
+	room.users = room.users.filter((u) => u.socketID !== user.socketID)
+	if (room.users < 1) delete rooms[roomName]
+	else socket.to(roomName).emit("updateRoom", room)
+}
+
 module.exports = function (io, sessionMiddleware, db) {
 	io.use(function (socket, next) {
 		sessionMiddleware(socket.request, {}, next)
@@ -27,17 +35,9 @@ module.exports = function (io, sessionMiddleware, db) {
 
 	io.on("connection", function (socket) {
 		console.log(`socket#${socket.id} connected`)
-		let setupUserCalled = false
-		const reconnectInterval = setInterval(function () {
-			if (!setupUserCalled) socket.emit("reconnect")
-		}, 5000)
 
 		socket.on("setupUser", function (name, clientCB) {
-			if (!name) {
-				clientCB({ error: "SERVER ERROR - IO SETUP USER - NO USERNAME GIVEN" })
-				return
-			}
-			if (!setupUserCalled) setupUserCalled = true
+			if (!name) return clientCB({ error: "SERVER ERROR - IO SETUP USER - NO USERNAME GIVEN" })
 			let user = users[name]
 			if (user && user.socketID === socket.id) {
 				// Handle same user.
@@ -80,18 +80,15 @@ module.exports = function (io, sessionMiddleware, db) {
 
 		socket.on("joinRoom", function ({ username, roomName, password: roomPassword, lastMsgTS }, clientCB) {
 			if (!roomName || !username) {
-				clientCB({ error: "SERVER ERROR - IO JOIN ROOM - INVALID VARS" })
-				return
+				return clientCB({ error: "SERVER ERROR - IO JOIN ROOM - INVALID VARS" })
 			}
 			const user = users[username]
 			let room = rooms[roomName]
 			if (room) {
 				if (room.users.find((u) => u.socketID === socket.id)) {
-					clientCB({ success: "SERVER SUCCESS - IO JOIN ROOM - USER ALREADY IN ROOM" })
-					return
+					return clientCB({ success: "SERVER SUCCESS - IO JOIN ROOM - USER ALREADY IN ROOM" })
 				} else if (room.password && room.password !== roomPassword) {
-					clientCB({ error: "SERVER ERROR - IO JOIN ROOM - INVALID PASSWORD" })
-					return
+					return clientCB({ error: "SERVER ERROR - IO JOIN ROOM - INVALID PASSWORD" })
 				}
 			} else {
 				rooms[roomName] = {
@@ -105,7 +102,6 @@ module.exports = function (io, sessionMiddleware, db) {
 			user.rooms.push(roomName)
 			room.users.push(user)
 
-			// TODO - What is the best work-flow to get msgs between client/server that minimizes queries.
 			const getRoomMsgsQuery = `SELECT u.username, m.mid, m.message, m.msg_created_at, m.author
 				FROM messages m INNER JOIN users u ON m.author = u.uid
 				WHERE m.room = $1 AND m.msg_created_at > ${lastMsgTS ? "$2" : "NOW() - INTERVAL '60 DAYS'"}
@@ -113,16 +109,22 @@ module.exports = function (io, sessionMiddleware, db) {
 			const getRoomMsgsParams = [roomName, ...(lastMsgTS ? [lastMsgTS] : [])]
 			db.query(getRoomMsgsQuery, getRoomMsgsParams, function (selectErr, selectRes) {
 				if (selectErr) {
-					clientCB({ error: `SERVER ERROR - IO GET ROOM MSGS - DB SELECT ERROR: ${selectErr}` })
-					return
+					return clientCB({ error: `SERVER ERROR - IO GET ROOM MSGS - DB SELECT ERROR: ${selectErr}` })
 				}
 				msgs = selectRes.rows
-				io.in(roomName).emit("updateRoom", room)
+				socket.to(roomName).emit("updateRoom", room)
 				clientCB({
 					success: "SERVER SUCCESS - IO JOIN ROOM - SUCCESSFULLY JOINED ROOM",
 					room: { ...room, msgs: selectRes.rows },
 				})
 			})
+		})
+
+		socket.on("leaveRoom", function ({ username, roomName }, clientCB) {
+			if (!username || !roomName) return clientCB({ error: "SERVER ERROR - IO LEAVE ROOM - INVALID VARS" })
+			const user = users[username]
+			leaveRoom(socket, user, roomName)
+			clientCB({ success: "SERVER SUCCESS - IO LEAVE ROOM" })
 		})
 
 		socket.on("sendMsg", function ({ msg, roomName, uid }, clientCB) {
@@ -149,15 +151,10 @@ module.exports = function (io, sessionMiddleware, db) {
 				return
 			}
 			// Go through user's rooms and remove him from them.
-			user.rooms.forEach((roomName, i) => {
-				const room = rooms[roomName]
-				room.users = room.users.filter((u) => u.socketID !== user.socketID)
-				// If there are no users left after removing disconnecting user then delete room.
-				if (room.users < 1) delete rooms[roomName]
-				else io.in(roomName).emit("updateRoom", room)
-			})
+			user.rooms.forEach((roomName) => leaveRoom(socket, user, roomName))
 			delete users[name]
-			// clearInterval(reconnectInterval)
+			console.log("CUR ROOMS: ", Object.keys(rooms), "CUR USERS: ", Object.keys(users))
+			console.log("- - - - - - - - -")
 		})
 	})
 }

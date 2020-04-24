@@ -1,8 +1,8 @@
-import React from "react"
+import * as React from "react"
 import { throttle } from "throttle-debounce"
 import { ThemeContext } from "styled-components/macro"
 
-import { Contexts, themes } from "./shared"
+import { themes } from "./shared"
 
 /* -------------------------------------------------------------------------- */
 

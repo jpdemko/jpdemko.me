@@ -1,4 +1,4 @@
-import React from "react"
+import * as React from "react"
 import styled, { css } from "styled-components/macro"
 
 import { addTheme, setupAppSharedOptions, Contexts } from "../../shared/shared"

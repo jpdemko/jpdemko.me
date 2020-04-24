@@ -1,27 +1,33 @@
-import React from "react"
+import * as React from "react"
 import styled, { css } from "styled-components/macro"
 
-import { safeTranslate } from "../../shared/shared"
 import { useOnClickOutside } from "../../shared/hooks"
 import Backdrop from "../ui/Backdrop"
 
 /* --------------------------------- STYLES --------------------------------- */
 
-const Root = styled.div`
+const Center = styled.div`
 	position: absolute;
-	top: 50%;
-	left: 50%;
+	width: 100%;
+	height: 100%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+`
+
+const Root = styled.div`
+	position: relative;
 	${({ isShown, animDuration }) => css`
 		transition: ${animDuration}s;
 		z-index: ${isShown ? 250000 : -1};
 		opacity: ${isShown ? 1 : 0};
-		transform: ${safeTranslate("-50%, -50%")} ${isShown ? "scale(1)" : "scale(0)"};
+		transform: ${isShown ? "scale(1)" : "scale(0)"};
 	`}
 `
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function Modal({ animDuration = 0.5, isShown = false, onClose, children, ...props }) {
+function Modal({ animDuration = 0.4, isShown = false, onClose, children, ...props }) {
 	const modalRef = React.useRef()
 
 	// 'useOnClickOutside()' will keep creating/removing event handlers on each render unless this is done.
@@ -30,9 +36,11 @@ function Modal({ animDuration = 0.5, isShown = false, onClose, children, ...prop
 
 	return (
 		<>
-			<Root {...props} ref={modalRef} animDuration={animDuration} isShown={isShown}>
-				{children}
-			</Root>
+			<Center>
+				<Root {...props} ref={modalRef} animDuration={animDuration} isShown={isShown}>
+					{children}
+				</Root>
+			</Center>
 			<Backdrop animDuration={animDuration} isShown={isShown} />
 		</>
 	)

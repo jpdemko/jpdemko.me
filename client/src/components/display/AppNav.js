@@ -1,5 +1,5 @@
-import React from "react"
-import styled, { css } from "styled-components/macro"
+import * as React from "react"
+import styled from "styled-components/macro"
 
 import { useUpdatedValRef } from "../../shared/hooks"
 import { ReactComponent as MenuSVG } from "../../shared/assets/icons/menu.svg"
@@ -7,26 +7,12 @@ import { Contexts } from "../../shared/shared"
 import Drawer from "../ui/Drawer"
 import Modal from "../ui/Modal"
 import Button from "../ui/Button"
+import Loading from "../ui/Loading"
 import SocialLogin from "../auth/SocialLogin"
 
 /* --------------------------------- STYLES --------------------------------- */
 
-const Root = styled.div`
-	${({ theme }) => css`
-		> div {
-			overflow-x: hidden;
-			overflow-y: auto;
-			position: absolute;
-			top: 0;
-			height: 100%;
-			width: 100%;
-			background: ${theme.background};
-			color: ${theme.contrast};
-		}
-	`}
-`
-
-const MobileContextButtons = styled.div`
+const MobileHamburgerButton = styled(Button)`
 	position: absolute;
 	margin: 0.5em;
 	bottom: 0;
@@ -43,8 +29,16 @@ function AppNav({ app, isFocused, isMobileSite, setMainNavBurgerCB }) {
 	const [modalContent, setModalContent] = React.useState()
 	const [modalShown, setModalShown] = React.useState(false)
 
-	function toggleModal() {
-		setModalShown((prev) => !prev)
+	const [isLoading, setIsLoading] = React.useState(false)
+
+	// Can't think of a good way to focus something in an App's modal without knowing whether the
+	// modal is shown or not. Currently the modal content is constantly being set so you wouldn't know
+	// an appropriate time to change the user's currently focused element.
+	const modalShownRef = React.useRef(false)
+	function toggleModal(ref) {
+		modalShownRef.current = !modalShownRef.current
+		if (modalShownRef.current && ref) ref.current.focus()
+		setModalShown(modalShownRef.current)
 	}
 
 	// Prevents possible UI confusion where if the app's drawer is open in mobile and the layout switches
@@ -76,6 +70,7 @@ function AppNav({ app, isFocused, isMobileSite, setMainNavBurgerCB }) {
 			toggleMobileMenu,
 			setModalContent,
 			toggleModal,
+			setIsLoading,
 		}),
 		[toggleMobileMenu]
 	)
@@ -94,38 +89,20 @@ function AppNav({ app, isFocused, isMobileSite, setMainNavBurgerCB }) {
 	if (app && (!app.class.shared.authRequired || (app.class.shared.authRequired && authContext.isAuthed))) {
 		return (
 			<>
-				{drawerContent && (
-					<>
-						<Drawer side="right" isShown={drawerOpened} onClose={toggleMobileMenu}>
-							{drawerContent}
-						</Drawer>
-						{isMobileWindow && !isMobileSite && (
-							<MobileContextButtons>
-								<Button variant="fancy" onClick={toggleMobileMenu} svg={MenuSVG} />
-								{/* <Button variant="fancy" color="blue" onClick={toggleMobileMenu} svg={MenuSVG} /> */}
-							</MobileContextButtons>
-						)}
-					</>
+				<Drawer side="right" isShown={drawerOpened} onClose={toggleMobileMenu}>
+					{drawerContent}
+				</Drawer>
+				{isMobileWindow && !isMobileSite && drawerContent && (
+					<MobileHamburgerButton variant="fancy" onClick={toggleMobileMenu} svg={MenuSVG} />
 				)}
-				<>
-					<Modal isShown={modalShown} onClose={toggleModal}>
-						{modalContent}
-					</Modal>
-					<Root>
-						<Contexts.AppNav.Provider value={appNavContextCallbacks}>
-							{memoApp}
-						</Contexts.AppNav.Provider>
-					</Root>
-				</>
+				<Modal isShown={modalShown} onClose={toggleModal}>
+					{modalContent}
+				</Modal>
+				<Loading isLoading={isLoading} />
+				<Contexts.AppNav.Provider value={appNavContextCallbacks}>{memoApp}</Contexts.AppNav.Provider>
 			</>
 		)
-	} else {
-		return (
-			<Root>
-				<SocialLogin />
-			</Root>
-		)
-	}
+	} else return <SocialLogin />
 }
 
 export default AppNav

@@ -1,12 +1,12 @@
 /* global Microsoft */
 
-import React from "react"
+import * as React from "react"
 import styled, { css } from "styled-components/macro"
 import { DateTime, Interval } from "luxon"
 
 import { getCurWeatherBG } from "./WeatherIcon"
 import { ReactComponent as SunnySVG } from "../../shared/assets/weather-icons/wi-day-sunny.svg"
-import { simplerFetch, setupAppSharedOptions, themes, Contexts } from "../../shared/shared"
+import { simplerFetch, setupAppSharedOptions, Contexts } from "../../shared/shared"
 import { useLocalStorage, useInterval, useResizeObserver } from "../../shared/hooks"
 import WeatherNav from "./WeatherNav"
 import CurrentWeather from "./CurrentWeather"
@@ -58,6 +58,7 @@ const radar = {
 }
 
 function Weather({ ...props }) {
+	const { toggleMobileMenu, setIsLoading } = React.useContext(Contexts.AppNav)
 	const [curLocation, setCurLocation] = useLocalStorage("curLocation")
 	const [locations, setLocations] = useLocalStorage("locations", [])
 
@@ -135,7 +136,6 @@ function Weather({ ...props }) {
 		}
 	}
 
-	const { toggleMobileMenu } = React.useContext(Contexts.AppNav)
 	function onLocationFound(mapData) {
 		if (!map || !mapData) return
 
@@ -148,6 +148,7 @@ function Weather({ ...props }) {
 		} else {
 			fetchData(mapData)
 				.then((newLocation) => {
+					setIsLoading(false)
 					setLocations([...locationsCopy, newLocation])
 					setCurLocation(newLocation)
 					mapLoadLocation(mapData)
@@ -170,6 +171,7 @@ function Weather({ ...props }) {
 	function fetchSunData(lat, lng, weatherData) {
 		const { currently, timezone } = weatherData
 		const locDate = DateTime.fromSeconds(currently.time).setZone(timezone).toFormat("yyyy-MM-dd")
+		console.log("weatherData:", weatherData, "locDate: ", locDate)
 		const sunAPI = "https://api.sunrise-sunset.org/json"
 		const params = `?lat=${lat}&lng=${lng}&formatted=0&date=${locDate}`
 		return simplerFetch(sunAPI + params).then((res) => res.results)
@@ -184,6 +186,7 @@ function Weather({ ...props }) {
 	async function fetchData(mapData) {
 		try {
 			const { latitude: lat, longitude: lng } = mapData.location
+			setIsLoading(true)
 			const weatherData = await fetchWeatherData(lat, lng)
 			const sunData = await fetchSunData(lat, lng, weatherData)
 			return {

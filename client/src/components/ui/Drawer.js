@@ -1,4 +1,4 @@
-import React from "react"
+import * as React from "react"
 import styled, { css } from "styled-components/macro"
 
 import { safeTranslate } from "../../shared/shared"
@@ -12,7 +12,8 @@ const Root = styled.div`
 	z-index: 150001;
 	top: 0;
 	bottom: 0;
-	max-width: 85%;
+	max-width: 90%;
+	height: 100%;
 	${({ isShown, animDuration, side, theme }) => css`
 		left: ${side === "left" ? 0 : "none"};
 		right: ${side === "left" ? "none" : 0};

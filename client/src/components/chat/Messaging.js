@@ -1,26 +1,45 @@
-import React from "react"
+import * as React from "react"
 import styled, { css } from "styled-components/macro"
 
-import Logs from "./Logs"
-import IO from "./IO"
+import { MsgBox } from "../ui/IO"
 
 /* --------------------------------- STYLES --------------------------------- */
 
-const Root = styled.div`
-	flex: 1 1;
-	display: flex;
-	flex-direction: column;
-`
-
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function Messaging({ curRoom, sendMsg, user, ...props }) {
+function IO({ sendMsg, disabled, ...props }) {
+	const [text, setText] = React.useState("")
+
+	function submitMsg(e) {
+		e.preventDefault()
+		if (disabled) return
+		sendMsg(text)
+			.then(({ success, msgs }) => {
+				setText("")
+			})
+			.catch((err) => console.log("IO send message error.", err))
+	}
+
+	function handleTextChange(e) {
+		setText(e.target.value)
+	}
+
+	function checkKeys(e) {
+		if (e.keyCode === 13 && !e.shiftKey) submitMsg(e)
+	}
+
 	return (
-		<Root {...props}>
-			<Logs curRoom={curRoom} user={user} />
-			<IO sendMsg={sendMsg} disabled={!!!curRoom} />
-		</Root>
+		<form onSubmit={submitMsg}>
+			<MsgBox
+				minLength="1"
+				required
+				value={text}
+				onChange={handleTextChange}
+				onKeyDown={checkKeys}
+				placeholder="Send a message."
+			/>
+		</form>
 	)
 }
 
-export default Messaging
+export default IO

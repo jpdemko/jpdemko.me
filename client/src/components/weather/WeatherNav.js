@@ -1,8 +1,8 @@
-import React from "react"
+import * as React from "react"
 import styled, { css, ThemeProvider } from "styled-components/macro"
 import { DateTime } from "luxon"
 
-import { ReactComponent as CloseCircleSVG } from "../../shared/assets/icons/close-circle.svg"
+import { ReactComponent as CloseSVG } from "../../shared/assets/icons/close.svg"
 import { useInterval } from "../../shared/hooks"
 import { themes, Contexts } from "../../shared/shared"
 import Button from "../ui/Button"
@@ -124,14 +124,13 @@ function WeatherNav({
 									</LocationSummary>
 								</Location>
 							</ThemeProvider>
-							<Button svg={CloseCircleSVG} color="red" onClick={() => removeLocation(id)} />
+							<Button svg={CloseSVG} color="red" onClick={() => removeLocation(id)} />
 						</Row>
 					)
 				})}
 			</LocationsList>
 			<Footer>
 				<Button variant="fancy" onClick={flipMetric}>
-					{/* <Button variant="fancy" color="blue" onClick={flipMetric}> */}
 					{isMetric ? "Switch to Fahrenheit" : "Switch to Celsius"}
 				</Button>
 			</Footer>

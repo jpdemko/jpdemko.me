@@ -13,7 +13,7 @@
 		"axios": "^0.19.2",
 		"express": "^4.17.1",
 		"gsap": "^3.2.6",
-		"luxon": "^1.22.2",
+		"luxon": "^1.23.0",
 		"polished": "^3.5.1",
 		"react": "^16.13.1",
 		"react-contextmenu": "^2.13.0",
@@ -24,7 +24,7 @@
 		"react-transition-group": "^4.3",
 		"sanitize.css": "^11.0.0",
 		"socket.io-client": "^2.3.0",
-		"styled-components": "^5.0.1",
+		"styled-components": "^5.1.0",
 		"throttle-debounce": "^2.1.0"
 	},
 	"devDependencies": {

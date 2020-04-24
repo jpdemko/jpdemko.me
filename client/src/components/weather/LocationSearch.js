@@ -1,6 +1,6 @@
 /* global Microsoft */
 
-import React from "react"
+import * as React from "react"
 import styled, { css } from "styled-components/macro"
 
 import { useUpdatedValRef } from "../../shared/hooks"
@@ -15,10 +15,8 @@ const Root = styled.div`
 	flex: 0 0 auto;
 	display: flex;
 	position: relative;
-	&& {
-		border-bottom: none;
-	}
 	${({ theme }) => css`
+		border-bottom: 1px solid ${theme.contrast};
 		box-shadow: inset 0 -1px 0 0 ${theme.altBackground};
 		color: ${theme.contrast};
 		/* Fixing Bing elements; search results and children */
@@ -58,9 +56,8 @@ const AutocompleteInput = styled.input`
 	}
 	${({ theme }) => css`
 		color: ${theme.contrast};
-		&:hover {
-			box-shadow: inset 0 -2px 0 0 ${theme.contrast};
-		}
+		&:not(:placeholder-shown),
+		&:hover,
 		&:active {
 			box-shadow: inset 0 -2px 0 0 ${theme.contrast};
 		}

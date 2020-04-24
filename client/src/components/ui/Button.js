@@ -1,4 +1,4 @@
-import React from "react"
+import * as React from "react"
 import styled, { css } from "styled-components/macro"
 
 import { opac, themes } from "../../shared/shared"
@@ -6,7 +6,7 @@ import { useCorrectTheme } from "../../shared/hooks"
 
 /* --------------------------------- STYLES --------------------------------- */
 
-export const ButtonBase = styled.button.attrs(({ size = 1, svg, theme, color, ...props }) => {
+export const ButtonBase = styled.button.attrs(({ size, svg, theme, color, ...props }) => {
 	let sizeModifier = 1
 	if (size) {
 		if (size === "small") sizeModifier = 0.75
@@ -90,10 +90,7 @@ const FancyButton = styled(ButtonBase)`
 		color: ${theme.readableColor(theme.color)};
 		box-shadow: 0 1px 10px 1px ${opac(0.2, varCSS.calcColor)}, 0 0 0 1px ${theme.accent};
 		opacity: 1;
-		&:focus {
-			box-shadow: 0 1px 10px 1px ${opac(0.2, varCSS.calcColor)}, 0 0 0 2px ${theme.accent};
-			opacity: 0.9;
-		}
+		&:focus,
 		&:hover {
 			box-shadow: 0 1px 10px 1px ${opac(0.2, varCSS.calcColor)}, 0 0 0 2px ${theme.accent};
 			opacity: 0.9;
@@ -118,7 +115,7 @@ function Button({ tag, variant, color, disabled = false, children, ...props }) {
 	return (
 		<ButtonVariant {...props} as={tag} disabled={disabled} {...themeProps}>
 			{props.svg && <props.svg />}
-			{children && <span>{children}</span>}
+			{props.svg && children ? <span>{children}</span> : children}
 		</ButtonVariant>
 	)
 }

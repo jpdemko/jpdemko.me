@@ -2,7 +2,7 @@ import "sanitize.css"
 import "sanitize.css/typography.css"
 import "sanitize.css/forms.css"
 
-import React from "react"
+import * as React from "react"
 import ReactDOM from "react-dom"
 import { createGlobalStyle, ThemeProvider } from "styled-components/macro"
 import { Router } from "react-router-dom"

@@ -1,4 +1,4 @@
-import React from "react"
+import * as React from "react"
 import { gsap, Draggable } from "gsap/all"
 import styled, { css } from "styled-components/macro"
 import { Transition } from "react-transition-group"
@@ -71,9 +71,22 @@ const TitleBar = styled.div`
 `
 
 const Content = styled.div`
-	flex: 1 1 auto;
+	flex: 1 1;
 	position: relative;
 	overflow: hidden;
+	${({ theme }) => css`
+		> div:last-child {
+			overflow-x: hidden;
+			overflow-y: auto;
+			position: absolute;
+			top: 0;
+			left: 0;
+			height: 100%;
+			width: 100%;
+			background: ${theme.background};
+			color: ${theme.contrast};
+		}
+	`}
 `
 
 // Change these to control the sizes for the interactive parts of the component.
@@ -233,7 +246,6 @@ export default class Window extends React.Component {
 					wdow.setLastWindowedCSS()
 				},
 				onDrag: function () {
-					vars.onDrag(this, wdow.data.css.windowed)
 					wdow.data.css.current.width = wdow.data.css.windowed.width
 					wdow.data.css.current.height = wdow.data.css.windowed.height
 					wdow.handleViewportResizeThrottled()
@@ -265,7 +277,7 @@ export default class Window extends React.Component {
 			}),
 			genResizeDraggable({
 				trigger: `#side-right-${id}, #corner-ne-${id}, #corner-se-${id}`,
-				cursor: "e-resize", // negative <--   ---> positive
+				cursor: "e-resize",
 				onDrag: function (drag, wdowCSS) {
 					const nextWidthBelowMin = wdowCSS.width + drag.deltaX < minWindowCSS.width
 					const nextWidthAboveMax = wdowCSS.width + drag.deltaX > drag.maxX
@@ -403,6 +415,7 @@ export default class Window extends React.Component {
 		const wdow = this
 		gsap.to(wdow.rootRef.current, {
 			...tweenVars,
+			snap: "top,left,height,width,x,y",
 			onComplete: () => {
 				// Prevent error if scale of element is 0.
 				if (!wdow.state.isMinimized) wdow.draggableWindow[0].update(true)
@@ -480,6 +493,7 @@ export default class Window extends React.Component {
 					>
 						<div>{title}</div>
 						<div style={{ display: "flex", marginLeft: "auto" }}>
+							<Button onClick={this.preventSubpixelValues}>?</Button>
 							<Button onClick={() => this.minimize()} svg={MinimizeSVG} className="check-contrast" />
 							<Button
 								onClick={this.toggleMaximize}
