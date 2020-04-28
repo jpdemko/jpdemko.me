@@ -125,13 +125,13 @@ export function setupAppSharedOptions(options = {}) {
 /**
  * @param {string} name
  * @param {Object} theme
- * @param {string} theme.background Should be very light/dark
- * @param {string} theme.altBackground Slight offset of regular background
- * @param {string} theme.contrast Text color readable on both backgrounds
- * @param {Array<string>} theme.contrastColors [dark color for light bg, light color for dark bg]
- * @param {string} theme.highlight Color used to highlight/emphasis text (contrast)
- * @param {string} theme.color The primary color of the theme
- * @param {string} theme.accent Slight offset of primary theme color
+ * @param {string} theme.background Should be very light/dark.
+ * @param {string} theme.altBackground Slight offset of regular background.
+ * @param {string} theme.contrast Text color readable on both backgrounds.
+ * @param {Array<string>} theme.contrastColors [dark color for light bg, light color for dark bg].
+ * @param {string} theme.highlight Color used to highlight/emphasis text (contrast).
+ * @param {string} theme.color The primary color of the theme.
+ * @param {string} theme.accent Slight offset of primary theme color.
  */
 export function createTheme(name, theme) {
 	const [lightRet, darkRet] = theme.contrastColors
@@ -145,29 +145,33 @@ export function createTheme(name, theme) {
 
 /* -------------------------------------------------------------------------- */
 
-const regexGetNums = /-?(,\d+|\d+)*\.?\d+/g
+export class Styles {
+	/**
+	 * @param {Element} ele Target DOM element you want to retrieve styles for.
+	 */
+	constructor(ele) {
+		this.numParseRegex = /-?(,\d+|\d+)*\.?\d+/g
+		this.ele = window.getComputedStyle(ele)
+	}
 
-/**
- * Condensed way to get the computed style values of an element.
- * @param {Element} ele - target DOM element you want to retrieve styles for
- * @param {string} prop - style property you want to get
- * @param {Object} [options]
- * @param {RegExp} [options.regex] - pass in custom regex on style prop
- * @param {boolean} [options.parse] - convert string|string[] into floats and return
- * @return {Array|undefined}
- */
-export function getStyleProperty(ele, prop, options) {
-	try {
-		let style = window.getComputedStyle(ele).getPropertyValue(prop)
-		if (options?.regex) style = style.match(options.regex)
-		if (options?.parse) {
-			if (!Array.isArray(style)) style = style.match(regexGetNums)
-			style = style.map?.(parseFloat)
+	/**
+	 * Condensed way to get the computed style values of an element.
+	 * @param {string} attr Style property you want to get.
+	 * @param {boolean} [parse=true] Convert string|string[] into floats and return.
+	 * @return {Array|number|null}
+	 */
+	get(attr, parse = true) {
+		try {
+			let style = this.ele.getPropertyValue(attr)
+			if (parse) {
+				if (!Array.isArray(style)) style = style.match(this.numParseRegex)
+				else style = style.map?.(parseFloat)
+			}
+			return style
+		} catch (err) {
+			console.log(err)
+			return null
 		}
-		return Array.isArray(style) ? style : [style]
-	} catch (err) {
-		console.log(err)
-		return []
 	}
 }
 
@@ -200,7 +204,7 @@ export function simplerFetch(url, useProxy = false) {
 
 /**
  * Condensed way to get the DOMRect of something.
- * @param {Element|string} target - DOM element OR string element ID, eg: 'target' (no #)
+ * @param {Element|string} target DOM element OR string element ID, eg: 'target' (no #)
  * @return {DOMRect|Object}
  */
 export function getRect(target) {
@@ -212,8 +216,8 @@ export function getRect(target) {
 
 /**
  * This 'mixin' was created because of a Chrome bug which causes child elements to blur on 3D translation.
- * @param {string} adjustments - your desired translation values, eg: '0, -15%'
- * @return {string} - the resultant browser translation, eg: 'translate3d(0, -15%, 0)'
+ * @param {string} adjustments Your desired translation values, eg: '0, -15%'
+ * @return {string} The resultant browser translation, eg: 'translate3d(0, -15%, 0)'
  */
 export function safeTranslate(adjustments) {
 	const is3D = adjustments.split(",").length > 2

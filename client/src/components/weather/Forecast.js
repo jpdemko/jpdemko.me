@@ -6,13 +6,13 @@ import { opac } from "../../shared/shared"
 import { ReactComponent as RadarSVG } from "../../shared/assets/weather-icons/radar.svg"
 import WeatherIcon from "./WeatherIcon"
 import Tabs from "../ui/Tabs"
-import { rgba } from "polished"
+import TempHue from "./TempHue"
 
 /* --------------------------------- STYLES --------------------------------- */
 
 const CustomTabs = styled(Tabs)`
 	border: none;
-	flex: 2 0;
+	flex: 3 0;
 	font-size: 0.8em;
 `
 
@@ -47,11 +47,21 @@ const HR = styled.div`
 `
 
 const Temps = styled.div`
+	--temps-pad: 0.15em;
 	display: flex;
 	flex-direction: column;
+	padding: var(--temps-pad);
+	> * {
+		margin: var(--temps-pad) 0;
+	}
 	span {
 		font-size: 0.8em;
 	}
+`
+
+const StyledTempHue = styled(TempHue)`
+	font-size: 0.75em;
+	padding: 0.1em 0.3em;
 `
 
 const Table = styled.table`
@@ -133,9 +143,12 @@ function DaySummary({ data: { dayName, ordDay, timezone, day }, getTemp, ...prop
 			<div>{checkDayName(dayName)}</div>
 			<HR />
 			<Temps>
-				<span>H: {getTemp(high)}&deg;</span>
+				{/* <span>H: {getTemp(high)}&deg;</span>
 				<WeatherIcon iconName={icon} />
-				<span>L: {getTemp(low)}&deg;</span>
+				<span>L: {getTemp(low)}&deg;</span> */}
+				<StyledTempHue temp={high}>H: {getTemp(high)}&deg;</StyledTempHue>
+				<WeatherIcon iconName={icon} />
+				<StyledTempHue temp={low}>L: {getTemp(low)}&deg;</StyledTempHue>
 			</Temps>
 		</Card>
 	)

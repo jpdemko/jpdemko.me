@@ -3,13 +3,14 @@ import styled, { css } from "styled-components/macro"
 
 import WeatherIcon from "./WeatherIcon"
 import { themes } from "../../shared/shared"
+import TempHue from "./TempHue"
 
 /* --------------------------------- STYLES --------------------------------- */
 
 const Root = styled.div`
-	padding: 0.5em 1em;
+	padding: 0.5em;
 	font-weight: 500;
-	flex: 1 1;
+	flex: 1 0 12ch;
 	position: relative;
 	display: flex;
 	flex-direction: column;
@@ -31,15 +32,17 @@ const Address = styled.div`
 	font-weight: 400;
 	font-size: 0.8em;
 	opacity: 0.9;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
 `
 
 const TextSummary = styled.div``
 
 const LayoutSwitch = styled.div`
 	display: flex;
-	${({ isLandscape }) => css`
-		flex-direction: ${isLandscape ? "column" : "row"};
-	`}
+	align-items: center;
 `
 
 const Temps = styled.div`
@@ -47,23 +50,23 @@ const Temps = styled.div`
 	font-size: 2.5em;
 	display: flex;
 	flex-direction: column;
-	align-items: center;
+	padding-left: 0.15em;
+	margin-left: 0.15em;
 	> * {
 		flex: 0 0 auto;
 	}
-	${({ isLandscape }) => css`
-		margin-top: ${isLandscape ? ".75rem" : null};
+	${({ theme }) => css`
+		border-left: 1px solid ${theme.contrast};
 	`}
+`
+
+const StyledTempHue = styled(TempHue)`
+	font-size: 0.25em;
+	padding: 0.2em 0.4em;
 `
 
 const Icon = styled.div`
 	height: 4em;
-`
-
-const Range = styled.div`
-	font-size: 0.25em;
-	margin-left: 0.2em;
-	text-align: start;
 `
 
 const Info = styled.div`
@@ -75,22 +78,26 @@ const Info = styled.div`
 
 const CurrentWeather = React.memo(({ curLocation, getTemp, isLandscape, ...props }) => {
 	const { mapData, weatherData } = curLocation ?? {}
+
+	const high = weatherData && weatherData.daily.data[0].apparentTemperatureHigh
+	const low = weatherData && weatherData.daily.data[0].apparentTemperatureLow
+
 	return (
 		<Root {...props} curWeatherBG={curLocation?.curWeatherBG} isLandscape={isLandscape}>
 			{curLocation ? (
 				<>
 					<Address>{mapData?.address?.formattedAddress}</Address>
-					<TextSummary isLandscape={isLandscape}>{weatherData.currently.summary}</TextSummary>
-					<LayoutSwitch isLandscape={isLandscape}>
+					<TextSummary>{weatherData.currently.summary}</TextSummary>
+					<LayoutSwitch>
 						<Icon>
 							<WeatherIcon iconName={weatherData.currently.icon} />
 						</Icon>
-						<Temps isLandscape={isLandscape}>
-							<Range>H: {getTemp(weatherData.daily.data[0].apparentTemperatureHigh)}&deg;</Range>
+						<Temps>
+							<StyledTempHue temp={high}>H: {getTemp(high)}&deg;</StyledTempHue>
 							<div style={{ marginBottom: ".1em" }}>
 								{getTemp(weatherData.currently.apparentTemperature)}&deg;
 							</div>
-							<Range>L: {getTemp(weatherData.daily.data[0].apparentTemperatureLow)}&deg;</Range>
+							<StyledTempHue temp={low}>L: {getTemp(low)}&deg;</StyledTempHue>
 						</Temps>
 					</LayoutSwitch>
 				</>

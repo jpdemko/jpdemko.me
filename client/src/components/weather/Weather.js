@@ -28,7 +28,7 @@ const Root = styled.div`
 const Data = styled.div`
 	font-size: 1.2rem;
 	height: 100%;
-	flex: 2 1 auto;
+	flex: 1 1;
 	display: flex;
 	overflow: hidden;
 	${({ isLandscape }) => css`
@@ -171,7 +171,6 @@ function Weather({ ...props }) {
 	function fetchSunData(lat, lng, weatherData) {
 		const { currently, timezone } = weatherData
 		const locDate = DateTime.fromSeconds(currently.time).setZone(timezone).toFormat("yyyy-MM-dd")
-		console.log("weatherData:", weatherData, "locDate: ", locDate)
 		const sunAPI = "https://api.sunrise-sunset.org/json"
 		const params = `?lat=${lat}&lng=${lng}&formatted=0&date=${locDate}`
 		return simplerFetch(sunAPI + params).then((res) => res.results)
@@ -210,6 +209,7 @@ function Weather({ ...props }) {
 		})
 		Promise.all(locPromises)
 			.then((nextLocations) => {
+				setIsLoading(false)
 				const nextCurLocation = nextLocations.find((loc) => loc.id === curLocation.id)
 				setCurLocation(nextCurLocation)
 				setLocations(nextLocations)
@@ -227,7 +227,6 @@ function Weather({ ...props }) {
 	}, 1000 * 60 * updateInterval)
 
 	const [isMetric, setIsMetric] = React.useState(false)
-	const flipMetric = () => setIsMetric((prev) => !prev)
 	const getTemp = React.useCallback(
 		(temp) => (isMetric ? Math.round((5 / 9) * (temp - 32)) : Math.round(temp)),
 		[isMetric]
@@ -248,7 +247,7 @@ function Weather({ ...props }) {
 				removeLocation={removeLocation}
 				onLocationFound={onLocationFound}
 				isMetric={isMetric}
-				flipMetric={flipMetric}
+				setIsMetric={setIsMetric}
 				getTemp={getTemp}
 			/>
 			<Data ref={dataRef} isLandscape={isLandscape}>

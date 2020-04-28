@@ -3,6 +3,7 @@ import { gsap, Draggable } from "gsap/all"
 import styled, { css } from "styled-components/macro"
 import { Transition } from "react-transition-group"
 import { throttle } from "throttle-debounce"
+import { rgba } from "polished"
 
 import { ReactComponent as CloseSVG } from "../../shared/assets/icons/close.svg"
 import { ReactComponent as MinimizeSVG } from "../../shared/assets/icons/minimize.svg"
@@ -13,13 +14,12 @@ import {
 	isDoubleTouch,
 	opac,
 	ls,
-	getStyleProperty,
+	Styles,
 	flags,
 	mediaBreakpoints,
 	Contexts,
 } from "../../shared/shared"
 import Button from "../ui/Button"
-import { rgba } from "polished"
 
 gsap.registerPlugin(Draggable)
 
@@ -200,6 +200,34 @@ export default class Window extends React.Component {
 	}
 
 	componentDidMount() {
+		this.genDraggables()
+		this.enterAnim()
+		window.addEventListener("resize", this.handleViewportResizeThrottled)
+		window.addEventListener("beforeunload", this.save)
+		this.handleViewportResize()
+	}
+
+	componentWillUnmount() {
+		this.handleViewportResizeThrottled.cancel()
+		window.removeEventListener("resize", this.handleViewportResizeThrottled)
+		window.removeEventListener("beforeunload", this.save)
+		if (this.dragInstances) this.dragInstances.forEach((i) => i[0].kill())
+		this.handleExit()
+	}
+
+	componentDidUpdate(prevProps, prevState) {
+		const { isMobileSite, isFocused } = this.props
+		if (prevProps.isMobileSite !== isMobileSite) {
+			this.dragInstances.forEach((i) => i[0].enabled(!isMobileSite))
+			if (isMobileSite) {
+				if (isFocused && !this.state.isMaximized) this.maximize()
+				if (!this.state.isMobileWindow) this.setState({ isMobileWindow: true })
+			}
+		}
+		this.handleViewportResizeThrottled()
+	}
+
+	genDraggables = () => {
 		const { id, focusApp, minWindowCSS, isMobileSite } = this.props
 		const wdowEle = this.rootRef.current
 		const wdow = this
@@ -217,14 +245,7 @@ export default class Window extends React.Component {
 			onRelease: () => {
 				wdow.draggableWindow[0].update(true)
 				wdow.setLastWindowedCSS()
-			},
-			liveSnap: {
-				x: function (x) {
-					return Math.round(x)
-				},
-				y: function (y) {
-					return Math.round(y)
-				},
+				wdow.preventSubpixelValues()
 			},
 			allowContextMenu: true,
 		})
@@ -244,8 +265,10 @@ export default class Window extends React.Component {
 				onRelease: () => {
 					wdow.draggableWindow[0].enable()
 					wdow.setLastWindowedCSS()
+					wdow.preventSubpixelValues()
 				},
 				onDrag: function () {
+					vars.onDrag(this, wdow.data.css.windowed)
 					wdow.data.css.current.width = wdow.data.css.windowed.width
 					wdow.data.css.current.height = wdow.data.css.windowed.height
 					wdow.handleViewportResizeThrottled()
@@ -254,6 +277,7 @@ export default class Window extends React.Component {
 			})
 		}
 
+		// GSAP quick setters have better performance than the traditional gsap.set()
 		const qsWidth = gsap.quickSetter(wdowEle, "width", "px")
 		const qsHeight = gsap.quickSetter(wdowEle, "height", "px")
 		const qs = gsap.quickSetter(wdowEle, "css")
@@ -267,8 +291,8 @@ export default class Window extends React.Component {
 					const nextHeightBelowMin = wdowCSS.height - drag.deltaY < minWindowCSS.height
 					const nextHeightAboveMax = wdowCSS.height - drag.deltaY > drag.maxY
 
-					if (nextHeightBelowMin) drag.deltaY = Math.round(wdowCSS.height - minWindowCSS.height)
-					else if (nextHeightAboveMax) drag.deltaY = Math.round(drag.maxY - wdowCSS.height)
+					if (nextHeightBelowMin) drag.deltaY = wdowCSS.height - minWindowCSS.height
+					else if (nextHeightAboveMax) drag.deltaY = drag.maxY - wdowCSS.height
 					wdowCSS.height -= drag.deltaY
 
 					qsHeight(wdowCSS.height)
@@ -310,9 +334,8 @@ export default class Window extends React.Component {
 					const nextWidthBelowMin = wdowCSS.width - drag.deltaX < minWindowCSS.width
 					const nextWidthAboveMax = wdowCSS.width - drag.deltaX > drag.maxX
 
-					if (nextWidthBelowMin) drag.deltaX = Math.round(wdowCSS.width - minWindowCSS.width)
-					else if (nextWidthAboveMax) drag.deltaX = Math.round(wdowCSS.width - drag.maxX)
-
+					if (nextWidthBelowMin) drag.deltaX = wdowCSS.width - minWindowCSS.width
+					else if (nextWidthAboveMax) drag.deltaX = wdowCSS.width - drag.maxX
 					wdowCSS.width -= drag.deltaX
 
 					qsWidth(wdowCSS.width)
@@ -320,35 +343,7 @@ export default class Window extends React.Component {
 				},
 			}),
 		]
-
-		this.enterAnim()
-
 		if (isMobileSite) this.dragInstances.forEach((i) => i[0].disable())
-		window.addEventListener("resize", this.handleViewportResizeThrottled)
-		window.addEventListener("beforeunload", this.save)
-		this.handleViewportResize()
-	}
-
-	componentWillUnmount() {
-		this.handleViewportResizeThrottled.cancel()
-		window.removeEventListener("resize", this.handleViewportResizeThrottled)
-		window.removeEventListener("beforeunload", this.save)
-		if (this.dragInstances) this.dragInstances.forEach((i) => i[0].kill())
-		this.handleExit()
-	}
-
-	componentDidUpdate(prevProps, prevState) {
-		const { isMobileSite, isFocused } = this.props
-		if (prevProps.isMobileSite !== isMobileSite) {
-			this.dragInstances.forEach((i) => i[0].enabled(!isMobileSite))
-			if (isMobileSite) {
-				if (isFocused && !this.state.isMaximized) this.maximize()
-				else if (!this.state.isMinimized && !isFocused) this.minimize(["skipFocusBelowApp"])
-				if (!this.state.isMobileWindow) this.setState({ isMobileWindow: true })
-			}
-		}
-		if (!prevProps.isFocused && isFocused && this.state.isMinimized) this.restore()
-		this.handleViewportResizeThrottled()
 	}
 
 	save = () => {
@@ -375,10 +370,8 @@ export default class Window extends React.Component {
 	minimize = (extraVars = {}) => {
 		if (this.state.isMinimized) return
 
-		const { isFocused, focusBelowApp, zIndex } = this.props
 		this.animate({ ...this.data.css.minimized, ...extraVars })
 		this.setState({ isMinimized: true, isWindowed: false })
-		if (isFocused) focusBelowApp(zIndex)
 	}
 
 	toggleMinimize = () => {
@@ -390,7 +383,7 @@ export default class Window extends React.Component {
 	restore = (extraVars = {}) => {
 		const { isMinimized, isWindowed, isMaximized } = this.state
 		if (isWindowed) return
-		if (isMinimized && isMaximized) {
+		if ((isMinimized && isMaximized) || (this.props.isMobileSite && isMinimized)) {
 			this.maximize()
 			return
 		}
@@ -409,16 +402,54 @@ export default class Window extends React.Component {
 		else this.maximize()
 	}
 
+	// Chrome bug causes children to become blurry on parent transforms that end in subpixel values.
+	// Have to round all values at the end of animations/drags.
+	preventSubpixelValues = () => {
+		if (!this.state.isWindowed) return
+
+		const wdowStyles = new Styles(this.rootRef.current)
+		const matrix = wdowStyles.get("transform")
+		const top = wdowStyles.get("top")
+		const left = wdowStyles.get("left")
+
+		const transform = { x: Math.round(matrix[matrix.length - 2]), y: Math.round(matrix[matrix.length - 1]) }
+		const { width, height } = getRect(this.rootRef.current)
+
+		const roundedVars = {
+			...transform,
+			top: Math.round(top),
+			left: Math.round(left),
+			width: Math.round(width),
+			height: Math.round(height),
+		}
+		this.data.css.windowed = {
+			...this.data.css.windowed,
+			...roundedVars,
+		}
+		this.data.css.current = {
+			...this.data.css.current,
+			...roundedVars,
+		}
+
+		gsap.set(this.rootRef.current, roundedVars)
+	}
+
 	animate = (tweenVars) => {
 		this.setLastWindowedCSS()
 		if (!this.props.isFocused) this.props.focusApp(this.props.id)
 		const wdow = this
 		gsap.to(wdow.rootRef.current, {
 			...tweenVars,
-			snap: "top,left,height,width,x,y",
+			onStart: () => {
+				wdow.draggableWindow[0].disable()
+				wdow.dragInstances.forEach((i) => i[0].disable())
+			},
 			onComplete: () => {
 				// Prevent error if scale of element is 0.
 				if (!wdow.state.isMinimized) wdow.draggableWindow[0].update(true)
+				wdow.draggableWindow[0].enable()
+				wdow.dragInstances.forEach((i) => i[0].enable())
+				wdow.preventSubpixelValues()
 			},
 			onUpdate: function () {
 				wdow.data.css.current.width = this._targets[0].offsetWidth
@@ -432,10 +463,11 @@ export default class Window extends React.Component {
 		if (!this.state.isWindowed || gsap.isTweening(this.rootRef.current)) return
 
 		this.draggableWindow[0].update(true)
+		const wdowStyles = new Styles(this.rootRef.current)
 		this.data.css.windowed = {
 			...this.data.css.windowed,
-			top: getStyleProperty(this.rootRef.current, "top", { parse: true })?.[0],
-			left: getStyleProperty(this.rootRef.current, "left", { parse: true })?.[0],
+			top: wdowStyles.get("top"),
+			left: wdowStyles.get("left"),
 			x: this.draggableWindow[0].x,
 			y: this.draggableWindow[0].y,
 		}
@@ -493,7 +525,6 @@ export default class Window extends React.Component {
 					>
 						<div>{title}</div>
 						<div style={{ display: "flex", marginLeft: "auto" }}>
-							<Button onClick={this.preventSubpixelValues}>?</Button>
 							<Button onClick={() => this.minimize()} svg={MinimizeSVG} className="check-contrast" />
 							<Button
 								onClick={this.toggleMaximize}

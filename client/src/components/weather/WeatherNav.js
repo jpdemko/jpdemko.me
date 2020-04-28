@@ -12,7 +12,7 @@ import WeatherIcon from "./WeatherIcon"
 /* --------------------------------- STYLES --------------------------------- */
 
 const DesktopNav = styled.div`
-	flex: 1 1 auto;
+	flex: 0 0 auto;
 	${({ theme }) => css`
 		border-right: 1px solid ${theme.accent};
 	`}
@@ -89,7 +89,7 @@ function WeatherNav({
 	locations,
 	onLocationFound,
 	getTemp,
-	flipMetric,
+	setIsMetric,
 	isMetric,
 	removeLocation,
 	...props
@@ -130,7 +130,7 @@ function WeatherNav({
 				})}
 			</LocationsList>
 			<Footer>
-				<Button variant="fancy" onClick={flipMetric}>
+				<Button variant="fancy" onClick={() => setIsMetric((prev) => !prev)}>
 					{isMetric ? "Switch to Fahrenheit" : "Switch to Celsius"}
 				</Button>
 			</Footer>

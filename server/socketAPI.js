@@ -52,12 +52,12 @@ module.exports = function (io, sessionMiddleware, db) {
 					rooms: [],
 					name,
 				}
-				db.query("SELECT uid FROM users WHERE username = $1", [name], function (selectErr, selectRes) {
+				db.query("SELECT uid FROM users WHERE uname = $1", [name], function (selectErr, selectRes) {
 					if (selectErr) {
 						clientCB({ error: `SERVER ERROR - IO SETUP USER - DB SELECT ERROR: ${selectErr}` })
 					} else if (selectRes.rows.length === 0) {
 						// If you can't find the user, create a row for them in the DB.
-						db.query("INSERT INTO users(username) VALUES($1) RETURNING *", [name], function (
+						db.query("INSERT INTO users(uname) VALUES($1) RETURNING *", [name], function (
 							insertErr,
 							insertRes
 						) {
@@ -79,10 +79,11 @@ module.exports = function (io, sessionMiddleware, db) {
 		})
 
 		socket.on("joinRoom", function ({ username, roomName, password: roomPassword, lastMsgTS }, clientCB) {
-			if (!roomName || !username) {
+			const user = users[username]
+			if (!roomName || !user) {
+				console.log(username, user, roomName)
 				return clientCB({ error: "SERVER ERROR - IO JOIN ROOM - INVALID VARS" })
 			}
-			const user = users[username]
 			let room = rooms[roomName]
 			if (room) {
 				if (room.users.find((u) => u.socketID === socket.id)) {
@@ -102,10 +103,10 @@ module.exports = function (io, sessionMiddleware, db) {
 			user.rooms.push(roomName)
 			room.users.push(user)
 
-			const getRoomMsgsQuery = `SELECT u.username, m.mid, m.message, m.msg_created_at, m.author
+			const getRoomMsgsQuery = `SELECT u.uname, m.mid, m.message, m.created_at, m.author
 				FROM messages m INNER JOIN users u ON m.author = u.uid
-				WHERE m.room = $1 AND m.msg_created_at > ${lastMsgTS ? "$2" : "NOW() - INTERVAL '60 DAYS'"}
-				ORDER BY m.msg_created_at ASC`
+				WHERE m.room = $1 AND m.created_at > ${lastMsgTS ? "$2" : "NOW() - INTERVAL '60 DAYS'"}
+				ORDER BY m.created_at ASC`
 			const getRoomMsgsParams = [roomName, ...(lastMsgTS ? [lastMsgTS] : [])]
 			db.query(getRoomMsgsQuery, getRoomMsgsParams, function (selectErr, selectRes) {
 				if (selectErr) {

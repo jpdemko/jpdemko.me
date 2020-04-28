@@ -27,19 +27,6 @@ const AllowedDragArea = styled.div`
 	overflow: hidden;
 `
 
-// const Background = styled.div`
-// 	position: absolute;
-// 	z-index: -1;
-// 	top: 0;
-// 	left: 0;
-// 	height: 100%;
-// 	width: 100%;
-// 	opacity: 0.8;
-// 	${({ theme }) => css`
-// 		background-color: ${theme.background};
-// 	`}
-// `
-
 const DiagonalBG = styled.div`
 	height: 100%;
 	width: 100%;
@@ -186,37 +173,45 @@ class Display extends React.Component {
 			curOpenApp.windowRef.current.toggleMinimize()
 			return
 		}
-		let nextOpenedApps = [...openedApps] // Copy currently opened apps array.
-		nextOpenedApps.forEach((app) => (app.isFocused = false)) // New app is focused, old ones aren't.
-		nextOpenedApps.push(this.genApp(title)) // Add new app data to opened apps array copy.
+		let nextOpenedApps = [...openedApps]
+		nextOpenedApps.forEach((app) => (app.isFocused = false))
+		nextOpenedApps.push(this.genApp(title))
 		this.setState({ openedApps: nextOpenedApps })
 	}
 
 	closeApp = (curAppID) => {
-		// Don't need to 'focusBelowApp' since 'minimize()' will call it from the Window component.
+		const { openedApps } = this.state
+		this.focusBelowApp(openedApps.find((app) => app.id === curAppID)?.zIndex)
 		this.setState((prevState) => ({
 			openedApps: prevState.openedApps.filter((app) => app.id !== curAppID),
 		}))
 	}
 
 	handleHomeButton = () => {
-		this.state.openedApps.forEach((app) => app.windowRef.current.minimize())
+		const { openedApps } = this.state
+		openedApps.forEach((app) => app.windowRef.current.minimize({ focusBelow: false }))
+		const nextOpenedApps = openedApps.map((app) => {
+			app.isFocused = false
+			return app
+		})
+		this.setState({ openedApps: nextOpenedApps })
 	}
 
 	focusBelowApp = (curAppZ) => {
-		const openedApps = [...this.state.openedApps]
+		const { openedApps } = this.state
+		if (!curAppZ || openedApps?.length < 2) return
 		let belowApp = null
 		openedApps.forEach((app) => {
 			if (app.windowRef.current.state.isMinimized) return
 			else if (!belowApp && app.zIndex < curAppZ) belowApp = app
 			else if (belowApp && app.zIndex < curAppZ && app.zIndex > belowApp.zIndex) belowApp = app
 		})
-		return this.focusApp(belowApp ? belowApp.id : -1)
+		this.focusApp(belowApp?.id)
 	}
 
 	focusApp = (curAppID) => {
-		const curApp = this.state.openedApps.find((app) => app.id === curAppID)
-		if (curApp && curApp.isFocused) return false
+		const targetApp = this.state.openedApps.find((app) => app.id === curAppID)
+		if (!targetApp || targetApp?.isFocused) return false
 
 		let matched = false
 		const nextOpenedApps = [...this.state.openedApps].map((app) => {
@@ -242,8 +237,6 @@ class Display extends React.Component {
 	render() {
 		return (
 			<Root>
-				{/* SVG pattern loaded inline because of styled-components Firefox bug which causes flickering? */}
-				{/* <Background style={{ backgroundImage: `url(${TopographySVG})` }} /> */}
 				<DiagonalBG>
 					<div />
 				</DiagonalBG>
@@ -280,7 +273,6 @@ class Display extends React.Component {
 								minWindowCSS={minWindowCSS}
 								closeApp={this.closeApp}
 								focusApp={this.focusApp}
-								focusBelowApp={this.focusBelowApp}
 								zIndex={app.zIndex}
 							>
 								<AppNav
