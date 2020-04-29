@@ -6,26 +6,31 @@ import { Transition } from "react-transition-group"
 
 const Root = styled.div`
 	position: absolute;
-	z-index: 150000;
 	top: 0;
-	right: 0;
-	bottom: 0;
 	left: 0;
 	height: 100%;
 	width: 100%;
-	${({ isShown, animDuration, theme }) => css`
+	z-index: -1;
+	opacity: 0;
+	${({ animDuration, theme }) => css`
 		background: ${theme.background};
 		transition: ${animDuration}s;
-		opacity: ${isShown ? 0.6 : 0};
 	`};
 `
 
+const tgBackdropStyles = {
+	entering: { opacity: 0.7, zIndex: 150000 },
+	entered: { opacity: 0.7, zIndex: 150000 },
+	exiting: { opacity: 0, zIndex: -1 },
+	exited: { opacity: 0, zIndex: -1 },
+}
+
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function Backdrop({ isShown = false, animDuration = 0.5, ...props }) {
+function Backdrop({ isShown = false, animDuration = 0.4, ...props }) {
 	return (
-		<Transition timeout={animDuration * 1000} in={isShown} unmountOnExit>
-			<Root isShown={isShown} animDuration={animDuration} {...props} />
+		<Transition timeout={animDuration * 1000} in={isShown}>
+			{(state) => <Root {...props} animDuration={animDuration} style={{ ...tgBackdropStyles[state] }} />}
 		</Transition>
 	)
 }

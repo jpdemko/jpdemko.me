@@ -5,6 +5,7 @@ import styled, { css } from "styled-components/macro"
 
 import { Contexts } from "../../shared/shared"
 import Button from "../ui/Button"
+import Modal from "../ui/Modal"
 import { Input } from "../ui/IO"
 import { ReactComponent as CloseSVG } from "../../shared/assets/icons/close.svg"
 import { ReactComponent as ArrowRightSVG } from "../../shared/assets/icons/arrow-right.svg"
@@ -31,8 +32,6 @@ const List = styled.div`
 		margin: var(--drawer-padding);
 	}
 `
-
-const Row = styled.div``
 
 const Room = styled(Button)`
 	button {
@@ -66,7 +65,6 @@ const ModalRoot = styled.div`
 	--modal-padding: 0.5em;
 	min-width: max-content;
 	padding: var(--modal-padding) calc(var(--modal-padding) * 2);
-	font-size: 1.1em;
 	div {
 		padding: var(--modal-padding);
 	}
@@ -74,9 +72,6 @@ const ModalRoot = styled.div`
 		background: ${theme.altBackground};
 		border: 1px solid ${theme.accent};
 		color: ${theme.contrast};
-		span {
-			color: ${theme.highlight};
-		}
 	`}
 `
 
@@ -86,70 +81,46 @@ const Empha = styled.span`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function ChatNav({ roomsData, curRoom, joinRoom, leaveRoom, user }) {
+function ChatNav({ roomsData, curRoom, createRoom, joinRoom, leaveRoom, user }) {
 	const isMobileWindow = React.useContext(Contexts.IsMobileWindow)
-	const { setDrawerContent, setModalContent, toggleModal } = React.useContext(Contexts.AppNav)
+	const { setDrawerContent } = React.useContext(Contexts.AppNav)
 
-	const [roomName, setRoomName] = React.useState("")
-	const [roomPassword, setRoomPassword] = React.useState("")
+	const [rname, setRName] = React.useState("")
+	const [password, setPassword] = React.useState("")
+	const [rid, setRID] = React.useState("")
 
-	const inputRef = React.useRef()
-	function extendToggleModal() {
-		toggleModal(inputRef)
-	}
+	const [modalShown, setModalShown] = React.useState(false)
+	const [createConfig, setCreateConfig] = React.useState(true)
 
-	function submitJoinRoomForm(e) {
-		e.preventDefault()
-		joinRoom({ name: roomName, password: roomPassword })
-			.then((res) => {
-				// Probably should change the UI response to errors. Pretty scuffed.
-				console.log("joinRoom() from <ChatNav /> success? ", res)
-				setRoomName("")
-				extendToggleModal()
-			})
-			.catch((err) => {
-				console.log(err)
-				setRoomName(err)
-				setRoomPassword("")
-			})
-	}
-
-	function joinPrevRoom(room) {
-		joinRoom(room, true).then(console.log).catch(console.log)
-	}
-
-	const modalContent = (
+	const createRoomModalRef = React.useRef()
+	const createRoomModal = (
 		<ModalRoot>
-			<form onSubmit={submitJoinRoomForm}>
+			<form onSubmit={submitCreateRoom}>
 				<div>
-					<Empha>Join room config!</Empha>
+					<Empha>Create room config!</Empha>
+				</div>
+				<label>
+					<span>Room name:</span>
 					<br />
-					If room doesn't exist it will be created.
-				</div>
-				<div>
-					<label>
-						<span>Room name:</span>
-						<br />
-						<Input
-							type="text"
-							placeholder="Room name required!"
-							value={roomName}
-							onChange={(e) => setRoomName(e.target.value)}
-							required
-							minLength="1"
-							ref={inputRef}
-						/>
-					</label>
-				</div>
+					<Input
+						type="text"
+						placeholder="Room name required..."
+						value={rname}
+						onChange={(e) => setRName(e.target.value)}
+						minLength="1"
+						required
+						ref={createRoomModalRef}
+					/>
+				</label>
 				<div>
 					<label>
 						<span>Room password:</span>
 						<br />
 						<Input
 							type="password"
-							value={roomPassword}
-							placeholder="Password field."
-							onChange={(e) => setRoomPassword(e.target.value)}
+							placeholder="Optional room password..."
+							value={password}
+							onChange={(e) => setPassword(e.target.value)}
 							minLength="6"
 						/>
 					</label>
@@ -162,7 +133,85 @@ function ChatNav({ roomsData, curRoom, joinRoom, leaveRoom, user }) {
 			</form>
 		</ModalRoot>
 	)
-	React.useEffect(() => setModalContent(modalContent))
+
+	const joinRoomModalRef = React.useRef()
+	const joinRoomModal = (
+		<ModalRoot>
+			<form onSubmit={submitJoinRoom}>
+				<div>
+					<Empha>Join room config!</Empha>
+				</div>
+				<label>
+					<span>Join room ID#:</span>
+					<br />
+					<Input
+						type="text"
+						placeholder="Room ID# required..."
+						value={rid}
+						onChange={(e) => setRID(e.target.value)}
+						minLength="1"
+						required
+						ref={joinRoomModalRef}
+					/>
+				</label>
+				<div>
+					<label>
+						<span>Does target room have password?</span>
+						<br />
+						<Input
+							type="password"
+							value={password}
+							onChange={(e) => setPassword(e.target.value)}
+							minLength="6"
+						/>
+					</label>
+				</div>
+				<div>
+					<Button type="submit" variant="fancy">
+						Submit
+					</Button>
+				</div>
+			</form>
+		</ModalRoot>
+	)
+
+	function togCreateRoomModal() {
+		setCreateConfig(true)
+		setModalShown(true)
+	}
+	function togJoinRoomModal() {
+		setCreateConfig(false)
+		setModalShown(true)
+	}
+
+	function submitJoinRoom(e) {
+		e.preventDefault()
+		const checkRID = rid ? Number.parseInt(rid) : rid
+		const vars = { rid: checkRID, password }
+		// console.log("submitRoom() vars: ", vars)
+		joinRoom(vars)
+			.then(() => setModalShown(false))
+			.catch(console.log)
+			.finally(() => {
+				setRID("")
+				setPassword("")
+			})
+	}
+
+	function submitCreateRoom(e) {
+		e.preventDefault()
+		createRoom({ rname, password })
+			.then(() => setModalShown(false))
+			.catch(console.log)
+			.finally(() => {
+				setRName("")
+				setPassword("")
+			})
+	}
+
+	function joinPrevRoom(room) {
+		joinRoom(room).then(console.log).catch(console.log)
+	}
 
 	const drawerContent = (
 		<DrawerRoot>
@@ -170,18 +219,18 @@ function ChatNav({ roomsData, curRoom, joinRoom, leaveRoom, user }) {
 				{roomsData &&
 					curRoom &&
 					roomsData?.map((r) => (
-						<React.Fragment key={r.name}>
+						<React.Fragment key={r.rid}>
 							<div>
 								<Room
 									svg={ArrowRightSVG}
-									isFocused={r.name === curRoom.name}
+									isFocused={r.rid === curRoom.rid}
 									onClick={() => joinPrevRoom(r)}
 								>
-									{r.name}
+									{r.name} #{r.rid}
 								</Room>
-								<Close svg={CloseSVG} color="red" onClick={() => leaveRoom(r.name)} />
+								<Close svg={CloseSVG} color="red" onClick={() => leaveRoom(r.rid)} />
 							</div>
-							{r.name === curRoom.name &&
+							{r.rid === curRoom.name &&
 								curRoom?.users?.map((u) => (
 									<div key={u.uid}>
 										<User svg={UserSVG} isFocused={u.name === user.name}>
@@ -193,7 +242,10 @@ function ChatNav({ roomsData, curRoom, joinRoom, leaveRoom, user }) {
 					))}
 			</List>
 			<Footer>
-				<Button variant="fancy" onClick={extendToggleModal}>
+				<Button variant="fancy" onClick={togCreateRoomModal}>
+					Create Room
+				</Button>
+				<Button variant="fancy" onClick={togJoinRoomModal}>
 					Join Room
 				</Button>
 			</Footer>
@@ -201,7 +253,14 @@ function ChatNav({ roomsData, curRoom, joinRoom, leaveRoom, user }) {
 	)
 	React.useEffect(() => setDrawerContent(drawerContent))
 
-	return !isMobileWindow && drawerContent
+	return (
+		<>
+			<Modal isShown={modalShown} onClose={() => setModalShown(false)}>
+				{createConfig ? createRoomModal : joinRoomModal}
+			</Modal>
+			{!isMobileWindow && drawerContent}
+		</>
+	)
 }
 
 export default ChatNav

@@ -34,14 +34,27 @@ CREATE TABLE rooms_users (
 
 CREATE TABLE messages (
 	mid BIGSERIAL PRIMARY KEY,
-	author INT NOT NULL REFERENCES users(uid),
-	room INT NOT NULL REFERENCES rooms(rid),
+	uid INT NOT NULL REFERENCES users(uid),
+	rid INT NOT NULL REFERENCES rooms(rid),
 	message TEXT NOT NULL,
 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX msg_author ON messages(author);
-CREATE INDEX msg_in ON messages(room);
+CREATE INDEX msg_author ON messages(uid);
+CREATE INDEX msg_in ON messages(rid);
+
+--
+
+CREATE TABLE "session" (
+  "sid" varchar NOT NULL COLLATE "default",
+	"sess" json NOT NULL,
+	"expire" timestamp(6) NOT NULL
+)
+WITH (OIDS=FALSE);
+
+ALTER TABLE "session" ADD CONSTRAINT "session_pkey" PRIMARY KEY ("sid") NOT DEFERRABLE INITIALLY IMMEDIATE;
+
+CREATE INDEX "IDX_session_expire" ON "session" ("expire");
 
 --
 

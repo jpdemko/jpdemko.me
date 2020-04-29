@@ -120,7 +120,6 @@ class Display extends React.Component {
 		this.setGridDims()
 		window.addEventListener("resize", this.setGridDimsThrottled)
 		window.addEventListener("beforeunload", this.save)
-		gsap.set(this.dragAreaRef.current, { css: { perspective: 600 } })
 	}
 
 	componentWillUnmount() {
@@ -206,15 +205,19 @@ class Display extends React.Component {
 			else if (!belowApp && app.zIndex < curAppZ) belowApp = app
 			else if (belowApp && app.zIndex < curAppZ && app.zIndex > belowApp.zIndex) belowApp = app
 		})
+		console.log("focusBelowApp() target: ", belowApp?.title)
 		this.focusApp(belowApp?.id)
 	}
 
 	focusApp = (curAppID) => {
 		const targetApp = this.state.openedApps.find((app) => app.id === curAppID)
-		if (!targetApp || targetApp?.isFocused) return false
+		if (targetApp?.isFocused) {
+			console.log("focusApp() targetApp.isFocused: ", targetApp?.isFocused)
+			return false
+		}
 
 		let matched = false
-		const nextOpenedApps = [...this.state.openedApps].map((app) => {
+		const nextOpenedApps = this.state.openedApps.map((app) => {
 			matched = app.id === curAppID
 			return {
 				...app,
@@ -222,6 +225,7 @@ class Display extends React.Component {
 				zIndex: matched ? ++this.zIndexLeader : app.zIndex,
 			}
 		})
+		// console.log("focusApp() targetApp.isFocused: ", targetApp?.isFocused)
 		this.setState({
 			openedApps: nextOpenedApps,
 			...(!matched && { mainNavBurgerCB: null }),
@@ -274,6 +278,7 @@ class Display extends React.Component {
 								closeApp={this.closeApp}
 								focusApp={this.focusApp}
 								zIndex={app.zIndex}
+								focusBelowApp={this.focusBelowApp}
 							>
 								<AppNav
 									isFocused={app.isFocused}

@@ -1,5 +1,6 @@
 import * as React from "react"
 import styled, { css } from "styled-components/macro"
+import { Transition } from "react-transition-group"
 
 import { useOnClickOutside } from "../../shared/hooks"
 import Backdrop from "../ui/Backdrop"
@@ -13,17 +14,29 @@ const Center = styled.div`
 	display: flex;
 	justify-content: center;
 	align-items: center;
+	z-index: -1;
 `
 
 const Root = styled.div`
-	position: relative;
-	${({ isShown, animDuration }) => css`
+	transform: "scale(0)";
+	${({ animDuration }) => css`
 		transition: ${animDuration}s;
-		z-index: ${isShown ? 250000 : -1};
-		opacity: ${isShown ? 1 : 0};
-		transform: ${isShown ? "scale(1)" : "scale(0)"};
 	`}
 `
+
+const tgRootStyles = {
+	entering: { opacity: 0.7, transform: "scale(1)" },
+	entered: { opacity: 0.7, transform: "scale(1)" },
+	exiting: { opacity: 0, transform: "scale(0)" },
+	exited: { opacity: 0, transform: "scale(0)" },
+}
+
+const tgCenterStyles = {
+	entering: { zIndex: 200000 },
+	entered: { zIndex: 200000 },
+	exiting: { zIndex: 200000 },
+	exited: { zIndex: -1 },
+}
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
@@ -36,11 +49,20 @@ function Modal({ animDuration = 0.4, isShown = false, onClose, children, ...prop
 
 	return (
 		<>
-			<Center>
-				<Root {...props} ref={modalRef} animDuration={animDuration} isShown={isShown}>
-					{children}
-				</Root>
-			</Center>
+			<Transition timeout={animDuration * 1000} in={isShown}>
+				{(state) => (
+					<Center style={{ ...tgCenterStyles[state] }}>
+						<Root
+							{...props}
+							ref={modalRef}
+							animDuration={animDuration}
+							style={{ ...tgRootStyles[state] }}
+						>
+							{children}
+						</Root>
+					</Center>
+				)}
+			</Transition>
 			<Backdrop animDuration={animDuration} isShown={isShown} />
 		</>
 	)

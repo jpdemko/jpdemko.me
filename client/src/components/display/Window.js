@@ -372,6 +372,7 @@ export default class Window extends React.Component {
 
 		this.animate({ ...this.data.css.minimized, ...extraVars })
 		this.setState({ isMinimized: true, isWindowed: false })
+		this.props.focusBelowApp(this.props.zIndex)
 	}
 
 	toggleMinimize = () => {
@@ -388,11 +389,13 @@ export default class Window extends React.Component {
 			return
 		}
 
+		if (!this.props.isFocused) this.props.focusApp(this.props.id)
 		this.animate({ ...this.data.css.windowed, ...extraVars })
 		this.setState({ isMinimized: false, isWindowed: true, isMaximized: false })
 	}
 
 	maximize = (extraVars = {}) => {
+		if (!this.props.isFocused) this.props.focusApp(this.props.id)
 		this.animate({ ...this.data.css.maximized, ...extraVars })
 		this.setState({ isMinimized: false, isWindowed: false, isMaximized: true })
 	}
@@ -436,7 +439,7 @@ export default class Window extends React.Component {
 
 	animate = (tweenVars) => {
 		this.setLastWindowedCSS()
-		if (!this.props.isFocused) this.props.focusApp(this.props.id)
+		// if (!this.props.isFocused) this.props.focusApp(this.props.id)
 		const wdow = this
 		gsap.to(wdow.rootRef.current, {
 			...tweenVars,

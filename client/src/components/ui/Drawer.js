@@ -9,26 +9,29 @@ import Backdrop from "./Backdrop"
 
 const Root = styled.div`
 	position: absolute;
-	z-index: 150001;
+	z-index: 175000;
 	top: 0;
 	bottom: 0;
 	max-width: 90%;
 	height: 100%;
+	> div {
+		height: 100%;
+		overflow-x: hidden;
+		overflow-y: auto;
+	}
 	${({ isShown, animDuration, side, theme }) => css`
-		left: ${side === "left" ? 0 : "none"};
-		right: ${side === "left" ? "none" : 0};
+		${side === "left" ? "left: 0;" : "right: 0;"}
 		border-${side === "left" ? "right" : "left"}: 1px solid ${theme.accent};
 		background-color: ${theme.background};
 		color: ${theme.contrast};
-		transition: ${animDuration}s;
+		transition: transform ${animDuration}s ${isShown ? "ease-out" : "ease-in"};
 		transform: ${isShown ? safeTranslate("0, 0") : safeTranslate(`${side === "left" ? "-" : ""}100%, 0`)};
-		opacity: ${isShown ? 1 : 0};
 	`}
 `
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function Drawer({ isShown = false, onClose, animDuration = 0.5, side = "left", children, ...props }) {
+function Drawer({ isShown = false, onClose, animDuration = 0.4, side = "left", children, ...props }) {
 	const drawerRef = React.useRef()
 
 	// 'useOnClickOutside()' will keep creating/removing event handlers on each render unless this is done.

@@ -26,20 +26,7 @@ function AppNav({ app, isFocused, isMobileSite, setMainNavBurgerCB }) {
 	const [drawerContent, setDrawerContent] = React.useState(null)
 	const [drawerOpened, setDrawerOpened] = React.useState(false)
 
-	const [modalContent, setModalContent] = React.useState()
-	const [modalShown, setModalShown] = React.useState(false)
-
 	const [isLoading, setIsLoading] = React.useState(false)
-
-	// Can't think of a good way to focus something in an App's modal without knowing whether the
-	// modal is shown or not. Currently the modal content is constantly being set so you wouldn't know
-	// an appropriate time to change the user's currently focused element.
-	const modalShownRef = React.useRef(false)
-	function toggleModal(ref) {
-		modalShownRef.current = !modalShownRef.current
-		if (modalShownRef.current && ref) ref.current.focus()
-		setModalShown(modalShownRef.current)
-	}
 
 	// Prevents possible UI confusion where if the app's drawer is open in mobile and the layout switches
 	// to desktop there could be two navs open if the app implements a visible desktop one.
@@ -53,7 +40,7 @@ function AppNav({ app, isFocused, isMobileSite, setMainNavBurgerCB }) {
 	// - prevents drawer opening if not focused
 	const tempDisabledRef = React.useRef(false)
 	const isFocusedRef = useUpdatedValRef(isFocused)
-	const toggleMobileMenu = React.useCallback(() => {
+	const toggleDrawer = React.useCallback(() => {
 		if (!tempDisabledRef.current && isFocusedRef.current) {
 			tempDisabledRef.current = true
 			setDrawerOpened((prev) => !prev)
@@ -67,18 +54,16 @@ function AppNav({ app, isFocused, isMobileSite, setMainNavBurgerCB }) {
 	const appNavContextCallbacks = React.useMemo(
 		() => ({
 			setDrawerContent,
-			toggleMobileMenu,
-			setModalContent,
-			toggleModal,
+			toggleDrawer,
 			setIsLoading,
 		}),
-		[toggleMobileMenu]
+		[toggleDrawer]
 	)
 
 	// Sets the appropriate callback for the global nav/taskbar mobile menu nav button.
 	React.useEffect(() => {
-		if (isFocused && drawerContent) setMainNavBurgerCB(toggleMobileMenu)
-	}, [isFocused, drawerContent, setMainNavBurgerCB, toggleMobileMenu])
+		if (isFocused && drawerContent) setMainNavBurgerCB(toggleDrawer)
+	}, [isFocused, drawerContent, setMainNavBurgerCB, toggleDrawer])
 
 	// Prevent renders for apps. They only care about context which will override memo.
 	const memoApp = React.useMemo(() => <app.class />, [])
@@ -89,15 +74,12 @@ function AppNav({ app, isFocused, isMobileSite, setMainNavBurgerCB }) {
 	if (app && (!app.class.shared.authRequired || (app.class.shared.authRequired && authContext.isAuthed))) {
 		return (
 			<>
-				<Drawer side="right" isShown={drawerOpened} onClose={toggleMobileMenu}>
+				<Drawer side="right" isShown={drawerOpened} onClose={toggleDrawer}>
 					{drawerContent}
 				</Drawer>
 				{isMobileWindow && !isMobileSite && drawerContent && (
-					<MobileHamburgerButton variant="fancy" onClick={toggleMobileMenu} svg={MenuSVG} />
+					<MobileHamburgerButton variant="fancy" onClick={toggleDrawer} svg={MenuSVG} />
 				)}
-				<Modal isShown={modalShown} onClose={toggleModal}>
-					{modalContent}
-				</Modal>
 				<Loading isLoading={isLoading} />
 				<Contexts.AppNav.Provider value={appNavContextCallbacks}>{memoApp}</Contexts.AppNav.Provider>
 			</>

@@ -58,7 +58,7 @@ const radar = {
 }
 
 function Weather({ ...props }) {
-	const { toggleMobileMenu, setIsLoading } = React.useContext(Contexts.AppNav)
+	const { toggleDrawer, setIsLoading } = React.useContext(Contexts.AppNav)
 	const [curLocation, setCurLocation] = useLocalStorage("curLocation")
 	const [locations, setLocations] = useLocalStorage("locations", [])
 
@@ -152,7 +152,7 @@ function Weather({ ...props }) {
 					setLocations([...locationsCopy, newLocation])
 					setCurLocation(newLocation)
 					mapLoadLocation(mapData)
-					toggleMobileMenu()
+					toggleDrawer()
 				})
 				.catch(console.log)
 		}

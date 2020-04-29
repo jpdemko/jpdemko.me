@@ -36,89 +36,105 @@ module.exports = function (io, sessionMiddleware, db) {
 	io.on("connection", function (socket) {
 		console.log(`socket#${socket.id} connected`)
 
-		socket.on("setupUser", function (name, clientCB) {
-			if (!name) return clientCB({ error: "SERVER ERROR - IO SETUP USER - NO USERNAME GIVEN" })
-			let user = users[name]
+		socket.on("setupUser", async function (uname, clientCB) {
+			if (!uname) return clientCB({ error: "server error - setupUser() - bad params" })
+
+			const uid = Object.keys(users).find((uid) => users[uid].uname === uname)
+			let user = users[uid]
 			if (user && user.socketID === socket.id) {
 				// Handle same user.
-				clientCB({ success: "SERVER SUCCESS - IO SETUP USER - YOU'RE ALREADY SETUP", user })
-			} else if (user && user.socketID && user.socketID !== socket.id) {
+				clientCB({ success: "server success - setupUser() - you're already setup", user })
+			} else if (user && user.socketID !== socket.id) {
 				// New user trying to get taken name.
-				clientCB({ error: "SERVER ERROR - IO SETUP USER - USERNAME ALREADY TAKEN" })
+				clientCB({ error: "server error - setupUser() - username taken" })
 			} else {
-				// Username not taken on server, handle this with DB info.
-				user = {
-					socketID: socket.id,
-					rooms: [],
-					name,
-				}
-				db.query("SELECT uid FROM users WHERE uname = $1", [name], function (selectErr, selectRes) {
-					if (selectErr) {
-						clientCB({ error: `SERVER ERROR - IO SETUP USER - DB SELECT ERROR: ${selectErr}` })
-					} else if (selectRes.rows.length === 0) {
-						// If you can't find the user, create a row for them in the DB.
-						db.query("INSERT INTO users(uname) VALUES($1) RETURNING *", [name], function (
-							insertErr,
-							insertRes
-						) {
-							if (insertErr) {
-								clientCB({ error: `SERVER ERROR - IO SETUP USER - DB INSERT ERROR: ${insertErr}` })
-							} else {
-								user.uid = insertRes.rows[0].uid
-								clientCB({ success: "SERVER SUCCESS - IO SETUP USER - DB USER CREATED", user })
-							}
-						})
-					} else {
-						// Else, user was already in DB, but is available for taking currently.
-						user.uid = selectRes.rows[0].uid
-						clientCB({ success: "SERVER SUCCESS - IO SETUP USER - USERNAME WAS AVAILABLE", user })
+				// Username not taken from server.
+				try {
+					const selectUserSQL = `SELECT uid FROM users WHERE uname = $1`
+					let userRes = await db.query(selectUserSQL, [uname])
+					if (userRes.rows.length === 0) {
+						const insertUserSQL = `INSERT INTO users(uname) VALUES($1) RETURNING *`
+						userRes = await db.query(insertUserSQL, [uname])
 					}
-					users[name] = user
-				})
+					user = {
+						socketID: socket.id,
+						uid: userRes.rows[0].uid,
+						uname,
+						rooms: [],
+					}
+					users[user.uid] = user
+					clientCB({ success: "server success - setupUser()", user })
+				} catch (error) {
+					console.log(error)
+					clientCB({ error })
+				}
 			}
 		})
 
-		socket.on("joinRoom", function ({ username, roomName, password: roomPassword, lastMsgTS }, clientCB) {
-			const user = users[username]
-			if (!roomName || !user) {
-				console.log(username, user, roomName)
-				return clientCB({ error: "SERVER ERROR - IO JOIN ROOM - INVALID VARS" })
+		socket.on("createRoom", async function ({ uid, rname, password = null }, clientCB) {
+			const user = users[uid]
+			if (!user || !rname) {
+				console.log("user: ", user, "rname: ", rname)
+				return clientCB({ error: "server error - createRoom() - bad params" })
 			}
-			let room = rooms[roomName]
-			if (room) {
-				if (room.users.find((u) => u.socketID === socket.id)) {
-					return clientCB({ success: "SERVER SUCCESS - IO JOIN ROOM - USER ALREADY IN ROOM" })
-				} else if (room.password && room.password !== roomPassword) {
-					return clientCB({ error: "SERVER ERROR - IO JOIN ROOM - INVALID PASSWORD" })
-				}
-			} else {
-				rooms[roomName] = {
-					name: roomName,
-					users: [],
-					...(roomPassword && { password: roomPassword }),
-				}
-				room = rooms[roomName]
-			}
-			socket.join(roomName)
-			user.rooms.push(roomName)
-			room.users.push(user)
+			// create room in DB, return room info, (rid#, rname, password?) locally
+			try {
+				const createRoomSQL = `INSERT INTO rooms(rname, password) VALUES ($1, $2) RETURNING *`
+				const createRoomRes = await db.query(createRoomSQL, [rname, password])
+				const roomRes = createRoomRes.rows[0]
 
-			const getRoomMsgsQuery = `SELECT u.uname, m.mid, m.message, m.created_at, m.author
-				FROM messages m INNER JOIN users u ON m.author = u.uid
-				WHERE m.room = $1 AND m.created_at > ${lastMsgTS ? "$2" : "NOW() - INTERVAL '60 DAYS'"}
-				ORDER BY m.created_at ASC`
-			const getRoomMsgsParams = [roomName, ...(lastMsgTS ? [lastMsgTS] : [])]
-			db.query(getRoomMsgsQuery, getRoomMsgsParams, function (selectErr, selectRes) {
-				if (selectErr) {
-					return clientCB({ error: `SERVER ERROR - IO GET ROOM MSGS - DB SELECT ERROR: ${selectErr}` })
-				}
-				msgs = selectRes.rows
-				socket.to(roomName).emit("updateRoom", room)
-				clientCB({
-					success: "SERVER SUCCESS - IO JOIN ROOM - SUCCESSFULLY JOINED ROOM",
-					room: { ...room, msgs: selectRes.rows },
-				})
-			})
+				// create permissions for uid to enter rid in rooms_users table
+				const createPermSQL = `INSERT INTO rooms_users(rid, uid) VALUES ($1, $2)`
+				const createPermRes = await db.query(createPermSQL, [roomRes.rid, uid])
+
+				// return room info to user
+				clientCB({ success: "SERVER SUCCESS - IO CREATE ROOM", room: roomRes })
+			} catch (error) {
+				console.log(error)
+				clientCB({ error })
+			}
+		})
+
+		socket.on("joinRoom", function ({ uname, rid, rname, password, lastMsgTS }, clientCB) {
+			// const user = users[uname]
+			// if (!rname || !user) {
+			// 	console.log(uname, user, rname)
+			// 	return clientCB({ error: "SERVER ERROR - IO JOIN ROOM - INVALID VARS" })
+			// }
+			// let room = rooms[rname]
+			// if (room) {
+			// 	if (room.users.find((u) => u.socketID === socket.id)) {
+			// 		return clientCB({ success: "SERVER SUCCESS - IO JOIN ROOM - USER ALREADY IN ROOM" })
+			// 	} else if (room.password && room.password !== password) {
+			// 		return clientCB({ error: "SERVER ERROR - IO JOIN ROOM - INVALID PASSWORD" })
+			// 	}
+			// } else {
+			// 	rooms[rname] = {
+			// 		name: rname,
+			// 		users: [],
+			// 		...(password && { password: password }),
+			// 	}
+			// 	room = rooms[rname]
+			// }
+			// socket.join(rname)
+			// user.rooms.push(rname)
+			// room.users.push(user)
+			// const getRoomMsgsQuery = `SELECT u.uname, m.mid, m.message, m.created_at, m.author
+			// 	FROM messages m INNER JOIN users u ON m.author = u.uid
+			// 	WHERE m.room = $1 AND m.created_at > ${lastMsgTS ? "$2" : "NOW() - INTERVAL '60 DAYS'"}
+			// 	ORDER BY m.created_at ASC`
+			// const getRoomMsgsParams = [rname, ...(lastMsgTS ? [lastMsgTS] : [])]
+			// db.query(getRoomMsgsQuery, getRoomMsgsParams, function (selectErr, selectRes) {
+			// 	if (selectErr) {
+			// 		return clientCB({ error: `SERVER ERROR - IO GET ROOM MSGS - DB SELECT ERROR: ${selectErr}` })
+			// 	}
+			// 	msgs = selectRes.rows
+			// 	socket.to(rname).emit("updateRoom", room)
+			// 	clientCB({
+			// 		success: "SERVER SUCCESS - IO JOIN ROOM - SUCCESSFULLY JOINED ROOM",
+			// 		room: { ...room, msgs: selectRes.rows },
+			// 	})
+			// })
 		})
 
 		socket.on("leaveRoom", function ({ username, roomName }, clientCB) {
