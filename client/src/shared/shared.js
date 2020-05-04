@@ -158,16 +158,16 @@ export class Styles {
 	 * Condensed way to get the computed style values of an element.
 	 * @param {string} attr Style property you want to get.
 	 * @param {boolean} [parse=true] Convert string|string[] into floats and return.
-	 * @return {Array|number|null}
+	 * @return {Array|null}
 	 */
 	get(attr, parse = true) {
 		try {
 			let style = this.ele.getPropertyValue(attr)
 			if (parse) {
-				if (!Array.isArray(style)) style = style.match(this.numParseRegex)
-				else style = style.map?.(parseFloat)
+				style = style.match(this.numParseRegex)
+				style = style.map(parseFloat)
 			}
-			return style
+			return Array.isArray(style) ? style : [style]
 		} catch (err) {
 			console.log(err)
 			return null

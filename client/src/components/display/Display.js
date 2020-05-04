@@ -2,7 +2,6 @@ import * as React from "react"
 import styled, { css } from "styled-components/macro"
 import { TransitionGroup } from "react-transition-group"
 import { throttle } from "throttle-debounce"
-import { gsap } from "gsap/all"
 
 import { getRect, ls, themes } from "../../shared/shared"
 import About from "../about/About"
@@ -44,7 +43,7 @@ const DiagonalBG = styled.div`
 	`}
 `
 
-// Didn't use CSS vars since used in JS computations and didn't export since only it's direct children use it.
+// Not using CSS vars since used in JS computations and didn't export since only it's direct children use it.
 const minWindowCSS = {
 	width: 480,
 	height: 320,
@@ -96,10 +95,13 @@ export const mountableApps = {}
 const appClasses = [About, Weather, Chat]
 appClasses.forEach((app) => (mountableApps[app.shared.title] = app))
 
+const apps = {}
+
 class Display extends React.Component {
 	constructor(props) {
 		super(props)
-		const prevOpenedApps = (ls.get("Display-openedApps") || []).map((app) => this.genApp(app.title, app))
+		const { appNames, zIndexLeader } = ls.get("Display") || {}
+		const prevOpenedApps = (appNames || []).map(this.genApp)
 		this.state = {
 			openedApps: prevOpenedApps,
 			mainNavBurgerCB: null,
@@ -108,10 +110,7 @@ class Display extends React.Component {
 				cols: 1,
 			},
 		}
-
-		// GSAP's Draggable has a shared z-index updater across all instances, however it doesn't update
-		// in every circumstance we need it to.
-		this.zIndexLeader = ls.get("Display-zIndexLeader") || 999
+		this.zIndexLeader = zIndexLeader || 999
 		this.setGridDimsThrottled = throttle(200, this.setGridDims)
 		this.dragAreaRef = React.createRef()
 	}
@@ -128,18 +127,36 @@ class Display extends React.Component {
 		window.removeEventListener("resize", this.setGridDimsThrottled)
 	}
 
-	save = () => {
-		let deconApps = []
-		this.state.openedApps.forEach((app) =>
-			deconApps.push({
-				id: app.id,
-				title: app.title,
-				isFocused: app.isFocused,
-				zIndex: app.zIndex,
+	componentDidUpdate(prevProps, prevState) {
+		const { isMobileSite } = this.props
+		if (!prevProps.isMobileSite && isMobileSite) {
+			const nextApps = Object.keys(apps).map((t) => {
+				apps[t].isMaximized = true
+				return apps[t]
 			})
-		)
-		ls.set("Display-openedApps", deconApps)
-		ls.set("Display-zIndexLeader", this.zIndexLeader)
+			this.setState({ openedApps: nextApps })
+		}
+	}
+
+	saveApp = (title, extraData = {}) => {
+		if (!title) return
+
+		const prevData = ls.get(title) || {}
+		ls.set(title, {
+			title,
+			...prevData,
+			...apps[title],
+			...extraData,
+		})
+	}
+
+	save = () => {
+		const appNames = Object.keys(apps)
+		appNames.forEach(this.saveApp)
+		ls.set("Display", {
+			appNames,
+			zIndexLeader: this.zIndexLeader,
+		})
 	}
 
 	setGridDims = () => {
@@ -153,84 +170,115 @@ class Display extends React.Component {
 		if (nextGrid.rows !== grid.rows || nextGrid.cols !== grid.cols) this.setState({ grid: nextGrid })
 	}
 
-	genApp = (title, prevData = {}) => {
-		return {
+	genApp = (title) => {
+		if (!title) return
+
+		const { isMobileSite } = this.props
+		const prevData = ls.get(title) || {}
+		const { window, ...desiredData } = prevData
+		const newData = {
 			title,
-			id: Date.now(),
-			class: mountableApps[title],
-			windowRef: React.createRef(),
-			isFocused: true,
+			isFocused: false,
 			zIndex: ++this.zIndexLeader,
-			...prevData,
+			isMinimized: false,
+			isMaximized: isMobileSite, // End of defaults.
+			...desiredData, // Loaded previous data.
+			...(isMobileSite && { isMaximized: true }), // If site is mobile, overwrite all data.
 		}
+		apps[title] = newData
+		return newData
 	}
 
 	openApp = (title) => {
-		const { openedApps } = this.state
-		const curOpenApp = openedApps.find((oApp) => oApp.title === title)
-		if (curOpenApp) {
-			curOpenApp.windowRef.current.toggleMinimize()
-			return
-		}
-		let nextOpenedApps = [...openedApps]
-		nextOpenedApps.forEach((app) => (app.isFocused = false))
-		nextOpenedApps.push(this.genApp(title))
-		this.setState({ openedApps: nextOpenedApps })
+		if (apps[title]) return this.toggleMinimize(title)
+
+		this.genApp(title)
+		this.focusApp(title, { isMinimized: false }, true)
 	}
 
-	closeApp = (curAppID) => {
-		const { openedApps } = this.state
-		this.focusBelowApp(openedApps.find((app) => app.id === curAppID)?.zIndex)
-		this.setState((prevState) => ({
-			openedApps: prevState.openedApps.filter((app) => app.id !== curAppID),
-		}))
+	toggleMinimize = (title) => {
+		const app = apps[title]
+		if (!app) return
+
+		const { isMinimized, isMaximized, isFocused } = app
+		if (!isMinimized && !isFocused) {
+			this.focusApp(title)
+		} else if (isFocused && !isMinimized) {
+			app.isMinimized = true
+			this.focusApp(this.getBelowApp(title))
+		} else if (isMinimized) {
+			this.focusApp(title, {
+				isMinimized: false,
+				isMaximized: isMinimized && isMaximized ? true : false,
+			})
+		}
+	}
+	toggleMaximize = (title) => {
+		const app = apps[title]
+		if (!app) return
+
+		const { isMaximized } = app
+		this.focusApp(title, {
+			isMinimized: false,
+			isMaximized: !isMaximized,
+		})
+	}
+
+	closeApp = (title) => {
+		if (!apps[title]) return
+
+		apps[title].isMinimized = true
+		this.saveApp(title)
+		this.focusApp(this.getBelowApp(title))
+		delete apps[title]
+		this.setState({
+			openedApps: Object.keys(apps).map((t) => apps[t]),
+		})
 	}
 
 	handleHomeButton = () => {
-		const { openedApps } = this.state
-		openedApps.forEach((app) => app.windowRef.current.minimize({ focusBelow: false }))
-		const nextOpenedApps = openedApps.map((app) => {
-			app.isFocused = false
-			return app
+		const nextApps = Object.keys(apps).map((t) => {
+			apps[t].isMinimized = true
+			apps[t].isFocused = false
+			return apps[t]
 		})
-		this.setState({ openedApps: nextOpenedApps })
+		this.setState({ openedApps: nextApps })
 	}
 
-	focusBelowApp = (curAppZ) => {
-		const { openedApps } = this.state
-		if (!curAppZ || openedApps?.length < 2) return
+	getBelowApp = (title) => {
+		const { zIndex } = apps[title]
+		if (!zIndex) return
+
 		let belowApp = null
-		openedApps.forEach((app) => {
-			if (app.windowRef.current.state.isMinimized) return
-			else if (!belowApp && app.zIndex < curAppZ) belowApp = app
-			else if (belowApp && app.zIndex < curAppZ && app.zIndex > belowApp.zIndex) belowApp = app
-		})
-		console.log("focusBelowApp() target: ", belowApp?.title)
-		this.focusApp(belowApp?.id)
+		if (zIndex && Object.keys(apps).length > 1) {
+			Object.keys(apps).forEach((t) => {
+				if (t === title || apps[t].isMinimized) return
+				const curZ = apps[t].zIndex
+				if (!belowApp && curZ < zIndex) belowApp = t
+				else if (belowApp && curZ < zIndex && curZ > apps[belowApp].zIndex) belowApp = t
+			})
+		}
+		return belowApp
 	}
 
-	focusApp = (curAppID) => {
-		const targetApp = this.state.openedApps.find((app) => app.id === curAppID)
-		if (targetApp?.isFocused) {
-			console.log("focusApp() targetApp.isFocused: ", targetApp?.isFocused)
-			return false
-		}
+	focusApp = (title, changes = {}, force = false) => {
+		const app = apps[title]
+		if (!force && app?.isFocused && Object.keys(changes) < 1) return
 
 		let matched = false
-		const nextOpenedApps = this.state.openedApps.map((app) => {
-			matched = app.id === curAppID
-			return {
-				...app,
-				isFocused: matched ? true : false,
-				zIndex: matched ? ++this.zIndexLeader : app.zIndex,
+		const nextApps = Object.keys(apps).map((t) => {
+			matched = t === title
+			apps[t] = {
+				...apps[t],
+				...(matched && {
+					...changes,
+					zIndex: ++this.zIndexLeader,
+				}),
+				isFocused: matched,
 			}
+			return apps[t]
 		})
-		// console.log("focusApp() targetApp.isFocused: ", targetApp?.isFocused)
-		this.setState({
-			openedApps: nextOpenedApps,
-			...(!matched && { mainNavBurgerCB: null }),
-		})
-
+		this.setState({ openedApps: nextApps, ...(!matched && { mainNavBurgerCB: null }) })
 		return matched
 	}
 
@@ -268,22 +316,24 @@ class Display extends React.Component {
 					<TransitionGroup component={null}>
 						{this.state.openedApps.map((app, i) => (
 							<Window
-								ref={app.windowRef}
-								key={app.id}
-								id={app.id}
+								key={app.title}
 								isMobileSite={this.props.isMobileSite}
 								isFocused={app.isFocused}
-								title={app.class.shared.title}
+								title={app.title}
 								minWindowCSS={minWindowCSS}
 								closeApp={this.closeApp}
 								focusApp={this.focusApp}
 								zIndex={app.zIndex}
-								focusBelowApp={this.focusBelowApp}
+								isMinimized={app.isMinimized}
+								isMaximized={app.isMaximized}
+								toggleMaximize={this.toggleMaximize}
+								toggleMinimize={this.toggleMinimize}
 							>
 								<AppNav
 									isFocused={app.isFocused}
 									isMobileSite={this.props.isMobileSite}
 									setMainNavBurgerCB={this.setMainNavBurgerCB}
+									title={app.title}
 									app={app}
 								/>
 							</Window>
@@ -291,7 +341,6 @@ class Display extends React.Component {
 					</TransitionGroup>
 				</AllowedDragArea>
 				<Nav
-					mountableApps={mountableApps}
 					openedApps={this.state.openedApps}
 					isMobileSite={this.props.isMobileSite}
 					handleHomeButton={this.handleHomeButton}

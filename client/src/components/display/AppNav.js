@@ -9,6 +9,7 @@ import Modal from "../ui/Modal"
 import Button from "../ui/Button"
 import Loading from "../ui/Loading"
 import SocialLogin from "../auth/SocialLogin"
+import { mountableApps } from "./Display"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -22,7 +23,7 @@ const MobileHamburgerButton = styled(Button)`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function AppNav({ app, isFocused, isMobileSite, setMainNavBurgerCB }) {
+function AppNav({ title, isFocused, isMobileSite, setMainNavBurgerCB }) {
 	const [drawerContent, setDrawerContent] = React.useState(null)
 	const [drawerOpened, setDrawerOpened] = React.useState(false)
 
@@ -66,12 +67,13 @@ function AppNav({ app, isFocused, isMobileSite, setMainNavBurgerCB }) {
 	}, [isFocused, drawerContent, setMainNavBurgerCB, toggleDrawer])
 
 	// Prevent renders for apps. They only care about context which will override memo.
-	const memoApp = React.useMemo(() => <app.class />, [])
+	const App = mountableApps[title]
+	const memoApp = React.useMemo(() => <App />, [])
 
 	// Some apps require the user to be logged in. We check this per 'app' config and the Auth context.
 	const authContext = React.useContext(Contexts.Auth)
 
-	if (app && (!app.class.shared.authRequired || (app.class.shared.authRequired && authContext.isAuthed))) {
+	if (App && (!App.shared.authRequired || (App.shared.authRequired && authContext.isAuthed))) {
 		return (
 			<>
 				<Drawer side="right" isShown={drawerOpened} onClose={toggleDrawer}>

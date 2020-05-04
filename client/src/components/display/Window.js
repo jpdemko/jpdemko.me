@@ -151,7 +151,9 @@ export default class Window extends React.Component {
 		this.handleViewportResizeThrottled = throttle(200, this.handleViewportResize)
 
 		const { top, left, width, height } = getRect("window-wireframe")
-		this.data = {
+		const prevData = ls.get(props.title) || {}
+		const { window: loadedWdow } = prevData
+		this.data = loadedWdow?.data || {
 			closedProperly: true,
 			css: {
 				minimized: {
@@ -188,15 +190,8 @@ export default class Window extends React.Component {
 					height,
 				},
 			},
-			...(ls.get(`${props.title}-window-data`) || {}),
 		}
-		this.state = {
-			isMinimized: true,
-			isWindowed: false,
-			isMaximized: props.isMobileSite,
-			isMobileWindow: props.isMobileSite,
-			...(ls.get(`${props.title}-window-state`) || {}),
-		}
+		this.state = loadedWdow?.state || { isMobileWindow: props.isMobileSite }
 	}
 
 	componentDidMount() {
@@ -216,19 +211,30 @@ export default class Window extends React.Component {
 	}
 
 	componentDidUpdate(prevProps, prevState) {
-		const { isMobileSite, isFocused } = this.props
-		if (prevProps.isMobileSite !== isMobileSite) {
-			this.dragInstances.forEach((i) => i[0].enabled(!isMobileSite))
-			if (isMobileSite) {
-				if (isFocused && !this.state.isMaximized) this.maximize()
-				if (!this.state.isMobileWindow) this.setState({ isMobileWindow: true })
+		const { isMinimized, isMaximized } = this.props
+
+		// Save CSS before animation occurs.
+		const prevWindowed = !prevProps.isMinimized && !prevProps.isMaximized
+		const curWindowed = !isMinimized && !isMaximized
+		if (prevWindowed && !curWindowed) this.setLastWindowedCSS(true)
+
+		// Determine if any animations need to occur.
+		if (prevProps.isMinimized !== isMinimized) {
+			if (isMinimized) this.animMinimize()
+			else {
+				if (isMaximized) this.animMaximize()
+				else this.animWindowed()
 			}
+		} else if (prevProps.isMaximized !== isMaximized) {
+			if (isMaximized) this.animMaximize()
+			else this.animWindowed()
 		}
+
 		this.handleViewportResizeThrottled()
 	}
 
 	genDraggables = () => {
-		const { id, focusApp, minWindowCSS, isMobileSite } = this.props
+		const { title, focusApp, minWindowCSS, isMobileSite } = this.props
 		const wdowEle = this.rootRef.current
 		const wdow = this
 
@@ -238,10 +244,10 @@ export default class Window extends React.Component {
 			activeCursor: "grabbing",
 			bounds: "#allowedDragArea",
 			edgeResistance: 0.5,
-			trigger: `#title-bar-${id}`,
+			trigger: `#title-bar-${title}`,
 			zIndexBoost: false,
 			force3D: !flags.isChrome,
-			onPress: () => focusApp(id),
+			onPress: () => focusApp(title),
 			onRelease: () => {
 				wdow.draggableWindow[0].update(true)
 				wdow.setLastWindowedCSS()
@@ -259,7 +265,7 @@ export default class Window extends React.Component {
 				...vars,
 				type: "x,y",
 				onPress: () => {
-					focusApp(id)
+					focusApp(title)
 					wdow.draggableWindow[0].disable()
 				},
 				onRelease: () => {
@@ -285,7 +291,7 @@ export default class Window extends React.Component {
 		this.dragInstances = [
 			this.draggableWindow,
 			genResizeDraggable({
-				trigger: `#side-top-${id}, #corner-nw-${id}, #corner-ne-${id}`,
+				trigger: `#side-top-${title}, #corner-nw-${title}, #corner-ne-${title}`,
 				cursor: "n-resize",
 				onDrag: function (drag, wdowCSS) {
 					const nextHeightBelowMin = wdowCSS.height - drag.deltaY < minWindowCSS.height
@@ -300,7 +306,7 @@ export default class Window extends React.Component {
 				},
 			}),
 			genResizeDraggable({
-				trigger: `#side-right-${id}, #corner-ne-${id}, #corner-se-${id}`,
+				trigger: `#side-right-${title}, #corner-ne-${title}, #corner-se-${title}`,
 				cursor: "e-resize",
 				onDrag: function (drag, wdowCSS) {
 					const nextWidthBelowMin = wdowCSS.width + drag.deltaX < minWindowCSS.width
@@ -314,7 +320,7 @@ export default class Window extends React.Component {
 				},
 			}),
 			genResizeDraggable({
-				trigger: `#side-bottom-${id}, #corner-sw-${id}, #corner-se-${id}`,
+				trigger: `#side-bottom-${title}, #corner-sw-${title}, #corner-se-${title}`,
 				cursor: "s-resize",
 				onDrag: function (drag, wdowCSS) {
 					const nextHeightBelowMin = wdowCSS.height + drag.deltaY < minWindowCSS.height
@@ -328,7 +334,7 @@ export default class Window extends React.Component {
 				},
 			}),
 			genResizeDraggable({
-				trigger: `#side-left-${id}, #corner-nw-${id}, #corner-sw-${id}`,
+				trigger: `#side-left-${title}, #corner-nw-${title}, #corner-sw-${title}`,
 				cursor: "w-resize",
 				onDrag: function (drag, wdowCSS) {
 					const nextWidthBelowMin = wdowCSS.width - drag.deltaX < minWindowCSS.width
@@ -347,8 +353,17 @@ export default class Window extends React.Component {
 	}
 
 	save = () => {
-		ls.set(`${this.props.title}-window-state`, this.state)
-		ls.set(`${this.props.title}-window-data`, this.data)
+		const { title } = this.props
+		const prevData = ls.get(title) || {}
+		const nextData = {
+			title,
+			...prevData,
+			window: {
+				state: { ...this.state },
+				data: { ...this.data },
+			},
+		}
+		ls.set(title, nextData)
 	}
 
 	handleExit = () => {
@@ -359,6 +374,7 @@ export default class Window extends React.Component {
 	handleViewportResize = () => {
 		const width = this.data.css.current.width
 		const { isMobileWindow } = this.state
+
 		if (!isMobileWindow && width < mediaBreakpoints.desktop) {
 			this.setState({ isMobileWindow: true })
 		} else if (isMobileWindow && width >= mediaBreakpoints.desktop) {
@@ -367,64 +383,43 @@ export default class Window extends React.Component {
 		if (this.draggableWindow) this.draggableWindow[0].update(true)
 	}
 
-	minimize = (extraVars = {}) => {
-		if (this.state.isMinimized) return
-
+	animMinimize = (extraVars = {}) => {
 		this.animate({ ...this.data.css.minimized, ...extraVars })
-		this.setState({ isMinimized: true, isWindowed: false })
-		this.props.focusBelowApp(this.props.zIndex)
 	}
 
-	toggleMinimize = () => {
-		if (this.state.isMinimized) this.restore()
-		else if (this.props.isFocused) this.minimize()
-		else this.props.focusApp(this.props.id)
-	}
-
-	restore = (extraVars = {}) => {
-		const { isMinimized, isWindowed, isMaximized } = this.state
-		if (isWindowed) return
-		if ((isMinimized && isMaximized) || (this.props.isMobileSite && isMinimized)) {
-			this.maximize()
-			return
-		}
-
-		if (!this.props.isFocused) this.props.focusApp(this.props.id)
+	animWindowed = (extraVars = {}) => {
 		this.animate({ ...this.data.css.windowed, ...extraVars })
-		this.setState({ isMinimized: false, isWindowed: true, isMaximized: false })
 	}
 
-	maximize = (extraVars = {}) => {
-		if (!this.props.isFocused) this.props.focusApp(this.props.id)
+	animMaximize = (extraVars = {}) => {
 		this.animate({ ...this.data.css.maximized, ...extraVars })
-		this.setState({ isMinimized: false, isWindowed: false, isMaximized: true })
-	}
-
-	toggleMaximize = () => {
-		if (this.state.isMaximized) this.restore()
-		else this.maximize()
 	}
 
 	// Chrome bug causes children to become blurry on parent transforms that end in subpixel values.
 	// Have to round all values at the end of animations/drags.
 	preventSubpixelValues = () => {
-		if (!this.state.isWindowed) return
+		const { isMinimized, isMaximized } = this.props
+		if (isMinimized || isMaximized || !this.rootRef.current) return
 
 		const wdowStyles = new Styles(this.rootRef.current)
 		const matrix = wdowStyles.get("transform")
-		const top = wdowStyles.get("top")
-		const left = wdowStyles.get("left")
-
 		const transform = { x: Math.round(matrix[matrix.length - 2]), y: Math.round(matrix[matrix.length - 1]) }
-		const { width, height } = getRect(this.rootRef.current)
+		const top = Math.round(wdowStyles.get("top")?.[0])
+		const left = Math.round(wdowStyles.get("left")?.[0])
+		const width = Math.round(wdowStyles.get("width")?.[0])
+		const height = Math.round(wdowStyles.get("height")?.[0])
 
 		const roundedVars = {
 			...transform,
-			top: Math.round(top),
-			left: Math.round(left),
-			width: Math.round(width),
-			height: Math.round(height),
+			top,
+			left,
+			width,
+			height,
 		}
+
+		const badValue = Object.keys(roundedVars).find((k) => !Number.isFinite(roundedVars[k]))
+		if (badValue) return
+
 		this.data.css.windowed = {
 			...this.data.css.windowed,
 			...roundedVars,
@@ -433,44 +428,43 @@ export default class Window extends React.Component {
 			...this.data.css.current,
 			...roundedVars,
 		}
-
 		gsap.set(this.rootRef.current, roundedVars)
 	}
 
 	animate = (tweenVars) => {
-		this.setLastWindowedCSS()
-		// if (!this.props.isFocused) this.props.focusApp(this.props.id)
 		const wdow = this
-		gsap.to(wdow.rootRef.current, {
+		if (this.curAnim?.isActive()) this.curAnim.kill()
+		this.curAnim = gsap.to(wdow.rootRef.current, {
 			...tweenVars,
 			onStart: () => {
 				wdow.draggableWindow[0].disable()
 				wdow.dragInstances.forEach((i) => i[0].disable())
 			},
 			onComplete: () => {
-				// Prevent error if scale of element is 0.
-				if (!wdow.state.isMinimized) wdow.draggableWindow[0].update(true)
-				wdow.draggableWindow[0].enable()
-				wdow.dragInstances.forEach((i) => i[0].enable())
+				if (!wdow.props.isMinimized) wdow.draggableWindow[0].update(true)
+				if (!wdow.props.isMaximized) wdow.dragInstances.forEach((i) => i[0].enable())
 				wdow.preventSubpixelValues()
 			},
 			onUpdate: function () {
 				wdow.data.css.current.width = this._targets[0].offsetWidth
 				wdow.data.css.current.height = this._targets[0].offsetHeight
-				wdow.handleViewportResizeThrottled()
+				if (!wdow.props.isMinimized) wdow.handleViewportResizeThrottled()
 			},
 		})
+		this.curAnim.play()
 	}
 
-	setLastWindowedCSS = () => {
-		if (!this.state.isWindowed || gsap.isTweening(this.rootRef.current)) return
+	setLastWindowedCSS = (tryForcing = false) => {
+		const { isMinimized, isMaximized } = this.props
+		if (!this.rootRef.current || gsap.isTweening(this.rootRef.current)) return
+		if (!tryForcing && !isMinimized && !isMaximized) return
 
 		this.draggableWindow[0].update(true)
 		const wdowStyles = new Styles(this.rootRef.current)
 		this.data.css.windowed = {
 			...this.data.css.windowed,
-			top: wdowStyles.get("top"),
-			left: wdowStyles.get("left"),
+			top: wdowStyles.get("top")?.[0],
+			left: wdowStyles.get("left")?.[0],
 			x: this.draggableWindow[0].x,
 			y: this.draggableWindow[0].y,
 		}
@@ -479,13 +473,14 @@ export default class Window extends React.Component {
 	enterAnim = () => {
 		const wdow = this
 		const { css } = this.data
-		const { isMinimized, isMaximized } = this.state
+		const { isMinimized, isMaximized } = this.props
 
 		if (this.data.closedProperly) {
 			const curStateOptions = isMaximized ? css.maximized : css.windowed
 			const animTime = css.minimized.duration + curStateOptions.duration
 			gsap.set(wdow.rootRef.current, { ...css.minimized })
-			wdow.restore({ duration: animTime })
+			const vars = { duration: animTime }
+			!isMaximized ? wdow.animWindowed(vars) : wdow.animMaximize(vars)
 		} else {
 			if (isMinimized) gsap.set(wdow.rootRef.current, { ...css.minimized })
 			else gsap.set(wdow.rootRef.current, { ...(isMaximized ? css.maximized : css.windowed) })
@@ -494,21 +489,33 @@ export default class Window extends React.Component {
 	}
 
 	render() {
-		const { id, title, isMobileSite, isFocused, zIndex, minWindowCSS, in: show, ...props } = this.props
-		const { isMaximized } = this.state
-		const { closeApp, focusApp } = this.props
+		const {
+			in: show,
+			title,
+			isMobileSite,
+			isFocused,
+			zIndex,
+			minWindowCSS,
+			isMaximized,
+			closeApp,
+			focusApp,
+			toggleMaximize,
+			toggleMinimize,
+			...props
+		} = this.props
+
 		return (
 			<Transition
 				{...props}
 				in={show}
 				timeout={{ appear: 50, enter: 50, exit: this.data.css.minimized.duration * 1000 }}
-				onExit={this.minimize}
+				onExit={this.animMinimize}
 				mountOnEnter
 				unmountOnExit
 				appear
 			>
 				<Root
-					id={`window-${id}`}
+					id={`window-${title}`}
 					ref={this.rootRef}
 					isMaximized={isMaximized}
 					isFocused={isFocused}
@@ -517,39 +524,43 @@ export default class Window extends React.Component {
 					zIndex={zIndex}
 				>
 					<TitleBar
-						id={`title-bar-${id}`}
+						id={`title-bar-${title}`}
 						isFocused={isFocused}
 						isMobileSite={isMobileSite}
-						onDoubleClick={this.toggleMaximize}
+						onDoubleClick={() => toggleMaximize(title)}
 						onTouchEnd={(e) => {
 							// 'onDoubleClick' doesn't work w/ touch events even though the normal 'onClick' does?
-							if (isDoubleTouch(e)) this.toggleMaximize()
+							if (isDoubleTouch(e)) toggleMaximize(title)
 						}}
 					>
 						<div>{title}</div>
 						<div style={{ display: "flex", marginLeft: "auto" }}>
-							<Button onClick={() => this.minimize()} svg={MinimizeSVG} className="check-contrast" />
 							<Button
-								onClick={this.toggleMaximize}
+								onClick={() => toggleMinimize(title)}
+								svg={MinimizeSVG}
+								className="check-contrast"
+							/>
+							<Button
+								onClick={() => toggleMaximize(title)}
 								svg={isMaximized ? FullscreenExitSVG : FullscreenSVG}
 								className="check-contrast"
 							/>
-							<Button color="red" onClick={() => closeApp(id)} svg={CloseSVG} />
+							<Button color="red" onClick={() => closeApp(title)} svg={CloseSVG} />
 						</div>
 					</TitleBar>
-					<Content onClick={() => focusApp(id)}>
+					<Content onClick={() => focusApp(title)}>
 						<Contexts.IsMobileWindow.Provider value={this.state.isMobileWindow}>
 							{this.props.children}
 						</Contexts.IsMobileWindow.Provider>
 					</Content>
-					<Side position="top" id={`side-top-${id}`} />
-					<Side position="right" id={`side-right-${id}`} />
-					<Side position="bottom" id={`side-bottom-${id}`} />
-					<Side position="left" id={`side-left-${id}`} />
-					<CornerNW id={`corner-nw-${id}`} />
-					<CornerNE id={`corner-ne-${id}`} />
-					<CornerSE id={`corner-se-${id}`} />
-					<CornerSW id={`corner-sw-${id}`} />
+					<Side position="top" id={`side-top-${title}`} />
+					<Side position="right" id={`side-right-${title}`} />
+					<Side position="bottom" id={`side-bottom-${title}`} />
+					<Side position="left" id={`side-left-${title}`} />
+					<CornerNW id={`corner-nw-${title}`} />
+					<CornerNE id={`corner-ne-${title}`} />
+					<CornerSE id={`corner-se-${title}`} />
+					<CornerSW id={`corner-sw-${title}`} />
 				</Root>
 			</Transition>
 		)

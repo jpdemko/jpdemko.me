@@ -8,6 +8,7 @@ import { ReactComponent as HomeSVG } from "../../shared/assets/icons/home.svg"
 import { ReactComponent as CloseSVG } from "../../shared/assets/icons/close.svg"
 import Button from "../ui/Button"
 import Drawer from "../ui/Drawer"
+import { mountableApps } from "./Display"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -64,20 +65,12 @@ const DrawerButtonsContainer = styled.div`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function Nav({
-	mountableApps,
-	openedApps,
-	isMobileSite,
-	handleHomeButton,
-	openApp,
-	closeApp,
-	mainNavBurgerCB,
-}) {
+function Nav({ openedApps, isMobileSite, handleHomeButton, openApp, closeApp, mainNavBurgerCB }) {
 	const [mainDrawerOpened, setMainDrawerOpened] = React.useState(false)
 
-	function handleClose(id) {
+	function handleClose(title) {
 		setMainDrawerOpened(false)
-		closeApp(id)
+		closeApp(title)
 	}
 
 	function handleOpen(title) {
@@ -86,19 +79,19 @@ function Nav({
 	}
 
 	const taskbarButtons = openedApps.map((app) => (
-		<OpenedApp key={app.id}>
-			<ContextMenuTrigger id={`nav-tb-button-${app.id}`} holdToDisplay={-1}>
+		<OpenedApp key={app.title}>
+			<ContextMenuTrigger id={`nav-tb-button-${app.title}`} holdToDisplay={-1}>
 				<TaskbarButton
 					onClick={() => handleOpen(app.title)}
-					svg={app.class.shared.logo}
+					svg={mountableApps[app.title].shared.logo}
 					isFocused={app.isFocused}
 				>
-					{app.class.shared.title}
+					{mountableApps[app.title].shared.title}
 				</TaskbarButton>
 			</ContextMenuTrigger>
-			<ContextMenu id={`nav-tb-button-${app.id}`}>
+			<ContextMenu id={`nav-tb-button-${app.title}`}>
 				<MenuItem>
-					<Button onClick={() => handleClose(app.id)} svg={CloseSVG} variant="fancy" color="red" />
+					<Button onClick={() => handleClose(app.title)} svg={CloseSVG} variant="fancy" color="red" />
 				</MenuItem>
 			</ContextMenu>
 		</OpenedApp>
@@ -108,7 +101,7 @@ function Nav({
 		return Object.keys(mountableApps).map((name) => {
 			const mApp = mountableApps[name]
 			const title = mApp.shared.title
-			const oApp = openedApps.find((a) => a.class.shared.title === title)
+			const oApp = openedApps.find((a) => a.title === title)
 			return (
 				<DrawerRow key={title}>
 					<DrawerButton
@@ -119,7 +112,7 @@ function Nav({
 						{title}
 					</DrawerButton>
 					{oApp && !isTaskbar && (
-						<Button onClick={() => handleClose(oApp.id)} svg={CloseSVG} variant="fancy" color="red" />
+						<Button onClick={() => handleClose(title)} svg={CloseSVG} variant="fancy" color="red" />
 					)}
 				</DrawerRow>
 			)
@@ -129,11 +122,7 @@ function Nav({
 	return (
 		<>
 			<Taskbar isMobileSite={isMobileSite}>
-				<TaskbarButton
-					svg={AppsSVG}
-					onClick={() => setMainDrawerOpened(true)}
-					disabled={isMobileSite && openedApps?.length < 1}
-				/>
+				<TaskbarButton svg={AppsSVG} onClick={() => setMainDrawerOpened(true)} />
 				<TaskbarButton
 					svg={HomeSVG}
 					onClick={handleHomeButton}
