@@ -75,8 +75,20 @@ const ModalRoot = styled.div`
 	`}
 `
 
+const Data = styled.div`
+	display: inline-flex;
+	align-items: center;
+`
+
 const Empha = styled.span`
 	font-weight: 500;
+`
+
+const Lessen = styled.span`
+	margin-left: 0.9em;
+	opacity: 0.8;
+	font-weight: 400;
+	font-size: 0.8em;
 `
 
 /* -------------------------------- COMPONENT ------------------------------- */
@@ -99,19 +111,21 @@ function ChatNav({ roomsData, curRoom, createRoom, joinRoom, leaveRoom, user }) 
 				<div>
 					<Empha>Create room config!</Empha>
 				</div>
-				<label>
-					<span>Room name:</span>
-					<br />
-					<Input
-						type="text"
-						placeholder="Room name required..."
-						value={rname}
-						onChange={(e) => setRName(e.target.value)}
-						minLength="1"
-						required
-						ref={createRoomModalRef}
-					/>
-				</label>
+				<div>
+					<label>
+						<span>Room name:</span>
+						<br />
+						<Input
+							type="text"
+							placeholder="Room name required..."
+							value={rname}
+							onChange={(e) => setRName(e.target.value)}
+							minLength="1"
+							required
+							ref={createRoomModalRef}
+						/>
+					</label>
+				</div>
 				<div>
 					<label>
 						<span>Room password:</span>
@@ -141,19 +155,21 @@ function ChatNav({ roomsData, curRoom, createRoom, joinRoom, leaveRoom, user }) 
 				<div>
 					<Empha>Join room config!</Empha>
 				</div>
-				<label>
-					<span>Join room ID#:</span>
-					<br />
-					<Input
-						type="text"
-						placeholder="Room ID# required..."
-						value={rid}
-						onChange={(e) => setRID(e.target.value)}
-						minLength="1"
-						required
-						ref={joinRoomModalRef}
-					/>
-				</label>
+				<div>
+					<label>
+						<span>Join room ID#:</span>
+						<br />
+						<Input
+							type="text"
+							placeholder="Room ID# required..."
+							value={rid}
+							onChange={(e) => setRID(e.target.value)}
+							minLength="1"
+							required
+							ref={joinRoomModalRef}
+						/>
+					</label>
+				</div>
 				<div>
 					<label>
 						<span>Does target room have password?</span>
@@ -184,10 +200,17 @@ function ChatNav({ roomsData, curRoom, createRoom, joinRoom, leaveRoom, user }) 
 		setModalShown(true)
 	}
 
+	React.useEffect(() => {
+		if (modalShown) {
+			const ref = createConfig ? createRoomModalRef : joinRoomModalRef
+			if (ref.current) ref.current.focus()
+		}
+	}, [createConfig, modalShown])
+
 	function submitJoinRoom(e) {
 		e.preventDefault()
 		const checkRID = rid ? Number.parseInt(rid) : rid
-		const vars = { rid: checkRID, password }
+		let vars = { rid: checkRID, password: password?.length < 6 ? null : password }
 		// console.log("submitRoom() vars: ", vars)
 		joinRoom(vars)
 			.then(() => setModalShown(false))
@@ -200,7 +223,7 @@ function ChatNav({ roomsData, curRoom, createRoom, joinRoom, leaveRoom, user }) 
 
 	function submitCreateRoom(e) {
 		e.preventDefault()
-		createRoom({ rname, password })
+		createRoom({ rname, password: password?.length < 6 ? null : password })
 			.then(() => setModalShown(false))
 			.catch(console.log)
 			.finally(() => {
@@ -226,15 +249,18 @@ function ChatNav({ roomsData, curRoom, createRoom, joinRoom, leaveRoom, user }) 
 									isFocused={r.rid === curRoom.rid}
 									onClick={() => joinPrevRoom(r)}
 								>
-									{r.name} #{r.rid}
+									<Data>
+										<span>{r.rname}</span>
+										<Lessen>RID#{r.rid}</Lessen>
+									</Data>
 								</Room>
 								<Close svg={CloseSVG} color="red" onClick={() => leaveRoom(r.rid)} />
 							</div>
-							{r.rid === curRoom.name &&
-								curRoom?.users?.map((u) => (
+							{r.rid === curRoom.rid &&
+								curRoom?.activeUsers?.map((u) => (
 									<div key={u.uid}>
-										<User svg={UserSVG} isFocused={u.name === user.name}>
-											{u.name}
+										<User svg={UserSVG} isFocused={u.uid === user.uid}>
+											{u.uname}
 										</User>
 									</div>
 								))}

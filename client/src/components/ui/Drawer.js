@@ -31,7 +31,7 @@ const Root = styled.div`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function Drawer({ isShown = false, onClose, animDuration = 0.4, side = "left", children, ...props }) {
+function Drawer({ isShown = false, onClose, animDuration = 0.35, side = "left", children, ...props }) {
 	const drawerRef = React.useRef()
 
 	// 'useOnClickOutside()' will keep creating/removing event handlers on each render unless this is done.

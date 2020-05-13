@@ -77,11 +77,11 @@ export const mediaBreakpoints = { desktop: 813 }
 /* -------------------------------------------------------------------------- */
 
 export const ls = {
-	get: function (key, parse = true) {
+	get: function (key, skipParse = false) {
 		try {
 			if (typeof key !== "string") key = JSON.stringify(key)
 			let item = localStorage.getItem(key)
-			if (item && parse) item = JSON.parse(item)
+			if (item && !skipParse) item = JSON.parse(item)
 			return item
 		} catch (error) {
 			return null

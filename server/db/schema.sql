@@ -1,3 +1,16 @@
+CREATE TABLE "session" (
+  "sid" varchar NOT NULL COLLATE "default",
+	"sess" json NOT NULL,
+	"expire" timestamp(6) NOT NULL
+)
+WITH (OIDS=FALSE);
+
+ALTER TABLE "session" ADD CONSTRAINT "session_pkey" PRIMARY KEY ("sid") NOT DEFERRABLE INITIALLY IMMEDIATE;
+
+CREATE INDEX "IDX_session_expire" ON "session" ("expire");
+
+--
+
 CREATE extension IF NOT EXISTS citext;
 
 DO $$ BEGIN
@@ -22,18 +35,20 @@ CREATE TABLE rooms (
 	password VARCHAR(40)
 );
 
+INSERT INTO rooms(rname) VALUES ('General');
+
 --
 
-CREATE TABLE rooms_users (
-	rid INT REFERENCES rooms(rid),
+CREATE TABLE joined_rooms (
 	uid INT REFERENCES users(uid),
-	PRIMARY KEY(rid, uid)
+	rid INT REFERENCES rooms(rid),
+	PRIMARY KEY(uid, rid)
 );
 
 --
 
 CREATE TABLE messages (
-	mid BIGSERIAL PRIMARY KEY,
+	mid SERIAL PRIMARY KEY,
 	uid INT NOT NULL REFERENCES users(uid),
 	rid INT NOT NULL REFERENCES rooms(rid),
 	message TEXT NOT NULL,
@@ -45,16 +60,18 @@ CREATE INDEX msg_in ON messages(rid);
 
 --
 
-CREATE TABLE "session" (
-  "sid" varchar NOT NULL COLLATE "default",
-	"sess" json NOT NULL,
-	"expire" timestamp(6) NOT NULL
-)
-WITH (OIDS=FALSE);
+CREATE TABLE dms (
+	dmid SERIAL PRIMARY KEY,
+	user1 INT NOT NULL REFERENCES users(uid),
+	user2 INT NOT NULL REFERENCES users(uid),
+	message TEXT NOT NULL,
+	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	CHECK (user1 < user2)
+);
 
-ALTER TABLE "session" ADD CONSTRAINT "session_pkey" PRIMARY KEY ("sid") NOT DEFERRABLE INITIALLY IMMEDIATE;
 
-CREATE INDEX "IDX_session_expire" ON "session" ("expire");
+CREATE INDEX dm_user1 ON dms(user1);
+CREATE INDEX dm_user2 ON dms(user2);
 
 --
 

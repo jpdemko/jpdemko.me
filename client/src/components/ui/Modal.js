@@ -25,10 +25,10 @@ const Root = styled.div`
 `
 
 const tgRootStyles = {
-	entering: { opacity: 0.7, transform: "scale(1)" },
-	entered: { opacity: 0.7, transform: "scale(1)" },
-	exiting: { opacity: 0, transform: "scale(0)" },
-	exited: { opacity: 0, transform: "scale(0)" },
+	entering: { transform: "scale(1.1)" },
+	entered: { transform: "scale(1)" },
+	exiting: { transform: "scale(0)" },
+	exited: { transform: "scale(0)" },
 }
 
 const tgCenterStyles = {
@@ -40,7 +40,7 @@ const tgCenterStyles = {
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function Modal({ animDuration = 0.4, isShown = false, onClose, children, ...props }) {
+function Modal({ animDuration = 0.35, isShown = false, onClose, children, ...props }) {
 	const modalRef = React.useRef()
 
 	// 'useOnClickOutside()' will keep creating/removing event handlers on each render unless this is done.

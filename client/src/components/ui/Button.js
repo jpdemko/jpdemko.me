@@ -1,7 +1,7 @@
 import * as React from "react"
 import styled, { css } from "styled-components/macro"
 
-import { opac, themes } from "../../shared/shared"
+import { opac } from "../../shared/shared"
 import { useCorrectTheme } from "../../shared/hooks"
 
 /* --------------------------------- STYLES --------------------------------- */
@@ -39,7 +39,7 @@ export const ButtonBase = styled.button.attrs(({ size, svg, theme, color, ...pro
 	transition: 0.175s;
 	outline: none;
 	font-weight: 500;
-	${({ theme, varCSS, disabled, column, isFocused, color }) => css`
+	${({ theme, varCSS, disabled, column, isFocused }) => css`
 		flex-direction: ${column ? "column" : "row"};
 		align-items: ${column ? "stretch" : "center"};
 		box-shadow: 0 0 0 0 ${theme.accent};
@@ -48,9 +48,10 @@ export const ButtonBase = styled.button.attrs(({ size, svg, theme, color, ...pro
 		color: ${varCSS.calcColor};
 		opacity: ${disabled ? 0.33 : 1};
 		cursor: ${disabled ? "default" : "pointer"};
-		> span {
-			padding: ${column ? `${varCSS.verticalPadding} 0 0 0` : `0 0 0 ${varCSS.sidePadding}`};
+		> div {
+			margin: ${column ? `${varCSS.verticalPadding} 0 0 0` : `0 0 0 ${varCSS.sidePadding}`};
 			flex: 0 0 auto;
+			display: inline-block;
 		}
 		${isFocused && `background: ${opac(0.3, varCSS.calcColor)};`}
 	`}
@@ -85,7 +86,7 @@ const OutlinedButton = styled(BasicButton)`
 
 const FancyButton = styled(ButtonBase)`
 	margin: 1px;
-	${({ theme, isFocused, varCSS }) => css`
+	${({ theme, varCSS }) => css`
 		background: ${theme.color};
 		color: ${theme.readableColor(theme.color)};
 		box-shadow: 0 1px 10px 1px ${opac(0.2, varCSS.calcColor)}, 0 0 0 1px ${theme.accent};
@@ -115,7 +116,7 @@ function Button({ tag, variant, color, disabled = false, children, ...props }) {
 	return (
 		<ButtonVariant {...props} as={tag} disabled={disabled} {...themeProps}>
 			{props.svg && <props.svg />}
-			{props.svg && children ? <span>{children}</span> : children}
+			{props.svg && children ? <div>{children}</div> : children}
 		</ButtonVariant>
 	)
 }

@@ -79,12 +79,12 @@ const ScrollHelper = styled.span`
 /* ------------------------------- COMPONENTS ------------------------------- */
 
 function Msg({ msg, authored, ...props }) {
-	const { author: uid, username, mid, message, msg_created_at } = msg
+	const { uid, uname, mid, message, created_at } = msg
 
 	if (!mid) return null
 
-	const relativeTime = DateTime.fromISO(msg_created_at).toLocal().toRelative()
-	const preciseTime = DateTime.fromISO(msg_created_at).toLocal().toFormat("t")
+	const relativeTime = DateTime.fromISO(created_at).toLocal().toRelative()
+	const preciseTime = DateTime.fromISO(created_at).toLocal().toFormat("t")
 	return (
 		<Row {...props} authored={authored}>
 			<ContentBG>
@@ -92,7 +92,7 @@ function Msg({ msg, authored, ...props }) {
 			</ContentBG>
 			<Info authored={authored}>
 				<Button svg={UserSVG} isFocused={authored}>
-					{username}
+					{uname}
 				</Button>
 				<Lessen authored={authored}>
 					{relativeTime} at {preciseTime}
@@ -111,8 +111,9 @@ function Logs({ curRoom, user, ...props }) {
 
 	return (
 		<LogsRoot>
-			{curRoom &&
-				curRoom.msgs.map((msg) => <Msg key={msg.mid} msg={msg} authored={user.uid === msg.author} />)}
+			{curRoom?.msgs?.map((msg) => (
+				<Msg key={msg.mid} msg={msg} authored={user.uid === msg.uid} />
+			))}
 			<ScrollHelper ref={scrollHelperRef} />
 		</LogsRoot>
 	)
