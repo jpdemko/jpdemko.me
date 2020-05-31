@@ -93,7 +93,7 @@ const Lessen = styled.span`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function ChatNav({ roomsData, curRoom, createRoom, joinRoom, leaveRoom, user }) {
+function ChatNav({ roomsData, curRoom, createRoom, joinRoom, deleteRoom, user }) {
 	const isMobileWindow = React.useContext(Contexts.IsMobileWindow)
 	const { setDrawerContent } = React.useContext(Contexts.AppNav)
 
@@ -209,8 +209,8 @@ function ChatNav({ roomsData, curRoom, createRoom, joinRoom, leaveRoom, user }) 
 
 	function submitJoinRoom(e) {
 		e.preventDefault()
-		const checkRID = rid ? Number.parseInt(rid) : rid
-		let vars = { rid: checkRID, password: password?.length < 6 ? null : password }
+		const fixRID = Object.prototype.toString.call(rid) === "[object String]" ? Number.parseInt(rid) : rid
+		let vars = { rid: fixRID, password: password?.length < 6 ? null : password }
 		// console.log("submitRoom() vars: ", vars)
 		joinRoom(vars)
 			.then(() => setModalShown(false))
@@ -254,7 +254,7 @@ function ChatNav({ roomsData, curRoom, createRoom, joinRoom, leaveRoom, user }) 
 										<Lessen>RID#{r.rid}</Lessen>
 									</Data>
 								</Room>
-								<Close svg={CloseSVG} color="red" onClick={() => leaveRoom(r.rid)} />
+								<Close svg={CloseSVG} color="red" onClick={() => deleteRoom(r.rid)} />
 							</div>
 							{r.rid === curRoom.rid &&
 								curRoom?.activeUsers?.map((u) => (

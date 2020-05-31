@@ -78,8 +78,8 @@ const ScrollHelper = styled.span`
 
 /* ------------------------------- COMPONENTS ------------------------------- */
 
-function Msg({ msg, authored, ...props }) {
-	const { uid, uname, mid, message, created_at } = msg
+function Msg({ data, authored, ...props }) {
+	const { uid, uname, mid, msg, created_at } = data
 
 	if (!mid) return null
 
@@ -88,7 +88,7 @@ function Msg({ msg, authored, ...props }) {
 	return (
 		<Row {...props} authored={authored}>
 			<ContentBG>
-				<Content authored={authored}>{message}</Content>
+				<Content authored={authored}>{msg}</Content>
 			</ContentBG>
 			<Info authored={authored}>
 				<Button svg={UserSVG} isFocused={authored}>
@@ -112,7 +112,7 @@ function Logs({ curRoom, user, ...props }) {
 	return (
 		<LogsRoot>
 			{curRoom?.msgs?.map((msg) => (
-				<Msg key={msg.mid} msg={msg} authored={user.uid === msg.uid} />
+				<Msg key={msg.mid} data={msg} authored={user.uid === msg.uid} />
 			))}
 			<ScrollHelper ref={scrollHelperRef} />
 		</LogsRoot>

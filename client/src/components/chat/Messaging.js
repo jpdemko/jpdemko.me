@@ -14,9 +14,7 @@ function IO({ sendMsg, disabled, ...props }) {
 		e.preventDefault()
 		if (disabled) return
 		sendMsg(text)
-			.then(({ success, msgs }) => {
-				setText("")
-			})
+			.then(() => setText(""))
 			.catch((err) => console.log("IO send message error.", err))
 	}
 

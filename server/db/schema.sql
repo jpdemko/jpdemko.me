@@ -1,5 +1,5 @@
 CREATE TABLE "session" (
-  "sid" varchar NOT NULL COLLATE "default",
+	"sid" varchar NOT NULL COLLATE "default",
 	"sess" json NOT NULL,
 	"expire" timestamp(6) NOT NULL
 )
@@ -35,11 +35,25 @@ CREATE TABLE rooms (
 	password VARCHAR(40)
 );
 
-INSERT INTO rooms(rname) VALUES ('General');
+
+-- Alternative method of designing things which would probably be more efficient. Didn't see that method
+-- until I had coded different parts of my app around what is already here.
+	-- https://dba.stackexchange.com/a/192767/209246
+
+CREATE TABLE msgs (
+	mid SERIAL PRIMARY KEY,
+	uid INT NOT NULL REFERENCES users(uid),
+	rid INT NOT NULL REFERENCES rooms(rid),
+	msg TEXT NOT NULL,
+	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX msgs_uid_index ON msgs(uid);
+CREATE INDEX msgs_rid_index ON msgs(rid);
 
 --
 
-CREATE TABLE joined_rooms (
+CREATE TABLE users_rooms (
 	uid INT REFERENCES users(uid),
 	rid INT REFERENCES rooms(rid),
 	PRIMARY KEY(uid, rid)
@@ -47,31 +61,24 @@ CREATE TABLE joined_rooms (
 
 --
 
-CREATE TABLE messages (
-	mid SERIAL PRIMARY KEY,
+CREATE TABLE dms (
+	dmid SERIAL PRIMARY KEY,
 	uid INT NOT NULL REFERENCES users(uid),
-	rid INT NOT NULL REFERENCES rooms(rid),
-	message TEXT NOT NULL,
+	recip INT NOT NULL REFERENCES users(uid),
+	msg TEXT NOT NULL,
 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX msg_author ON messages(uid);
-CREATE INDEX msg_in ON messages(rid);
+CREATE INDEX dms_uid_index ON dms(uid);
+CREATE INDEX dms_recip_index ON dms(recip);
 
 --
 
-CREATE TABLE dms (
-	dmid SERIAL PRIMARY KEY,
-	user1 INT NOT NULL REFERENCES users(uid),
-	user2 INT NOT NULL REFERENCES users(uid),
-	message TEXT NOT NULL,
-	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-	CHECK (user1 < user2)
+CREATE TABLE users_dms (
+	uid INT REFERENCES users(uid),
+	recip INT REFERENCES users(uid),
+	PRIMARY KEY(uid, recip)
 );
-
-
-CREATE INDEX dm_user1 ON dms(user1);
-CREATE INDEX dm_user2 ON dms(user2);
 
 --
 
@@ -107,7 +114,24 @@ CREATE INDEX dm_user2 ON dms(user2);
 -- 	user_id INT NOT NULL REFERENCES users(id)
 -- );
 
---
+-- Finished with creating tables. Insert default data and create triggers.
+
+-- Every user should automatically join the General chatroom.
+INSERT INTO rooms(rname) VALUES ('General');
+
+CREATE OR REPLACE FUNCTION join_default_room()
+	RETURNS trigger AS
+		$$ BEGIN
+			INSERT INTO users_rooms(uid, rid) VALUES (NEW.uid, 1);
+			RETURN NEW;
+		END; $$
+LANGUAGE 'plpgsql';
+
+CREATE TRIGGER join_general AFTER INSERT ON users
+FOR EACH ROW EXECUTE PROCEDURE join_default_room();
+
+-- Test trigger.
+INSERT INTO users(uname) VALUES('bob');
 
 -- DELETE ALL DATA
 -- DROP SCHEMA public CASCADE;

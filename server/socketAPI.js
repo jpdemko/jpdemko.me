@@ -1,118 +1,161 @@
-const activeUsers = {}
-const activeRooms = {}
-
-var User = {
-	setup: function ({ uid, uname, socketID, joinedRooms = [] }) {
-		if (!uid || !uname) throw Error("User.create() bad params")
-		var self = Object.create(this)
-		self.uid = uid
-		self.uname = uname
-		self.joinedRooms = joinedRooms
-		self.socketID = socketID
-		return self
-	},
-	amass: function () {
-		const { uid, uname, socketID, joinedRooms } = this
-		return {
-			uid,
-			uname,
-			joinedRooms: joinedRooms.map(Rooms.get),
-		}
-	},
-}
-
-var Users = {
-	active: {},
-	setup: function (userData) {
-		if (!userData || (userData && !userData.uid)) throw Error("Users.add() bad params")
-		this.active[userData.uid] = User.setup(userData)
-		return this.active[userData.uid]
-	},
-	get: function (uid) {
-		return this.active[uid]
-	},
-	disconnect: function (sid) {
-		const uid = Object.keys(this.active).find((uid) => this.active[uid].socketID === sid)
-		const user = this.active[uid]
-		user.joinedRooms.forEach((rid) => Rooms.get(rid).removeUser(uid))
-		delete this.active[uid]
-		return this
-	},
-	log: function () {
-		console.log("### USERS ###")
-		console.log(this.active)
-	},
-}
-
-var Room = {
-	create: function ({ rid, rname, activeUsers = [] }) {
-		if (!rid || !rname) throw Error("Room.create() bad params")
-		var self = Object.create(this)
-		self.rid = rid
-		self.rname = rname
-		self.activeUsers = activeUsers
-		return self
-	},
-	addUser: function (uid) {
-		const user = Users.get(uid)
-		if (!user) return
-		user.joinedRooms.push(this.rid)
-		this.activeUsers.push(user.uid)
-		return this
-	},
-	removeUser: function (uid) {
-		const user = Users.get(uid)
-		if (!user) return
-		user.joinedRooms = user.joinedRooms.filter((rid) => rid !== this.rid)
-		this.activeUsers = this.activeUsers.filter((uid) => uid !== user.uid)
-		Rooms.destroy(this.rid)
-		return this
-	},
-	amass: function () {
-		const { rid, rname, activeUsers } = this
-		return {
-			rid,
-			rname,
-			activeUsers: activeUsers.map(Users.get),
-		}
-	},
-}
-
-var Rooms = {
-	active: {},
-	create: function (roomData) {
-		if (!roomData || (roomData && !roomData.rid)) throw Error("Rooms.add() bad params")
-		this.active[roomData.rid] = Room.create(roomData)
-		return this.active[roomData.rid]
-	},
-	get: function (rid) {
-		return this.active[rid]
-	},
-	destroy: function (rid) {
-		if (this.active[rid]) delete this.active[rid]
-	},
-	log: function () {
-		console.log("### ROOMS ### ")
-		console.log(this.active)
-	},
-}
-
-function leaveRoom(socket, uid, rid) {
-	const room = activeRooms[rid]
-	const user = activeUsers[uid]
-	if (!room)
-		return console.log(
-			`leaveRoom() err, params: uid(${uid}), rid(${rid}), actRoomsLength(${
-				Object.keys(activeRooms).length
-			})`
-		)
-	room.activeUsers = room.activeUsers.filter((u) => u.uid !== uid)
-	console.log(`${user.uname}#${user.uid} left room ${room.rname}#${room.rid}`)
-	if (room.activeUsers < 1) delete activeRooms[rid]
-	else socket.to(`${rid}`).emit("updateRoom", room)
-}
-
 module.exports = function (io, sessionMiddleware, db) {
+	var User = {
+		setup: function ({ uid, uname, socketID }) {
+			if (!uid || !uname) throw Error("User.create() bad params")
+			var self = Object.create(this)
+			self.uid = uid
+			self.uname = uname
+			self.socketID = socketID
+			self.curJoinedRID = null
+			return self
+		},
+		clientCopy: function () {
+			const { uid, uname, socketID } = this
+			return {
+				uid,
+				uname,
+				socketID,
+			}
+		},
+		leaveRoom: function () {
+			if (!this.curJoinedRID) {
+				this.log("leaveRoom() error, no RID#")
+				return false
+			}
+			const socket = io.of("/").connected[this.socketID]
+			socket.leave(`${this.curJoinedRID}`)
+			const room = Rooms.get(this.curJoinedRID)
+			// this.log(`leaveRoom(${this.curJoinedRID}), room: ${room && room.rid}`)
+			this.curJoinedRID = null
+			return room ? room.removeUser(this) : false
+		},
+		joinRoom: function (room) {
+			if (!room) {
+				// console.log(`error - bad room param: ${room}`)
+				return false
+			}
+			if ((this.curJoinedRID && this.leaveRoom()) || !this.curJoinedRID) {
+				if (room.addUser(this)) {
+					const socket = io.of("/").connected[this.socketID]
+					socket.join(`${room.rid}`)
+					this.curJoinedRID = room.rid
+					// this.log(`joined ${room.rname}#${room.rid}`)
+					return true
+				}
+			}
+			return false
+		},
+		log: function (msg) {
+			console.log(`${this.uname}#${this.uid}: ${msg}`)
+		},
+	}
+
+	var Users = {
+		active: {},
+		setup: function (userData) {
+			if (!userData || (userData && !userData.uid)) throw Error("Users.add() bad params")
+			this.active[userData.uid] = User.setup(userData)
+			return this.active[userData.uid]
+		},
+		get: function (val) {
+			let output = this.active[val]
+			if (!output) {
+				Object.keys(this.active).forEach((id) => {
+					const curUser = this.active[id]
+					const match = Object.keys(curUser).find((key) => curUser[key] === val)
+					if (match) output = curUser
+				})
+			}
+			return output
+		},
+		disconnect: function (sid) {
+			const user = this.get(sid)
+			if (user) {
+				user.leaveRoom()
+				delete this.active[user.uid]
+				return true
+			}
+			return false
+		},
+		log: function () {
+			console.log("### USERS ###")
+			console.log(this.active)
+		},
+	}
+
+	var Room = {
+		create: function ({ rid, rname, password = null, activeUsers = [] }) {
+			if (!rid || !rname) throw Error("Room.create() bad params")
+			var self = Object.create(this)
+			self.rid = rid
+			self.rname = rname
+			self.password = password
+			self.activeUsers = activeUsers
+			console.log(`>>> ${rname}#${rid} created`)
+			return self
+		},
+		contains: function (uid) {
+			return !!this.activeUsers.find((id) => id === uid)
+		},
+		addUser: function (user) {
+			if (!user) {
+				this.log("addUser() error, no user")
+				return false
+			}
+			this.activeUsers.push(user.uid)
+			io.in(`${this.rid}`).emit("updateRoom", this.clientCopy())
+			// this.log(`added user ${user.uname}#${user.uid}`)
+			return true
+		},
+		removeUser: function (user) {
+			if (!user || !this.activeUsers.find((uid) => uid === user.uid)) {
+				this.log(`removeUser() error`)
+				return false
+			}
+			this.activeUsers = this.activeUsers.filter((uid) => uid !== user.uid)
+			// this.log(`removed user ${user.uname}#${user.uid}`)
+			if (this.activeUsers.length < 1) Rooms.destroy(this)
+			else io.in(`${this.rid}`).emit("updateRoom", this.clientCopy())
+			return true
+		},
+		clientCopy: function () {
+			const { rid, rname, password, activeUsers } = this
+			return {
+				rid,
+				rname,
+				password,
+				activeUsers: activeUsers.map((uid) => Users.get(uid).clientCopy()),
+			}
+		},
+		log: function (msg) {
+			console.log(`${this.rname}#${this.rid}: ${msg}`)
+		},
+	}
+
+	var Rooms = {
+		active: {},
+		create: function (roomData) {
+			if (!roomData || (roomData && !roomData.rid)) throw Error("Rooms.add() bad params")
+			this.active[roomData.rid] = Room.create(roomData)
+			return this.active[roomData.rid]
+		},
+		get: function (rid) {
+			return this.active[rid]
+		},
+		destroy: function (room) {
+			if (room && this.active[room.rid]) {
+				// console.log(`>>> deleted room ${room.rname}#${room.rid}`)
+				delete this.active[room.rid]
+				return true
+			}
+			return false
+		},
+		log: function () {
+			console.log("### ROOMS ### ")
+			console.log(this.active)
+		},
+	}
+
 	io.use(function (socket, next) {
 		sessionMiddleware(socket.request, {}, next)
 	})
@@ -124,8 +167,8 @@ module.exports = function (io, sessionMiddleware, db) {
 			if (!uname && !uid) return clientCB({ error: "server error - setupUser() - bad params" })
 
 			// Check if user is already active.
-			if (!uid) uid = Object.keys(activeUsers).find((uid) => activeUsers[uid].uname === uname)
-			let user = activeUsers[uid]
+			if (!uid) uid = Object.keys(Users.active).find((id) => Users.active[id].uname === uname)
+			let user = Users.get(uid)
 			if (user) {
 				if (user.socketID === socket.id)
 					return clientCB({ success: "server success - setupUser() - you're already setup", user })
@@ -139,182 +182,156 @@ module.exports = function (io, sessionMiddleware, db) {
 					if (userRes.rows.length === 0) {
 						const insertUserSQL = `INSERT INTO users(uname) VALUES($1) RETURNING uid, uname`
 						userRes = await db.query(insertUserSQL, [uname])
-						const joinGeneralChatSQL = `INSERT INTO joined_rooms(uid, rid) VALUES($1, 1)`
-						await db.query(joinGeneralChatSQL, [userRes.rows[0].uid])
 					}
 					// Grab all the rooms the user is currently in.
 					const getJoinedRoomsSQL = `SELECT r.rid, r.rname, r.password FROM rooms r
-						INNER JOIN joined_rooms jr ON r.rid = jr.rid WHERE jr.uid = $1`
+						INNER JOIN users_rooms ur ON r.rid = ur.rid WHERE ur.uid = $1`
 					const usersRoomsRes = await db.query(getJoinedRoomsSQL, [userRes.rows[0].uid])
-					user = {
-						...userRes.rows[0],
-						joinedRooms: usersRoomsRes.rows,
-					}
-					activeUsers[user.uid] = {
-						...user,
-						socketID: socket.id,
-					}
+
+					user = Users.setup({ ...userRes.rows[0], socketID: socket.id })
+
+					clientCB({
+						success: "server success - setupUser()",
+						user: {
+							...user.clientCopy(),
+							joinedRooms: usersRoomsRes.rows,
+						},
+					})
 				} catch (error) {
+					error = `server error - setupUser() - ${error}`
 					console.log(error)
 					return clientCB({ error })
 				}
 			}
-			console.log(
-				"CUR USERS: ",
-				Object.keys(activeUsers).map((uid) => activeUsers[uid].uname)
-			)
-			clientCB({ success: "server success - setupUser()", user })
 		})
 
 		socket.on("createRoom", async function ({ uid, rname, password = null }, clientCB) {
-			const activeUser = activeUsers[uid]
+			let user = Users.get(uid)
 			// Make sure password is null or a string with at least 6 char.
 			const okPass = password === null || (typeof password === "string" && password.length > 5)
-			if (!activeUser || !rname || !okPass) {
-				console.log("user: ", activeUser, "rname: ", rname)
-				return clientCB({ error: "server error - createRoom() - bad params" })
-			}
-			// Create room in DB and return room info (rid#, rname, password?) locally.
 			try {
+				if (!user || !rname || !okPass) throw Error("bad params")
+				// Create room in DB and return room info (rid#, rname, password?) locally.
 				const createRoomSQL = `INSERT INTO rooms(rname, password) VALUES ($1, $2)
 					RETURNING rid, rname, password`
 				const createRoomRes = await db.query(createRoomSQL, [rname, password])
 				const nextRoom = createRoomRes.rows[0]
 				const rid = nextRoom.rid
-
-				// Add user annd room to joined_rooms table.
-				const joinRoomSQL = `INSERT INTO joined_rooms(uid, rid) VALUES ($1, $2)`
+				// Add user and room to users_rooms table.
+				const joinRoomSQL = `INSERT INTO users_rooms(uid, rid) VALUES ($1, $2)`
 				await db.query(joinRoomSQL, [uid, rid])
 
-				const { joinedRooms, ...userData } = activeUser
-				activeRooms[rid] = {
-					activeUsers: [{ ...userData }],
-					...nextRoom,
-				}
-				activeUser.joinedRooms.push(activeRooms[rid])
-				socket.join(`${rid}`)
+				user.joinRoom(Rooms.create(nextRoom))
 
-				console.log(`${activeUser.uname}#${activeUser.uid} joined room ${nextRoom.rname}#${nextRoom.rid}`)
-				clientCB({ success: "server success - createRoom()", room: activeRooms[rid] })
+				clientCB({ success: "server success - createRoom()", room: room.clientCopy() })
 			} catch (error) {
+				error = `server error - createRoom() - ${error}`
 				console.log(error)
 				clientCB({ error })
 			}
 		})
 
 		socket.on("joinRoom", async function ({ uid, rid, password = null, lastMsgTS }, clientCB) {
-			const activeUser = activeUsers[uid]
-			if (!rid || !activeUser) {
-				console.log("uid:", uid, "user: ", activeUser, "rid: ", rid)
+			let user = Users.get(uid)
+			if (!rid || !user) {
+				// console.log("uid:", uid, "user: ", user, "rid: ", rid)
 				return clientCB({ error: "server error - joinRoom() - bad params" })
 			}
 			try {
-				let activeRoom = activeRooms[rid]
-				if (!activeRoom) {
+				let room = Rooms.get(rid)
+				if (room) {
+					// Double check if user has already joined said room.
+					if (room.contains(uid)) {
+						return clientCB({
+							success: "server success - joinRoom() - user already in room",
+							room: room.clientCopy(),
+						})
+					}
+				} else {
 					const getRoomDataSQL = `SELECT rid, rname, password FROM rooms WHERE rid = $1`
 					const roomRes = await db.query(getRoomDataSQL, [rid])
-					activeRooms[rid] = {
-						activeUsers: [],
-						...roomRes.rows[0],
-					}
-					activeRoom = activeRooms[rid]
-				}
-				// Double check if user has already joined said room.
-				if (activeRoom.activeUsers.find((u) => u.uid === uid)) {
-					return clientCB({
-						success: "server success - joinRoom() - user already in room",
-						room: activeRoom,
-					})
+					if (roomRes.rows.length < 1) throw Error("room doesn't exist")
+					room = Rooms.create(roomRes.rows[0])
 				}
 				// Check for and deal with room password. For now not hashing/encrypting.
-				if (activeRoom.password && activeRoom.password !== password)
-					throw new Error("invalid room password")
+				if (room.password && room.password !== password) throw Error("invalid room password")
+
 				// Check if you've already joined the room or not in DB.
-				const checkIfJoinedRoomSQL = `SELECT * FROM joined_rooms WHERE uid = $1 AND rid = $2`
+				const checkIfJoinedRoomSQL = `SELECT * FROM users_rooms WHERE uid = $1 AND rid = $2`
 				const joinRoomCheckRes = await db.query(checkIfJoinedRoomSQL, [uid, rid])
 				// If they haven't joined, create the DB row and add the joined room on the server.
 				if (joinRoomCheckRes.rows.length < 1) {
-					const joinRoomSQL = `INSERT INTO joined_rooms(uid, rid) VALUES ($1, $2)`
+					const joinRoomSQL = `INSERT INTO users_rooms(uid, rid) VALUES ($1, $2)`
 					await db.query(joinRoomSQL, [uid, rid])
 				}
 				// Grab all the messages from the room their joining. Query changes based if given last msg timestamp.
-				const getRoomMsgsSQL = `SELECT m.mid, m.message, m.created_at, u.uid, u.uname FROM messages m
+				const getRoomMsgsSQL = `SELECT m.mid, m.msg, m.created_at, u.uid, u.uname FROM msgs m
 					INNER JOIN users u ON m.uid = u.uid WHERE rid = $1
 					AND m.created_at > ${lastMsgTS ? "$2" : "NOW() - INTERVAL '60 DAYS'"}
 					ORDER BY m.created_at ASC`
 				const msgsRes = await db.query(getRoomMsgsSQL, [rid, ...(lastMsgTS ? [lastMsgTS] : [])])
 
-				// Prevent circular reference from 'joinedRooms' in an 'activeUser'. Only need 'userData' from DB.
-				// Call stack will exceed in passing of data (from transform) in network if circular reference passed.
-				const { joinedRooms, ...userData } = activeUser
-				activeRoom.activeUsers.push({ ...userData })
-				activeUser.joinedRooms.push(activeRoom)
+				user.joinRoom(room)
 
-				socket.join(`${rid}`)
-				socket.to(`${rid}`).emit("updateRoom", activeRoom)
-				console.log(
-					`${activeUser.uname}#${activeUser.uid} joined room ${activeRoom.rname}#${activeRoom.rid}`
-				)
 				clientCB({
 					success: "server success - joinRoom()",
 					room: {
-						...activeRoom,
+						...room.clientCopy(),
 						msgs: msgsRes.rows,
 					},
 				})
 			} catch (error) {
+				error = `server error - joinRoom() - ${error}`
 				console.log(error)
-				clientCB({ error: `server error - joinRoom() - ${error}` })
+				clientCB({ error })
 			}
 		})
 
-		socket.on("leaveRoom", async function ({ uid, rid }, clientCB) {
-			if (!uid || !rid) return clientCB({ error: "server error - leaveRoom() - bad params" })
-			if (rid === 1) return clientCB({ error: "server error - leaveRoom() - can't leave 'General'" })
+		socket.on("deleteRoom", async function ({ uid, rid }, clientCB) {
 			try {
-				const leaveRoomSQL = `DELETE FROM joined_rooms WHERE uid = $1 AND rid = $2`
+				const user = Users.get(uid)
+				if (!user || !rid) throw Error("bad params")
+				if (rid === 1) throw Error("can't leave or delete room 'General'")
+
+				const leaveRoomSQL = `DELETE FROM users_rooms WHERE uid = $1 AND rid = $2`
 				await db.query(leaveRoomSQL, [uid, rid])
-				leaveRoom(socket, uid, rid)
-				clientCB({ success: "server success - leaveRoom()" })
+
+				if (user.curJoinedRID === rid) user.leaveRoom()
+
+				clientCB({ success: "server success - deleteRoom()" })
 			} catch (error) {
+				error = `server error - deleteRoom() - ${error}`
 				console.log(error)
-				clientCB({ error: `server error - leaveRoom() - ${error}` })
+				clientCB({ error })
 			}
 		})
 
 		socket.on("sendMsg", async function ({ msg, rid, uid }, clientCB) {
 			const sendMsgQuery = `WITH m AS (
-				INSERT INTO messages(uid, rid, message) VALUES ($1, $2, $3) RETURNING * )
-				SELECT m.mid, m.uid, m.message, m.created_at, u.uname FROM m
+				INSERT INTO msgs(uid, rid, msg) VALUES ($1, $2, $3) RETURNING * )
+				SELECT m.mid, m.uid, m.msg, m.created_at, u.uname FROM m
 				INNER JOIN users u ON m.uid = u.uid`
 			try {
 				const insertMsgRes = await db.query(sendMsgQuery, [uid, rid, msg])
-				io.in(`${rid}`).emit("updateRoom", { ...activeRooms[rid], msgs: insertMsgRes.rows })
+				io.in(`${rid}`).emit("updateRoom", { ...Rooms.get(rid).clientCopy(), msgs: insertMsgRes.rows })
+
 				clientCB({ success: "server success - sendMsg()", msgs: insertMsgRes.rows })
 			} catch (error) {
+				error = `server error - sendMsg() - ${error}`
 				console.log(error)
-				clientCB({ error: `server error - sendMsg() - ${error}` })
+				clientCB({ error })
 			}
 		})
 
-		socket.on("log", function (clientCB) {
-			console.log(io.sockets.adapter.rooms)
-			clientCB({ activeRooms, activeUsers })
+		socket.on("log", function () {
+			console.log("- - - - - - - - - - - - - - - - -")
+			Rooms.log()
+			Users.log()
+			console.log("- - - - - - - - - - - - - - - - -")
 		})
 
-		socket.on("disconnect", function () {
-			const uid = Object.keys(activeUsers).find((uid) => activeUsers[uid].socketID === socket.id)
-			const user = activeUsers[uid]
-			console.log(`${user.uname}#${user.uid} disconnected`)
-			if (!user) {
-				console.log("server error - prob. server restart not getting data from reconnecting clients")
-				return
-			}
-			// Go through user's rooms and remove him from them.
-			user.joinedRooms.forEach((room) => leaveRoom(socket, uid, room.rid))
-			delete activeUsers[uid]
-			console.log("CUR ROOMS: ", Object.keys(activeRooms), "CUR USERS: ", Object.keys(activeUsers))
-			console.log("- - - - - - - - -")
+		socket.on("disconnecting", function () {
+			Users.disconnect(socket.id)
 		})
 	})
 }
