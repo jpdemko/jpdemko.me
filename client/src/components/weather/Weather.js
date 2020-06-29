@@ -6,7 +6,7 @@ import { DateTime, Interval } from "luxon"
 
 import { getCurWeatherBG } from "./WeatherIcon"
 import { ReactComponent as SunnySVG } from "../../shared/assets/weather-icons/wi-day-sunny.svg"
-import { simplerFetch, setupAppSharedOptions, Contexts } from "../../shared/shared"
+import { setupAppSharedOptions, Contexts } from "../../shared/shared"
 import { useLocalStorage, useInterval, useResizeObserver } from "../../shared/hooks"
 import WeatherNav from "./WeatherNav"
 import CurrentWeather from "./CurrentWeather"
@@ -148,13 +148,13 @@ function Weather({ ...props }) {
 		} else {
 			fetchData(mapData)
 				.then((newLocation) => {
-					setIsLoading(false)
 					setLocations([...locationsCopy, newLocation])
 					setCurLocation(newLocation)
 					mapLoadLocation(mapData)
 					toggleDrawer()
 				})
 				.catch(console.log)
+				.finally(() => setIsLoading(false))
 		}
 	}
 
@@ -171,15 +171,11 @@ function Weather({ ...props }) {
 	function fetchSunData(lat, lng, weatherData) {
 		const { currently, timezone } = weatherData
 		const locDate = DateTime.fromSeconds(currently.time).setZone(timezone).toFormat("yyyy-MM-dd")
-		const sunAPI = "https://api.sunrise-sunset.org/json"
-		const params = `?lat=${lat}&lng=${lng}&formatted=0&date=${locDate}`
-		return simplerFetch(sunAPI + params).then((res) => res.results)
+		return fetch(`/weather/sun?lat=${lat}&lng=${lng}&locDate=${locDate}`).then((res) => res.json())
 	}
 
 	function fetchWeatherData(lat, lng) {
-		const darkskyAPI = "https://api.darksky.net/forecast/"
-		const params = `${process.env.REACT_APP_DARK_SKY_API_KEY}/${lat},${lng}?exclude=minutely`
-		return simplerFetch(darkskyAPI + params, true).then((res) => res)
+		return fetch(`/weather/forecast?lat=${lat}&lng=${lng}`).then((res) => res.json())
 	}
 
 	async function fetchData(mapData) {
@@ -187,7 +183,7 @@ function Weather({ ...props }) {
 			const { latitude: lat, longitude: lng } = mapData.location
 			setIsLoading(true)
 			const weatherData = await fetchWeatherData(lat, lng)
-			const sunData = await fetchSunData(lat, lng, weatherData)
+			const { results: sunData } = await fetchSunData(lat, lng, weatherData)
 			return {
 				id: lat + lng,
 				curWeatherBG: getCurWeatherBG(weatherData, sunData),
@@ -209,12 +205,12 @@ function Weather({ ...props }) {
 		})
 		Promise.all(locPromises)
 			.then((nextLocations) => {
-				setIsLoading(false)
 				const nextCurLocation = nextLocations.find((loc) => loc.id === curLocation.id)
 				setCurLocation(nextCurLocation)
 				setLocations(nextLocations)
 			})
 			.catch(console.log)
+			.finally(() => setIsLoading(false))
 	}
 
 	// On initial load and subsequent intervals we get new data for user's locations.

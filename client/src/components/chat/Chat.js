@@ -24,6 +24,11 @@ const Main = styled.div`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
+/*
+	1. user is loaded, get 'joinedRooms' and 'ongoingDMs'
+	2. depending on 'roomsView' state,
+*/
+
 const msgIDs = new Set()
 let chatrooms = {}
 
@@ -34,7 +39,7 @@ class Chat extends React.Component {
 		const prevData = this.getUserData()
 		this.state = {
 			curRoom: null,
-			roomsData: null,
+			joinedRooms: null,
 			user: null,
 			inputUsername: "",
 			roomsView: true,
@@ -78,39 +83,41 @@ class Chat extends React.Component {
 	}
 
 	loadUser = (prevState) => {
-		let { user, curRoom } = prevState || this.state
+		let { user, curRoom } = prevState ?? this.state
 		if (!user) return console.log("loadUser() skipped, no user found")
 
 		console.log("loadUser() start")
 		this.context.setIsLoading(true)
 		this.socketSetupUser(user)
-			.then(async ({ user }) => {
-				const { joinedRooms } = user
-				const room = curRoom || joinedRooms?.[0]
+			.then(async ({ data }) => {
+				const { user: userRes, joinedRooms, ongoingDMs } = data
+				const room = curRoom ?? joinedRooms?.[0]
+				console.log(userRes, joinedRooms, ongoingDMs, room)
 				if (room) {
 					try {
-						const res = await this.socketJoinRoom(room, user)
+						const res = await this.socketJoinRoom(room, userRes)
 						this.updateRoom(res.room)
 					} catch (error) {
 						throw Error(error)
 					}
 					this.setState({
-						user,
-						curRoom: { ...chatrooms[curRoom?.rid ?? 1] },
-						roomsData: joinedRooms,
+						user: userRes,
+						curRoom: { ...chatrooms[room?.rid ?? 1] },
+						joinedRooms,
+						ongoingDMs,
 					})
 				}
 			})
 			.catch((err) => {
 				console.log(err)
-				this.setState({ user: null, curRoom: null, roomsData: null })
+				this.setState({ user: null, curRoom: null, joinedRooms: null, ongoingDMs: null })
 			})
 			.finally(() => this.context.setIsLoading(false))
 	}
 
 	saveUserData = () => {
-		const { user, curRoom, roomsData, roomsView } = this.state
-		if (!user || !curRoom || !roomsData) return console.log("saveUserData() skipped, not enough data")
+		const { user, curRoom, joinedRooms, roomsView } = this.state
+		if (!user || !curRoom || !joinedRooms) return console.log("saveUserData() skipped, not enough data")
 		let prevData = sessionStorage.getItem("Chat")
 		prevData = prevData ? JSON.parse(prevData) : {}
 		sessionStorage.setItem(
@@ -119,7 +126,7 @@ class Chat extends React.Component {
 				...prevData,
 				user,
 				curRoom,
-				roomsData,
+				joinedRooms,
 				roomsView,
 			})
 		)
@@ -135,10 +142,10 @@ class Chat extends React.Component {
 				reject({ error: "client error - socketSetupUser() - bad vars" })
 				return
 			}
-			socket.emit("setupUser", { uname: nextUser.uname }, ({ success, error, user }) => {
-				console.log(success || error, user)
+			socket.emit("setupUser", { uname: nextUser.uname }, ({ success, error, data }) => {
+				console.log(success || error, data)
 				if (error) reject(error)
-				else if (success) resolve({ success, user })
+				else if (success) resolve({ success, data })
 			})
 		})
 	}
@@ -167,13 +174,13 @@ class Chat extends React.Component {
 			})
 		}
 		// Update state based on certain factors.
-		const { curRoom, roomsData } = this.state
+		const { curRoom, joinedRooms } = this.state
 		const nextState = {}
 		if (makeCurRoom || curRoom?.rid === rid) {
 			nextState.curRoom = { ...chatrooms[rid] }
 		}
-		if (!roomsData?.find((r) => r.rid === rid)) {
-			nextState.roomsData = (roomsData || []).concat([{ rid, rname, password }])
+		if (!joinedRooms?.find((r) => r.rid === rid)) {
+			nextState.joinedRooms = (joinedRooms || []).concat([{ rid, rname, password }])
 		}
 		if (Object.keys(nextState).length > 0) {
 			this.setState(nextState)
@@ -225,8 +232,8 @@ class Chat extends React.Component {
 	}
 
 	deleteRoom = (rid) => {
-		const { curRoom, socket, user, roomsData } = this.state
-		if (!roomsData?.find((r) => r.rid === rid)) return console.log("deleteRoom() - room doesn't exist")
+		const { curRoom, socket, user, joinedRooms } = this.state
+		if (!joinedRooms?.find((r) => r.rid === rid)) return console.log("deleteRoom() - room doesn't exist")
 		else if (rid === 1) return console.log("deleteRoom() - can't delete 'General'")
 
 		new Promise((resolve, reject) => {
@@ -244,12 +251,12 @@ class Chat extends React.Component {
 				}
 				if (curRoom?.rid === rid) {
 					try {
-						await this.joinRoom(roomsData.find((r) => r.rid !== rid))
+						await this.joinRoom(joinedRooms.find((r) => r.rid !== rid))
 					} catch (error) {
 						throw Error(error)
 					}
 				}
-				this.setState({ roomsData: roomsData.filter((r) => r.rid !== rid) })
+				this.setState({ joinedRooms: joinedRooms.filter((r) => r.rid !== rid) })
 			})
 			.catch(console.log)
 	}
@@ -288,8 +295,11 @@ class Chat extends React.Component {
 		})
 	}
 
-	sendMsg = (msg) => {
+	socketSendDM = (msg) => {}
+
+	send = (msg) => {
 		const { rid } = this.state.curRoom
+		// api needs { uid, recipID, msg }
 		return this.socketSendMsg(msg).then((res) => {
 			const { msgs } = res
 			this.updateRoom({ ...chatrooms[rid], msgs })
@@ -318,13 +328,14 @@ class Chat extends React.Component {
 	}
 
 	render() {
-		const { user, inputUsername, curRoom, roomsData } = this.state
+		const { user, inputUsername, curRoom, joinedRooms, ongoingDMs } = this.state
 		return (
 			<Root>
 				{user?.uname ? (
 					<>
 						<ChatNav
-							roomsData={roomsData}
+							ongoingDMs={ongoingDMs}
+							joinedRooms={joinedRooms}
 							curRoom={curRoom}
 							createRoom={this.createRoom}
 							joinRoom={this.joinRoom}
@@ -333,7 +344,7 @@ class Chat extends React.Component {
 						/>
 						<Main>
 							<Logs curRoom={curRoom} user={user} />
-							<Messaging sendMsg={this.sendMsg} disabled={!!!curRoom} />
+							<Messaging send={this.send} disabled={!!!curRoom} />
 						</Main>
 						<div style={{ position: "absolute", left: "50%", top: "0" }}>
 							<Button onClick={this.log}>log</Button>

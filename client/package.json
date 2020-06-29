@@ -10,13 +10,12 @@
 	},
 	"proxy": "http://localhost:5000",
 	"dependencies": {
-		"axios": "^0.19.2",
 		"express": "^4.17.1",
-		"gsap": "^3.2.6",
+		"gsap": "^3.3.4",
 		"luxon": "^1.24.1",
-		"polished": "^3.6.4",
+		"polished": "^3.6.5",
 		"react": "^16.13.1",
-		"react-contextmenu": "^2.13.0",
+		"react-contextmenu": "^2.14.0",
 		"react-cookie": "^4.0.3",
 		"react-dom": "^16.13.1",
 		"react-router-dom": "^5.2.0",
@@ -25,15 +24,15 @@
 		"sanitize.css": "^11.0.1",
 		"socket.io-client": "^2.3.0",
 		"styled-components": "^5.1.1",
-		"throttle-debounce": "^2.1.0"
+		"throttle-debounce": "^2.2.1"
 	},
 	"devDependencies": {
 		"@types/gsap": "^1.20.2",
 		"bingmaps": "^2.0.3",
 		"eslint": "^6.8.0",
-		"eslint-plugin-jsx-a11y": "^6.2.3",
+		"eslint-plugin-jsx-a11y": "^6.3.1",
 		"http-proxy-middleware": "^1.0.4",
-		"typescript": "^3.9.3"
+		"typescript": "^3.9.5"
 	},
 	"browserslist": [
 		">0.2%",

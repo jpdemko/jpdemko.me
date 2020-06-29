@@ -9,16 +9,7 @@ import { ReactComponent as CloseSVG } from "../../shared/assets/icons/close.svg"
 import { ReactComponent as MinimizeSVG } from "../../shared/assets/icons/minimize.svg"
 import { ReactComponent as FullscreenExitSVG } from "../../shared/assets/icons/fullscreen-exit.svg"
 import { ReactComponent as FullscreenSVG } from "../../shared/assets/icons/fullscreen.svg"
-import {
-	getRect,
-	isDoubleTouch,
-	opac,
-	ls,
-	Styles,
-	flags,
-	mediaBreakpoints,
-	Contexts,
-} from "../../shared/shared"
+import { getRect, isDoubleTouch, opac, ls, Styles, mediaBreakpoints, Contexts } from "../../shared/shared"
 import Button from "../ui/Button"
 
 gsap.registerPlugin(Draggable)
@@ -246,7 +237,6 @@ export default class Window extends React.Component {
 			edgeResistance: 0.5,
 			trigger: `#title-bar-${title}`,
 			zIndexBoost: false,
-			force3D: !flags.isChrome,
 			onPress: () => focusApp(title),
 			onRelease: () => {
 				wdow.draggableWindow[0].update(true)
@@ -256,7 +246,7 @@ export default class Window extends React.Component {
 			allowContextMenu: true,
 		})
 
-		function genResizeDraggable(vars) {
+		function genResizeDraggable({ handleOnDrag, ...vars }) {
 			const parent = document.getElementById("allowedDragArea")
 			const nextEle = document.createElement("div")
 			nextEle.style.position = "absolute"
@@ -274,7 +264,7 @@ export default class Window extends React.Component {
 					wdow.preventSubpixelValues()
 				},
 				onDrag: function () {
-					vars.onDrag(this, wdow.data.css.windowed)
+					handleOnDrag(this, wdow.data.css.windowed)
 					wdow.data.css.current.width = wdow.data.css.windowed.width
 					wdow.data.css.current.height = wdow.data.css.windowed.height
 					wdow.handleViewportResizeThrottled()
@@ -293,7 +283,7 @@ export default class Window extends React.Component {
 			genResizeDraggable({
 				trigger: `#side-top-${title}, #corner-nw-${title}, #corner-ne-${title}`,
 				cursor: "n-resize",
-				onDrag: function (drag, wdowCSS) {
+				handleOnDrag: function (drag, wdowCSS) {
 					const nextHeightBelowMin = wdowCSS.height - drag.deltaY < minWindowCSS.height
 					const nextHeightAboveMax = wdowCSS.height - drag.deltaY > drag.maxY
 
@@ -308,7 +298,7 @@ export default class Window extends React.Component {
 			genResizeDraggable({
 				trigger: `#side-right-${title}, #corner-ne-${title}, #corner-se-${title}`,
 				cursor: "e-resize",
-				onDrag: function (drag, wdowCSS) {
+				handleOnDrag: function (drag, wdowCSS) {
 					const nextWidthBelowMin = wdowCSS.width + drag.deltaX < minWindowCSS.width
 					const nextWidthAboveMax = wdowCSS.width + drag.deltaX > drag.maxX
 
@@ -322,7 +312,7 @@ export default class Window extends React.Component {
 			genResizeDraggable({
 				trigger: `#side-bottom-${title}, #corner-sw-${title}, #corner-se-${title}`,
 				cursor: "s-resize",
-				onDrag: function (drag, wdowCSS) {
+				handleOnDrag: function (drag, wdowCSS) {
 					const nextHeightBelowMin = wdowCSS.height + drag.deltaY < minWindowCSS.height
 					const nextHeightAboveMax = wdowCSS.height + drag.deltaY > drag.maxY
 
@@ -336,7 +326,7 @@ export default class Window extends React.Component {
 			genResizeDraggable({
 				trigger: `#side-left-${title}, #corner-nw-${title}, #corner-sw-${title}`,
 				cursor: "w-resize",
-				onDrag: function (drag, wdowCSS) {
+				handleOnDrag: function (drag, wdowCSS) {
 					const nextWidthBelowMin = wdowCSS.width - drag.deltaX < minWindowCSS.width
 					const nextWidthAboveMax = wdowCSS.width - drag.deltaX > drag.maxX
 
@@ -375,6 +365,7 @@ export default class Window extends React.Component {
 		const width = this.data.css.current.width
 		const { isMobileWindow } = this.state
 
+		// console.count(`${this.props.title} - handleViewportResize()`)
 		if (!isMobileWindow && width < mediaBreakpoints.desktop) {
 			this.setState({ isMobileWindow: true })
 		} else if (isMobileWindow && width >= mediaBreakpoints.desktop) {
@@ -420,6 +411,7 @@ export default class Window extends React.Component {
 		const badValue = Object.keys(roundedVars).find((k) => !Number.isFinite(roundedVars[k]))
 		if (badValue) return
 
+		// console.count(`${this.props.title} - preventSubpixelValues()`)
 		this.data.css.windowed = {
 			...this.data.css.windowed,
 			...roundedVars,
@@ -441,8 +433,13 @@ export default class Window extends React.Component {
 				wdow.dragInstances.forEach((i) => i[0].disable())
 			},
 			onComplete: () => {
-				if (!wdow.props.isMinimized) wdow.draggableWindow[0].update(true)
-				if (!wdow.props.isMaximized) wdow.dragInstances.forEach((i) => i[0].enable())
+				if (!wdow.props.isMinimized) {
+					wdow.draggableWindow[0].update(true)
+					wdow.draggableWindow[0].enable()
+				}
+				if (!wdow.props.isMinimized && !wdow.props.isMaximized) {
+					wdow.dragInstances.forEach((i) => i[0].enable())
+				}
 				wdow.preventSubpixelValues()
 			},
 			onUpdate: function () {
@@ -454,10 +451,10 @@ export default class Window extends React.Component {
 		this.curAnim.play()
 	}
 
-	setLastWindowedCSS = (tryForcing = false) => {
+	setLastWindowedCSS = () => {
 		const { isMinimized, isMaximized } = this.props
 		if (!this.rootRef.current || gsap.isTweening(this.rootRef.current)) return
-		if (!tryForcing && !isMinimized && !isMaximized) return
+		if (isMinimized || isMaximized) return
 
 		this.draggableWindow[0].update(true)
 		const wdowStyles = new Styles(this.rootRef.current)

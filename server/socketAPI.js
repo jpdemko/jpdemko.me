@@ -176,25 +176,40 @@ module.exports = function (io, sessionMiddleware, db) {
 					return clientCB({ error: "server error - setupUser() - username taken" })
 			} else {
 				try {
-					const selectUserSQL = `SELECT uid, uname FROM users WHERE uname = $1`
-					let userRes = await db.query(selectUserSQL, [uname])
-					// If user doesn't exist, create user and join the default room.
-					if (userRes.rows.length === 0) {
-						const insertUserSQL = `INSERT INTO users(uname) VALUES($1) RETURNING uid, uname`
-						userRes = await db.query(insertUserSQL, [uname])
-					}
+					const insertUserSQL = `INSERT INTO users(uname) VALUES ($1) ON CONFLICT (uname)
+						DO UPDATE SET uname = EXCLUDED.uname RETURNING uid, uname`
+					const userRes = await db.query(insertUserSQL, [uname])
 					// Grab all the rooms the user is currently in.
 					const getJoinedRoomsSQL = `SELECT r.rid, r.rname, r.password FROM rooms r
 						INNER JOIN users_rooms ur ON r.rid = ur.rid WHERE ur.uid = $1`
 					const usersRoomsRes = await db.query(getJoinedRoomsSQL, [userRes.rows[0].uid])
+					// Grab all user's ongoing DMs and the last msg sent between them.
+					const getAllDMsSQL = `
+						WITH chats AS (SELECT * FROM dms_history h WHERE h.user1 = $1 OR h.user2 = $1)
+						SELECT
+							chats2.user1 as recip_id,
+							u.uname as recip_uname,
+							chats2.last_dm as dmid,
+							dms.msg,
+							dms.created_at
+						FROM (
+							SELECT chats.user1, chats.last_dm FROM chats
+							UNION
+							SELECT chats.user2, chats.last_dm FROM chats
+						) AS chats2
+						INNER JOIN users u ON chats2.user1 = u.uid
+						INNER JOIN dms ON chats2.last_dm = dms.dmid
+						WHERE chats2.user1 != $1 ORDER BY dms.created_at DESC`
+					const usersDMsRes = await db.query(getAllDMsSQL, [userRes.rows[0].uid])
 
 					user = Users.setup({ ...userRes.rows[0], socketID: socket.id })
 
 					clientCB({
 						success: "server success - setupUser()",
-						user: {
-							...user.clientCopy(),
+						data: {
+							user: { ...user.clientCopy() },
 							joinedRooms: usersRoomsRes.rows,
+							ongoingDMs: usersDMsRes.rows,
 						},
 					})
 				} catch (error) {
@@ -322,6 +337,10 @@ module.exports = function (io, sessionMiddleware, db) {
 				clientCB({ error })
 			}
 		})
+
+		// socket.on("sendDM", async function ({ uid, recip, msg }, clientCB) {
+
+		// })
 
 		socket.on("log", function () {
 			console.log("- - - - - - - - - - - - - - - - -")

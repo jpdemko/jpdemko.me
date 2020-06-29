@@ -1,6 +1,5 @@
 import * as React from "react"
 import { useLocation } from "react-router-dom"
-import axios from "axios"
 
 import { Contexts } from "../../shared/shared"
 
@@ -14,8 +13,7 @@ function AuthProvider({ children }) {
 	}, [])
 
 	function getUser() {
-		axios
-			.get("/auth/user", { withCredentials: true })
+		fetch("/auth/user", { withCredentials: true })
 			.then((res) => {
 				if (res.data?.error && isAuthed) setIsAuthed(false)
 				else if (res.data?.provider_id && !isAuthed) {

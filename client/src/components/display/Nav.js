@@ -14,34 +14,36 @@ import { mountableApps } from "./Display"
 
 const OpenedApp = styled.div`
 	.react-contextmenu-wrapper {
-		display: flex;
 		height: 100%;
 		button {
-			flex: 0 0 auto;
-		}
-		button:first-child {
-			flex: 1 0 auto;
+			height: 100%;
 		}
 	}
 `
 
-const TaskbarButton = styled(Button)`
+const TaskbarBtn = styled(Button)`
 	justify-content: flex-start;
-	svg {
-		flex: 0 0 auto;
-	}
+`
+
+const DrawerDescrip = styled.div`
+	padding: var(--drawer-padding);
+	${({ theme }) => css`
+		background: ${theme.highlight};
+		color: ${theme.contrast};
+	`}
 `
 
 const DrawerRow = styled.div`
 	display: flex;
+	> button:nth-child(2) {
+		margin: 1px;
+	}
 `
 
-const DrawerButton = styled(Button)`
+const DrawerBtn = styled(Button)`
+	padding: var(--drawer-padding);
 	justify-content: flex-start;
 	flex: 1;
-	svg {
-		flex: 0 0 auto;
-	}
 `
 
 const Taskbar = styled.div`
@@ -56,8 +58,10 @@ const Taskbar = styled.div`
 	`}
 `
 
-const DrawerButtonsContainer = styled.div`
-	font-size: 1.25em;
+const DrawerBtnsCont = styled.div`
+	--drawer-fsize: 1.25em;
+	--drawer-padding: 0.5em 0.75em;
+	font-size: var(--drawer-fsize);
 	display: flex;
 	height: 100%;
 	flex-direction: column-reverse;
@@ -81,13 +85,13 @@ function Nav({ openedApps, isMobileSite, handleHomeButton, openApp, closeApp, ma
 	const taskbarButtons = openedApps.map((app) => (
 		<OpenedApp key={app.title}>
 			<ContextMenuTrigger id={`nav-tb-button-${app.title}`} holdToDisplay={-1}>
-				<TaskbarButton
+				<TaskbarBtn
 					onClick={() => handleOpen(app.title)}
 					svg={mountableApps[app.title].shared.logo}
 					isFocused={app.isFocused}
 				>
 					{mountableApps[app.title].shared.title}
-				</TaskbarButton>
+				</TaskbarBtn>
 			</ContextMenuTrigger>
 			<ContextMenu id={`nav-tb-button-${app.title}`}>
 				<MenuItem>
@@ -97,39 +101,31 @@ function Nav({ openedApps, isMobileSite, handleHomeButton, openApp, closeApp, ma
 		</OpenedApp>
 	))
 
-	function genDrawerButtons(isTaskbar = false) {
-		return Object.keys(mountableApps).map((name) => {
-			const mApp = mountableApps[name]
-			const title = mApp.shared.title
-			const oApp = openedApps.find((a) => a.title === title)
-			return (
-				<DrawerRow key={title}>
-					<DrawerButton
-						onClick={() => handleOpen(title)}
-						svg={mApp.shared.logo}
-						isFocused={oApp?.isFocused}
-					>
-						{title}
-					</DrawerButton>
-					{oApp && !isTaskbar && (
-						<Button onClick={() => handleClose(title)} svg={CloseSVG} variant="fancy" color="red" />
-					)}
-				</DrawerRow>
-			)
-		})
-	}
+	const drawerButtons = Object.keys(mountableApps).map((name) => {
+		const mApp = mountableApps[name]
+		const title = mApp.shared.title
+		const oApp = openedApps.find((a) => a.title === title)
+		return (
+			<DrawerRow key={title}>
+				<DrawerBtn onClick={() => handleOpen(title)} svg={mApp.shared.logo} isFocused={oApp?.isFocused}>
+					{title}
+				</DrawerBtn>
+				{oApp && <Button onClick={() => handleClose(title)} svg={CloseSVG} color="red" />}
+			</DrawerRow>
+		)
+	})
 
 	return (
 		<>
 			<Taskbar isMobileSite={isMobileSite}>
-				<TaskbarButton svg={AppsSVG} onClick={() => setMainDrawerOpened(true)} />
-				<TaskbarButton
+				<TaskbarBtn svg={AppsSVG} onClick={() => setMainDrawerOpened(true)} />
+				<TaskbarBtn
 					svg={HomeSVG}
 					onClick={handleHomeButton}
 					disabled={!openedApps.find((app) => app.isFocused) || openedApps.length < 1}
 				/>
 				{isMobileSite ? (
-					<TaskbarButton
+					<TaskbarBtn
 						style={{ marginLeft: "auto" }}
 						svg={MenuSVG}
 						onClick={mainNavBurgerCB}
@@ -140,7 +136,10 @@ function Nav({ openedApps, isMobileSite, handleHomeButton, openApp, closeApp, ma
 				)}
 			</Taskbar>
 			<Drawer animDuraton={0.25} isShown={mainDrawerOpened} onClose={() => setMainDrawerOpened(false)}>
-				<DrawerButtonsContainer>{genDrawerButtons()}</DrawerButtonsContainer>
+				<DrawerBtnsCont>
+					<DrawerDescrip>APPS</DrawerDescrip>
+					{drawerButtons}
+				</DrawerBtnsCont>
 			</Drawer>
 		</>
 	)

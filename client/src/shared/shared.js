@@ -9,8 +9,7 @@ export const flags = {
 	isIE: !!window.navigator.userAgent.match(/(MSIE|Trident)/),
 	// Chrome WebKit bug causes blurry text/images on child elements upon parent 3D transform.
 	// This flag is used to disable 3D transforms in Chrome.
-	// isChrome: !!window.chrome && (!!window.chrome.webstore || !!window.chrome.runtime),
-	isChrome: false,
+	isChrome: !!window.chrome && (!!window.chrome.webstore || !!window.chrome.runtime),
 }
 
 /* -------------------------------------------------------------------------- */
@@ -173,31 +172,6 @@ export class Styles {
 			return null
 		}
 	}
-}
-
-/* -------------------------------------------------------------------------- */
-
-const corsProxies = ["https://cors-anywhere.herokuapp.com/", "https://crossorigin.me/"]
-let curProxyIdx = 0
-
-/**
- * Fetch w/ some built in error handling & optional CORS proxy usage.
- * @param {string} url
- * @param {boolean} [useProxy=false]
- * @return {Promise<Response>}
- */
-export function simplerFetch(url, useProxy = false) {
-	const genURL = useProxy && curProxyIdx < corsProxies.length ? corsProxies[curProxyIdx] + url : url
-	return fetch(genURL)
-		.then((res) => {
-			if (!res.ok) throw Error(`bad response --> code ${res.status}`)
-			return res.json()
-		})
-		.catch((err) => {
-			console.log(err)
-			if (curProxyIdx++ < corsProxies.length) return simplerFetch(url, useProxy)
-			Promise.reject(err)
-		})
 }
 
 /* -------------------------------------------------------------------------- */

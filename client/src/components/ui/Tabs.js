@@ -79,6 +79,7 @@ function Tabs({ content = defaultContent, ...props }) {
 						key={`tab-header-${id}`}
 						isFocused={id === focusedID}
 						onClick={() => setFocusedID(id)}
+						column
 					>
 						{tabHeader}
 					</TabButton>

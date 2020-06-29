@@ -22,7 +22,7 @@ END $$;
 CREATE TABLE users (
 	uid SERIAL PRIMARY KEY,
 	pid VARCHAR(40),
-	uname VARCHAR(50) NOT NULL,
+	uname VARCHAR(50) NOT NULL UNIQUE,
 	email valid_email,
 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -74,10 +74,12 @@ CREATE INDEX dms_recip_index ON dms(recip);
 
 --
 
-CREATE TABLE users_dms (
-	uid INT REFERENCES users(uid),
-	recip INT REFERENCES users(uid),
-	PRIMARY KEY(uid, recip)
+CREATE TABLE dms_history (
+	user1 INT REFERENCES users(uid),
+	user2 INT REFERENCES users(uid),
+	last_dm INT REFERENCES dms(dmid),
+	PRIMARY KEY(user1, user2),
+	CHECK (user1 < user2)
 );
 
 --
@@ -115,7 +117,6 @@ CREATE TABLE users_dms (
 -- );
 
 -- Finished with creating tables. Insert default data and create triggers.
-
 -- Every user should automatically join the General chatroom.
 INSERT INTO rooms(rname) VALUES ('General');
 
@@ -127,11 +128,29 @@ CREATE OR REPLACE FUNCTION join_default_room()
 		END; $$
 LANGUAGE 'plpgsql';
 
-CREATE TRIGGER join_general AFTER INSERT ON users
+CREATE TRIGGER join_default_room_trigger AFTER INSERT ON users
 FOR EACH ROW EXECUTE PROCEDURE join_default_room();
 
--- Test trigger.
-INSERT INTO users(uname) VALUES('bob');
+--
+
+CREATE OR REPLACE FUNCTION update_latest_dm()
+RETURNS trigger AS $$
+	DECLARE
+		low INT := NEW.uid;
+		high INT := NEW.recip;
+	BEGIN
+	IF high < low THEN
+		low := NEW.recip;
+		high := NEW.uid;
+	END IF;
+	INSERT INTO dms_history(user1, user2, last_dm) VALUES (low, high, NEW.dmid)
+	ON CONFLICT (user1, user2) DO UPDATE SET last_dm = NEW.dmid;
+	RETURN NEW;
+END; $$
+LANGUAGE 'plpgsql';
+
+CREATE TRIGGER update_latest_dm_trigger AFTER INSERT ON dms
+FOR EACH ROW EXECUTE PROCEDURE update_latest_dm();
 
 -- DELETE ALL DATA
 -- DROP SCHEMA public CASCADE;

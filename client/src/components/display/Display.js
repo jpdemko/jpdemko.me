@@ -83,10 +83,8 @@ const Shortcuts = styled.div`
 
 const ShortcutButton = styled(Button)`
 	color: ${themes.dark.contrast};
-	&& svg {
-		width: auto;
-		height: auto;
-	}
+	font-size: 1.25em;
+	font-weight: 500;
 `
 
 /* -------------------------------- COMPONENT ------------------------------- */
@@ -229,7 +227,7 @@ class Display extends React.Component {
 
 		apps[title].isMinimized = true
 		this.saveApp(title)
-		this.focusApp(this.getBelowApp(title))
+		if (apps[title].isFocused) this.focusApp(this.getBelowApp(title))
 		delete apps[title]
 		this.setState({
 			openedApps: Object.keys(apps).map((t) => apps[t]),
@@ -249,16 +247,16 @@ class Display extends React.Component {
 		const { zIndex } = apps[title]
 		if (!zIndex) return
 
-		let belowApp = null
+		let belowAppTitle = null
 		if (zIndex && Object.keys(apps).length > 1) {
 			Object.keys(apps).forEach((t) => {
 				if (t === title || apps[t].isMinimized) return
 				const curZ = apps[t].zIndex
-				if (!belowApp && curZ < zIndex) belowApp = t
-				else if (belowApp && curZ < zIndex && curZ > apps[belowApp].zIndex) belowApp = t
+				if (!belowAppTitle && curZ < zIndex) belowAppTitle = t
+				else if (belowAppTitle && curZ < zIndex && curZ > apps[belowAppTitle].zIndex) belowAppTitle = t
 			})
 		}
-		return belowApp
+		return belowAppTitle
 	}
 
 	focusApp = (title, changes = {}, force = false) => {
@@ -301,7 +299,6 @@ class Display extends React.Component {
 									key={title}
 									onClick={() => this.openApp(title)}
 									variant="fancy"
-									size="large"
 									svg={logo}
 									column
 									theme={theme}

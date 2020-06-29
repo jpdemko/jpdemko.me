@@ -6,30 +6,22 @@ import { useCorrectTheme } from "../../shared/hooks"
 
 /* --------------------------------- STYLES --------------------------------- */
 
-export const ButtonBase = styled.button.attrs(({ size, svg, theme, color, ...props }) => {
-	let sizeModifier = 1
-	if (size) {
-		if (size === "small") sizeModifier = 0.75
-		else if (size === "large") sizeModifier = 1.25
-	}
-
+export const ButtonBase = styled.button.attrs(({ svg, theme, color, ...props }) => {
 	let varCSS = {
 		...props,
 		theme,
-		fontSize: `calc(1em * ${sizeModifier})`,
-		sidePadding: `calc(0.8em * ${sizeModifier})`,
-		verticalPadding: `calc(0.4em * ${sizeModifier})`,
+		fontSize: `1em`,
+		sidePadding: `0.8em`,
+		verticalPadding: `0.4em`,
 		calcColor: !color ? theme.contrast : theme.color,
 	}
-
 	if (svg) {
 		varCSS = {
 			...varCSS,
-			sidePadding: `calc(${varCSS.sidePadding} / 1.5)`,
-			verticalPadding: `calc(${varCSS.verticalPadding} / 1.5)`,
+			sidePadding: `calc(${varCSS.sidePadding} * 0.5)`,
+			verticalPadding: `calc(${varCSS.verticalPadding} * 0.5)`,
 		}
 	}
-
 	return { varCSS }
 })`
 	display: inline-flex;
@@ -48,20 +40,15 @@ export const ButtonBase = styled.button.attrs(({ size, svg, theme, color, ...pro
 		color: ${varCSS.calcColor};
 		opacity: ${disabled ? 0.33 : 1};
 		cursor: ${disabled ? "default" : "pointer"};
-		> div {
-			margin: ${column ? `${varCSS.verticalPadding} 0 0 0` : `0 0 0 ${varCSS.sidePadding}`};
-			flex: 0 0 auto;
-			display: inline-block;
+		${isFocused && `background: ${opac(0.4, varCSS.calcColor)};`}
+		> svg + div {
+			padding: 0 ${varCSS.sidePadding};
 		}
-		${isFocused && `background: ${opac(0.3, varCSS.calcColor)};`}
 	`}
-	> svg {
-		flex: 1 0 auto;
-	}
 `
 
 const BasicButton = styled(ButtonBase)`
-	${({ theme, varCSS }) => css`
+	${({ varCSS }) => css`
 		&:focus {
 			background: ${opac(0.3, varCSS.calcColor)};
 		}
@@ -76,7 +63,7 @@ const BasicButton = styled(ButtonBase)`
 
 const OutlinedButton = styled(BasicButton)`
 	margin: 1px;
-	${({ theme, varCSS }) => css`
+	${({ varCSS }) => css`
 		box-shadow: 0 0 0 1px ${varCSS.calcColor};
 		&:active {
 			box-shadow: 0 0 0 3px ${varCSS.calcColor};
@@ -88,19 +75,24 @@ const FancyButton = styled(ButtonBase)`
 	margin: 1px;
 	${({ theme, varCSS }) => css`
 		background: ${theme.color};
-		color: ${theme.readableColor(theme.color)};
+		color: ${theme.contrast};
+		${"" /* color: ${theme.readableColor(theme.color)}; */}
 		box-shadow: 0 1px 10px 1px ${opac(0.2, varCSS.calcColor)}, 0 0 0 1px ${theme.accent};
 		opacity: 1;
 		&:focus,
 		&:hover {
 			box-shadow: 0 1px 10px 1px ${opac(0.2, varCSS.calcColor)}, 0 0 0 2px ${theme.accent};
-			opacity: 0.9;
+			opacity: 0.95;
 		}
 		&:active {
 			box-shadow: 0 1px 10px 1px ${opac(0.2, varCSS.calcColor)}, 0 0 0 4px ${theme.accent};
 			opacity: 1;
 		}
 	`}
+`
+
+const BtnContent = styled.div`
+	flex: 0 0 auto;
 `
 
 /* -------------------------------- COMPONENT ------------------------------- */
@@ -116,7 +108,7 @@ function Button({ tag, variant, color, disabled = false, children, ...props }) {
 	return (
 		<ButtonVariant {...props} as={tag} disabled={disabled} {...themeProps}>
 			{props.svg && <props.svg />}
-			{props.svg && children ? <div>{children}</div> : children}
+			{children && <BtnContent>{children}</BtnContent>}
 		</ButtonVariant>
 	)
 }
