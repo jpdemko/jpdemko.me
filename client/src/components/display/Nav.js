@@ -35,9 +35,9 @@ const DrawerDescrip = styled.div`
 
 const DrawerRow = styled.div`
 	display: flex;
-	> button:nth-child(2) {
+	/* > button:nth-child(2) {
 		margin: 1px;
-	}
+	} */
 `
 
 const DrawerBtn = styled(Button)`
@@ -55,6 +55,7 @@ const Taskbar = styled.div`
 	${({ theme }) => css`
 		background: ${theme.background};
 		border-top: 1px solid ${theme.accent};
+		border-bottom: 1px solid ${theme.accent};
 	`}
 `
 

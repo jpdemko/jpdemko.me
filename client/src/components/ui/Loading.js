@@ -8,7 +8,7 @@ import Backdrop from "./Backdrop"
 
 const StyledSVG = styled.svg`
 	animation: rotate 1s linear infinite;
-	margin: 1em;
+	padding: 1em;
 	min-width: 50px;
 	max-width: 50%;
 	min-height: 50px;

@@ -18,7 +18,7 @@ import Accordion from "../ui/Accordion"
 /* --------------------------------- STYLES --------------------------------- */
 
 const DrawerRoot = styled.div`
-	--chatnav-padding: 0.25em;
+	--chatnav-padding: 0.4em;
 	flex: 0 0 auto;
 	display: flex;
 	flex-direction: column;
@@ -34,6 +34,12 @@ const Header = styled.div`
 	align-items: center;
 `
 
+const RoomsSubHeader = styled.div`
+	height: 1.5em;
+	margin-left: var(--chatnav-padding);
+	display: flex;
+`
+
 const Title = styled.span`
 	font-weight: 500;
 	font-style: italic;
@@ -41,21 +47,26 @@ const Title = styled.span`
 `
 
 const HeaderBtn = styled(Button)`
-	height: 1.5em;
 	margin-left: calc(var(--chatnav-padding) * 2);
 `
 
 const Rooms = styled.div`
 	padding: var(--chatnav-padding);
-	> div {
-		padding-top: calc(var(--chatnav-padding) - 0.2em);
-	}
-	> div:first-child {
-		padding: 0;
-	}
 `
 
-const Room = styled(Button)`
+const Room = styled.div`
+	padding: calc(var(--chatnav-padding) / 2);
+	> div {
+		padding-top: calc(var(--chatnav-padding) / 2);
+	}
+	${({ isFocused, theme }) => css`
+		background: ${isFocused ? theme.altBackground : "none"};
+	`}
+`
+
+const RoomData = styled.div``
+
+const RoomDataBtn = styled(Button)`
 	button {
 		height: 100%;
 	}
@@ -70,7 +81,7 @@ const User = styled(Button)`
 	margin-left: calc(var(--chatnav-padding) * 6);
 `
 
-const Close = styled(Button)`
+const RoomCloseBtn = styled(Button)`
 	margin-left: var(--chatnav-padding);
 `
 
@@ -81,7 +92,7 @@ const DMs = styled.div`
 `
 
 const LastDM = styled(Button)`
-	padding: var(--chatnav-padding);
+	padding: 0 var(--chatnav-padding);
 	text-align: left;
 	margin-bottom: var(--chatnav-padding);
 	&:last-child {
@@ -107,7 +118,7 @@ const ModalRoot = styled.div`
 	--modal-padding: 0.5em;
 	min-width: max-content;
 	padding: var(--modal-padding) calc(var(--modal-padding) * 2);
-	div {
+	form > div {
 		padding: var(--modal-padding);
 	}
 	${({ theme }) => css`
@@ -238,11 +249,13 @@ function ChatNav({ joinedRooms, ongoingDMs, curRoom, createRoom, joinRoom, delet
 		</ModalRoot>
 	)
 
-	function togCreateRoomModal() {
+	function togCreateRoomModal(e) {
+		e.stopPropagation()
 		setCreateConfig(true)
 		setModalShown(true)
 	}
-	function togJoinRoomModal() {
+	function togJoinRoomModal(e) {
+		e.stopPropagation()
 		setCreateConfig(false)
 		setModalShown(true)
 	}
@@ -289,44 +302,47 @@ function ChatNav({ joinedRooms, ongoingDMs, curRoom, createRoom, joinRoom, delet
 			title: (
 				<Header>
 					<Title>Rooms</Title>
-					<div style={{ marginLeft: "auto" }}>
+					<RoomsSubHeader>
 						<HeaderBtn svg={AddSVG} variant="outline" onClick={togCreateRoomModal}>
 							Create
 						</HeaderBtn>
 						<HeaderBtn svg={GroupAddSVG} variant="outline" onClick={togJoinRoomModal}>
 							Join
 						</HeaderBtn>
-					</div>
+					</RoomsSubHeader>
 				</Header>
 			),
-			content:
-				joinedRooms &&
-				curRoom &&
-				joinedRooms?.map((r) => (
-					<Rooms key={r.rid}>
-						<div>
-							<Room
-								svg={ArrowRightSVG}
-								isFocused={r.rid === curRoom.rid}
-								onClick={() => joinPrevRoom(r)}
-							>
-								<Data>
-									<span>{r.rname}</span>
-									<Lessen>RID#{r.rid}</Lessen>
-								</Data>
+			content: (
+				<Rooms>
+					{joinedRooms &&
+						curRoom &&
+						joinedRooms?.map((r) => (
+							<Room key={r.rid} isFocused={r.rid === curRoom.rid}>
+								<RoomData>
+									<RoomDataBtn
+										svg={ArrowRightSVG}
+										isFocused={r.rid === curRoom.rid}
+										onClick={() => joinPrevRoom(r)}
+									>
+										<Data>
+											<span>{r.rname}</span>
+											<Lessen>RID#{r.rid}</Lessen>
+										</Data>
+									</RoomDataBtn>
+									<RoomCloseBtn svg={CloseSVG} color="red" onClick={() => deleteRoom(r.rid)} />
+								</RoomData>
+								{r.rid === curRoom.rid &&
+									curRoom?.activeUsers?.map((u) => (
+										<div key={u.uid}>
+											<User svg={UserSVG} isFocused={u.uid === user.uid}>
+												{u.uname}
+											</User>
+										</div>
+									))}
 							</Room>
-							<Close svg={CloseSVG} color="red" onClick={() => deleteRoom(r.rid)} />
-						</div>
-						{r.rid === curRoom.rid &&
-							curRoom?.activeUsers?.map((u) => (
-								<div key={u.uid}>
-									<User svg={UserSVG} isFocused={u.uid === user.uid}>
-										{u.uname}
-									</User>
-								</div>
-							))}
-					</Rooms>
-				)),
+						))}
+				</Rooms>
+			),
 		},
 		{
 			id: 2,

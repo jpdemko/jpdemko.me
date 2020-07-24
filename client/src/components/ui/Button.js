@@ -40,7 +40,7 @@ export const ButtonBase = styled.button.attrs(({ svg, theme, color, ...props }) 
 		color: ${varCSS.calcColor};
 		opacity: ${disabled ? 0.33 : 1};
 		cursor: ${disabled ? "default" : "pointer"};
-		${isFocused && `background: ${opac(0.4, varCSS.calcColor)};`}
+		${isFocused && `background: ${opac(0.2, varCSS.calcColor)};`}
 		> svg + div {
 			padding: 0 ${varCSS.sidePadding};
 		}
@@ -50,10 +50,11 @@ export const ButtonBase = styled.button.attrs(({ svg, theme, color, ...props }) 
 const BasicButton = styled(ButtonBase)`
 	${({ varCSS }) => css`
 		&:focus {
-			background: ${opac(0.3, varCSS.calcColor)};
+			box-shadow: 0 0 0 1px ${varCSS.calcColor};
 		}
 		&:hover {
-			background: ${opac(0.15, varCSS.calcColor)};
+			box-shadow: 0 0 0 1px ${varCSS.calcColor};
+			background: ${opac(0.3, varCSS.calcColor)};
 		}
 		&:active {
 			background: ${opac(0.4, varCSS.calcColor)};
@@ -62,9 +63,11 @@ const BasicButton = styled(ButtonBase)`
 `
 
 const OutlinedButton = styled(BasicButton)`
-	margin: 1px;
 	${({ varCSS }) => css`
 		box-shadow: 0 0 0 1px ${varCSS.calcColor};
+		&:hover {
+			box-shadow: 0 0 0 2px ${varCSS.calcColor};
+		}
 		&:active {
 			box-shadow: 0 0 0 3px ${varCSS.calcColor};
 		}
@@ -72,11 +75,9 @@ const OutlinedButton = styled(BasicButton)`
 `
 
 const FancyButton = styled(ButtonBase)`
-	margin: 1px;
 	${({ theme, varCSS }) => css`
 		background: ${theme.color};
 		color: ${theme.contrast};
-		${"" /* color: ${theme.readableColor(theme.color)}; */}
 		box-shadow: 0 1px 10px 1px ${opac(0.2, varCSS.calcColor)}, 0 0 0 1px ${theme.accent};
 		opacity: 1;
 		&:focus,

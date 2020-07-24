@@ -24,11 +24,6 @@ const Main = styled.div`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-/*
-	1. user is loaded, get 'joinedRooms' and 'ongoingDMs'
-	2. depending on 'roomsView' state,
-*/
-
 const msgIDs = new Set()
 let chatrooms = {}
 

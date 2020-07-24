@@ -31,7 +31,7 @@ module.exports = function (io, sessionMiddleware, db) {
 		},
 		joinRoom: function (room) {
 			if (!room) {
-				// console.log(`error - bad room param: ${room}`)
+				console.log(`error - bad room param: ${room}`)
 				return false
 			}
 			if ((this.curJoinedRID && this.leaveRoom()) || !this.curJoinedRID) {
@@ -39,7 +39,7 @@ module.exports = function (io, sessionMiddleware, db) {
 					const socket = io.of("/").connected[this.socketID]
 					socket.join(`${room.rid}`)
 					this.curJoinedRID = room.rid
-					// this.log(`joined ${room.rname}#${room.rid}`)
+					this.log(`joined ${room.rname}#${room.rid}`)
 					return true
 				}
 			}
@@ -236,7 +236,8 @@ module.exports = function (io, sessionMiddleware, db) {
 				const joinRoomSQL = `INSERT INTO users_rooms(uid, rid) VALUES ($1, $2)`
 				await db.query(joinRoomSQL, [uid, rid])
 
-				user.joinRoom(Rooms.create(nextRoom))
+				const room = Rooms.create(nextRoom)
+				user.joinRoom(room)
 
 				clientCB({ success: "server success - createRoom()", room: room.clientCopy() })
 			} catch (error) {
@@ -337,10 +338,6 @@ module.exports = function (io, sessionMiddleware, db) {
 				clientCB({ error })
 			}
 		})
-
-		// socket.on("sendDM", async function ({ uid, recip, msg }, clientCB) {
-
-		// })
 
 		socket.on("log", function () {
 			console.log("- - - - - - - - - - - - - - - - -")

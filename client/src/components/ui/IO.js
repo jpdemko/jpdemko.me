@@ -3,7 +3,7 @@ import styled, { css } from "styled-components/macro"
 
 const InputRoot = styled.input`
 	outline: none;
-	margin: 1px;
+	/* margin: 1px; */
 	${({ theme }) => css`
 		color: ${theme.contrast};
 		box-shadow: 0 0 0 0 ${theme.accent};

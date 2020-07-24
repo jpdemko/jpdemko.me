@@ -3,53 +3,54 @@ import styled, { css } from "styled-components/macro"
 
 import Button from "./Button"
 
-const Menu = styled.div`
+const AccordRoot = styled.div`
 	display: flex;
 	flex-direction: column;
 	height: 100%;
 `
 
-const SmRoot = styled.div`
+const MenuRoot = styled.div`
 	display: flex;
 	flex-direction: column;
-	${({ open, theme }) => css`
+	overflow-y: auto;
+	${({ opened, theme }) => css`
 		border-top: 1px solid ${theme.background};
-		flex: ${open ? "1 1" : "0 1"};
+		flex: ${opened ? "1 1" : "0 1 auto"};
 	`}
 `
 
-const TitleContent = styled(Button)`
+const MenuTitle = styled(Button)`
 	padding: 0;
 	display: block;
 `
 
 const MenuContent = styled.div`
 	overflow-x: hidden;
-	${({ open }) => css`
-		height: ${open ? "100%" : "0px"};
-		overflow-y: ${open ? "auto" : "hidden"};
+	${({ opened }) => css`
+		height: ${opened ? "100%" : "0px"};
+		overflow-y: ${opened ? "auto" : "hidden"};
 	`}
 `
 
-function SubMenu({ data }) {
-	const [open, setOpen] = React.useState(true)
+function Menu({ data }) {
+	const [opened, setOpened] = React.useState(true)
 	const { title, content } = data
 	return !data ? null : (
-		<SmRoot isFocused={open} open={open}>
-			<TitleContent tag="div" variant="fancy" onClick={() => setOpen((prev) => !prev)}>
+		<MenuRoot opened={opened}>
+			<MenuTitle tag="div" variant="fancy" onClick={() => setOpened((prev) => !prev)}>
 				{title}
-			</TitleContent>
-			<MenuContent open={open}>{content}</MenuContent>
-		</SmRoot>
+			</MenuTitle>
+			<MenuContent opened={opened}>{content}</MenuContent>
+		</MenuRoot>
 	)
 }
 
 export default function Accordion({ data }) {
 	return !data ? null : (
-		<Menu>
+		<AccordRoot>
 			{data.map((ele) => {
-				return <SubMenu key={ele.id} data={ele} />
+				return <Menu key={ele.id} data={ele} />
 			})}
-		</Menu>
+		</AccordRoot>
 	)
 }

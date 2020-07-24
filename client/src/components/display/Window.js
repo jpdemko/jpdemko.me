@@ -46,7 +46,7 @@ const Root = styled.div`
 
 const TitleBar = styled.div`
 	flex: 0 0 auto;
-	padding-left: 0.5em;
+	padding: 1px;
 	font-weight: 500;
 	align-items: center;
 	height: var(--nav-height);
@@ -530,7 +530,7 @@ export default class Window extends React.Component {
 							if (isDoubleTouch(e)) toggleMaximize(title)
 						}}
 					>
-						<div>{title}</div>
+						<div style={{ paddingLeft: ".75em " }}>{title}</div>
 						<div style={{ display: "flex", marginLeft: "auto" }}>
 							<Button
 								onClick={() => toggleMinimize(title)}

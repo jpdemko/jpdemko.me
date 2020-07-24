@@ -9,7 +9,7 @@ ALTER TABLE "session" ADD CONSTRAINT "session_pkey" PRIMARY KEY ("sid") NOT DEFE
 
 CREATE INDEX "IDX_session_expire" ON "session" ("expire");
 
---
+-- **************************************************************** --
 
 CREATE extension IF NOT EXISTS citext;
 
@@ -27,14 +27,13 @@ CREATE TABLE users (
 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
---
+-- **************************************************************** --
 
 CREATE TABLE rooms (
 	rid SERIAL PRIMARY KEY,
 	rname VARCHAR(40) NOT NULL,
 	password VARCHAR(40)
 );
-
 
 -- Alternative method of designing things which would probably be more efficient. Didn't see that method
 -- until I had coded different parts of my app around what is already here.
@@ -51,7 +50,7 @@ CREATE TABLE msgs (
 CREATE INDEX msgs_uid_index ON msgs(uid);
 CREATE INDEX msgs_rid_index ON msgs(rid);
 
---
+-- **************************************************************** --
 
 CREATE TABLE users_rooms (
 	uid INT REFERENCES users(uid),
@@ -59,7 +58,7 @@ CREATE TABLE users_rooms (
 	PRIMARY KEY(uid, rid)
 );
 
---
+-- **************************************************************** --
 
 CREATE TABLE dms (
 	dmid SERIAL PRIMARY KEY,
@@ -72,7 +71,7 @@ CREATE TABLE dms (
 CREATE INDEX dms_uid_index ON dms(uid);
 CREATE INDEX dms_recip_index ON dms(recip);
 
---
+-- **************************************************************** --
 
 CREATE TABLE dms_history (
 	user1 INT REFERENCES users(uid),
@@ -82,7 +81,7 @@ CREATE TABLE dms_history (
 	CHECK (user1 < user2)
 );
 
---
+-- **************************************************************** --
 
 -- DO $$ BEGIN
 -- 	CREATE TYPE valid_friendship_status AS ENUM ('REJECTED', 'ACCEPTED', 'PENDING');
@@ -101,7 +100,7 @@ CREATE TABLE dms_history (
 -- CREATE INDEX friendship_user_a ON friendships(user_a);
 -- CREATE INDEX friendship_user_b ON friendships(user_b);
 
---
+-- **************************************************************** --
 
 -- DO $$ BEGIN
 -- 	CREATE TYPE valid_difficulty AS ENUM ('NOVICE', 'INTERMEDIATE', 'EXPERT');
@@ -131,7 +130,7 @@ LANGUAGE 'plpgsql';
 CREATE TRIGGER join_default_room_trigger AFTER INSERT ON users
 FOR EACH ROW EXECUTE PROCEDURE join_default_room();
 
---
+-- **************************************************************** --
 
 CREATE OR REPLACE FUNCTION update_latest_dm()
 RETURNS trigger AS $$
