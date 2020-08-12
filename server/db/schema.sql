@@ -35,8 +35,7 @@ CREATE TABLE rooms (
 	password VARCHAR(40)
 );
 
--- Alternative method of designing things which would probably be more efficient. Didn't see that method
--- until I had coded different parts of my app around what is already here.
+-- Alternative method of designing things which would probably be more efficient
 	-- https://dba.stackexchange.com/a/192767/209246
 
 CREATE TABLE msgs (

@@ -102,18 +102,25 @@ function Msg({ data, authored, ...props }) {
 	)
 }
 
-function Logs({ curRoom, user, ...props }) {
+function Logs({ data, user, ...props }) {
 	const scrollHelperRef = React.useRef()
 
 	React.useEffect(() => {
 		if (scrollHelperRef.current) scrollHelperRef.current.scrollIntoView({ block: "end" })
-	}, [curRoom])
+	}, [data])
+
+	function getMsgs() {
+		return !data?.msgs
+			? null
+			: data.msgs.map((msg) => {
+					const key = Object.keys(msg).find((k) => k.includes("id"))
+					return key ? <Msg key={key} data={msg} authored={user.uid === msg.uid} /> : null
+			  })
+	}
 
 	return (
 		<LogsRoot>
-			{curRoom?.msgs?.map((msg) => (
-				<Msg key={msg.mid} data={msg} authored={user.uid === msg.uid} />
-			))}
+			{getMsgs()}
 			<ScrollHelper ref={scrollHelperRef} />
 		</LogsRoot>
 	)

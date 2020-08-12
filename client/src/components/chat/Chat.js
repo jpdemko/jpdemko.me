@@ -338,7 +338,7 @@ class Chat extends React.Component {
 							user={user}
 						/>
 						<Main>
-							<Logs curRoom={curRoom} user={user} />
+							<Logs data={curRoom} user={user} />
 							<Messaging send={this.send} disabled={!!!curRoom} />
 						</Main>
 						<div style={{ position: "absolute", left: "50%", top: "0" }}>
