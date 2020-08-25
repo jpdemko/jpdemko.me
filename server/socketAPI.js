@@ -1,3 +1,11 @@
+function row2obj(row, keyName) {
+	return row.reduce((acc, ele) => {
+		if (!keyName) keyName = Object.keys(ele).find((key) => key.includes("id"))
+		acc[ele[keyName]] = ele
+		return acc
+	}, {})
+}
+
 module.exports = function (io, sessionMiddleware, db) {
 	var User = {
 		setup: function ({ uid, uname, socketID }) {
@@ -180,9 +188,9 @@ module.exports = function (io, sessionMiddleware, db) {
 						DO UPDATE SET uname = EXCLUDED.uname RETURNING uid, uname`
 					const userRes = await db.query(insertUserSQL, [uname])
 					// Grab all the rooms the user is currently in.
-					const getJoinedRoomsSQL = `SELECT r.rid, r.rname, r.password FROM rooms r
+					const getmyRoomsSQL = `SELECT r.rid, r.rname, r.password FROM rooms r
 						INNER JOIN users_rooms ur ON r.rid = ur.rid WHERE ur.uid = $1`
-					const usersRoomsRes = await db.query(getJoinedRoomsSQL, [userRes.rows[0].uid])
+					const usersRoomsRes = await db.query(getmyRoomsSQL, [userRes.rows[0].uid])
 					// Grab all user's ongoing DMs and the last msg sent between them.
 					const getAllDMsSQL = `
 						WITH chats AS (SELECT * FROM dms_history h WHERE h.user1 = $1 OR h.user2 = $1)
@@ -208,8 +216,8 @@ module.exports = function (io, sessionMiddleware, db) {
 						success: "server success - setupUser()",
 						data: {
 							user: { ...user.clientCopy() },
-							joinedRooms: usersRoomsRes.rows,
-							ongoingDMs: usersDMsRes.rows,
+							myRooms: row2obj(usersRoomsRes.rows, "rid"),
+							myDMs: row2obj(usersDMsRes.rows, "dmid"),
 						},
 					})
 				} catch (error) {
@@ -273,8 +281,8 @@ module.exports = function (io, sessionMiddleware, db) {
 				if (room.password && room.password !== password) throw Error("invalid room password")
 
 				// Check if you've already joined the room or not in DB.
-				const checkIfJoinedRoomSQL = `SELECT * FROM users_rooms WHERE uid = $1 AND rid = $2`
-				const joinRoomCheckRes = await db.query(checkIfJoinedRoomSQL, [uid, rid])
+				const checkIfmyRoomsQL = `SELECT * FROM users_rooms WHERE uid = $1 AND rid = $2`
+				const joinRoomCheckRes = await db.query(checkIfmyRoomsQL, [uid, rid])
 				// If they haven't joined, create the DB row and add the joined room on the server.
 				if (joinRoomCheckRes.rows.length < 1) {
 					const joinRoomSQL = `INSERT INTO users_rooms(uid, rid) VALUES ($1, $2)`
@@ -293,7 +301,7 @@ module.exports = function (io, sessionMiddleware, db) {
 					success: "server success - joinRoom()",
 					room: {
 						...room.clientCopy(),
-						msgs: msgsRes.rows,
+						msgs: row2obj(msgsRes.rows, "mid"),
 					},
 				})
 			} catch (error) {
@@ -329,9 +337,10 @@ module.exports = function (io, sessionMiddleware, db) {
 				INNER JOIN users u ON m.uid = u.uid`
 			try {
 				const insertMsgRes = await db.query(sendMsgQuery, [uid, rid, msg])
-				io.in(`${rid}`).emit("updateRoom", { ...Rooms.get(rid).clientCopy(), msgs: insertMsgRes.rows })
+				const msgs = row2obj(insertMsgRes.rows, "mid")
+				io.in(`${rid}`).emit("updateRoom", { ...Rooms.get(rid).clientCopy(), msgs })
 
-				clientCB({ success: "server success - sendMsg()", msgs: insertMsgRes.rows })
+				clientCB({ success: "server success - sendMsg()", msgs })
 			} catch (error) {
 				error = `server error - sendMsg() - ${error}`
 				console.log(error)

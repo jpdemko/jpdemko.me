@@ -35,6 +35,8 @@ CREATE TABLE rooms (
 	password VARCHAR(40)
 );
 
+-- **************************************************************** --
+
 -- Alternative method of designing things which would probably be more efficient
 	-- https://dba.stackexchange.com/a/192767/209246
 
@@ -113,6 +115,8 @@ CREATE TABLE dms_history (
 -- 	difficulty valid_difficulty NOT NULL,
 -- 	user_id INT NOT NULL REFERENCES users(id)
 -- );
+
+-- **************************************************************** --
 
 -- Finished with creating tables. Insert default data and create triggers.
 -- Every user should automatically join the General chatroom.

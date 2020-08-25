@@ -7,12 +7,11 @@ import { MsgBox } from "../ui/IO"
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function IO({ send, disabled, ...props }) {
+function IO({ send, ...props }) {
 	const [text, setText] = React.useState("")
 
 	function submitMsg(e) {
 		e.preventDefault()
-		if (disabled) return
 		send(text)
 			.then(() => setText(""))
 			.catch((err) => console.log("IO send message error.", err))

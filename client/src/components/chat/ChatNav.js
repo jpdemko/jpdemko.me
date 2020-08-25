@@ -151,7 +151,7 @@ const DmTextSum = styled.span`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function ChatNav({ joinedRooms, ongoingDMs, curRoom, createRoom, joinRoom, deleteRoom, user }) {
+function ChatNav({ myRooms, myDMs, curRoomRID, createRoom, joinRoom, deleteRoom, user }) {
 	const isMobileWindow = React.useContext(Contexts.IsMobileWindow)
 	const { setDrawerContent } = React.useContext(Contexts.AppNav)
 
@@ -314,14 +314,14 @@ function ChatNav({ joinedRooms, ongoingDMs, curRoom, createRoom, joinRoom, delet
 			),
 			content: (
 				<Rooms>
-					{joinedRooms &&
-						curRoom &&
-						joinedRooms?.map((r) => (
-							<Room key={r.rid} isFocused={r.rid === curRoom.rid}>
+					{myRooms &&
+						curRoomRID &&
+						myRooms?.map((r) => (
+							<Room key={r.rid} isFocused={r.rid === curRoomRID.rid}>
 								<RoomData>
 									<RoomDataBtn
 										svg={ArrowRightSVG}
-										isFocused={r.rid === curRoom.rid}
+										isFocused={r.rid === curRoomRID.rid}
 										onClick={() => joinPrevRoom(r)}
 									>
 										<Data>
@@ -331,8 +331,8 @@ function ChatNav({ joinedRooms, ongoingDMs, curRoom, createRoom, joinRoom, delet
 									</RoomDataBtn>
 									<RoomCloseBtn svg={CloseSVG} color="red" onClick={() => deleteRoom(r.rid)} />
 								</RoomData>
-								{r.rid === curRoom.rid &&
-									curRoom?.activeUsers?.map((u) => (
+								{r.rid === curRoomRID.rid &&
+									curRoomRID?.activeUsers?.map((u) => (
 										<div key={u.uid}>
 											<User svg={UserSVG} isFocused={u.uid === user.uid}>
 												{u.uname}
@@ -353,8 +353,8 @@ function ChatNav({ joinedRooms, ongoingDMs, curRoom, createRoom, joinRoom, delet
 			),
 			content: (
 				<DMs>
-					{ongoingDMs &&
-						ongoingDMs?.map((dmSum) => (
+					{myDMs &&
+						myDMs?.map((dmSum) => (
 							<LastDM key={dmSum.recip_id} column>
 								<div className="last-dm-row">
 									<UserSVG />

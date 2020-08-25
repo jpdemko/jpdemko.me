@@ -1,5 +1,5 @@
 import * as React from "react"
-import styled, { css } from "styled-components/macro"
+import styled, { css, keyframes } from "styled-components/macro"
 
 import { opac } from "../../shared/shared"
 import { useCorrectTheme } from "../../shared/hooks"
@@ -31,6 +31,7 @@ export const ButtonBase = styled.button.attrs(({ svg, theme, color, ...props }) 
 	transition: 0.175s;
 	outline: none;
 	font-weight: 500;
+	position: relative;
 	${({ theme, varCSS, disabled, column, isFocused }) => css`
 		flex-direction: ${column ? "column" : "row"};
 		align-items: ${column ? "stretch" : "center"};
@@ -96,9 +97,35 @@ const BtnContent = styled.div`
 	flex: 0 0 auto;
 `
 
+const BadgeAnim = ({ theme }) => keyframes`
+	0% { box-shadow: 0 0 0 1px ${theme.contrast}; }
+	25% { box-shadow: 0 0 0 1px ${theme.highlight}; }
+	50% { box-shadow: 0 0 0 1px ${theme.accent}; }
+	75% { box-shadow: 0 0 0 1px ${theme.altBackground}; }
+	100% { box-shadow: 0 0 0 1px ${theme.contrast}; }
+`
+
+const Badge = styled.div`
+	position: absolute;
+	top: 0;
+	left: 100%;
+	transform: translate3d(-50%, -50%, 0);
+	width: max-content;
+	padding: 0 0.4em;
+	animation: ${BadgeAnim} 2s linear infinite;
+	${({ theme }) => css`
+		background: ${theme.highlight};
+		color: ${theme.contrast};
+		${FancyButton} & {
+			background: ${theme.altBackground};
+			border: 1px solid ${theme.accent};
+		}
+	`}
+`
+
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function Button({ tag, variant, color, disabled = false, children, ...props }) {
+function Button({ tag, variant, color, disabled = false, badge, children, ...props }) {
 	let ButtonVariant = BasicButton
 	if (variant) {
 		if (variant.includes("outline")) ButtonVariant = OutlinedButton
@@ -110,6 +137,7 @@ function Button({ tag, variant, color, disabled = false, children, ...props }) {
 		<ButtonVariant {...props} as={tag} disabled={disabled} {...themeProps}>
 			{props.svg && <props.svg />}
 			{children && <BtnContent>{children}</BtnContent>}
+			{badge && <Badge>{badge}</Badge>}
 		</ButtonVariant>
 	)
 }
