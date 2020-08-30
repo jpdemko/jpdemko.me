@@ -14,44 +14,45 @@ module.exports = function (io, sessionMiddleware, db) {
 			self.uid = uid
 			self.uname = uname
 			self.socketID = socketID
-			self.curJoinedRID = null
+			self.myRooms = []
 			return self
 		},
 		clientCopy: function () {
-			const { uid, uname, socketID } = this
+			const { uid, uname, socketID, myRooms } = this
 			return {
 				uid,
 				uname,
 				socketID,
+				myRooms,
 			}
 		},
-		leaveRoom: function () {
-			if (!this.curJoinedRID) {
-				this.log("leaveRoom() error, no RID#")
-				return false
+		leaveRoom: function (rid) {
+			if (this.myRooms.find((r) => r === rid)) {
+				const socket = io.of("/").connected[this.socketID]
+				socket.leave(`${rid}`)
+				this.myRooms = this.myRooms.filter((r) => `${r}` !== `${rid}`)
+				const room = Rooms.get(rid)
+				return room ? room.removeUser(this.uid) : false
 			}
-			const socket = io.of("/").connected[this.socketID]
-			socket.leave(`${this.curJoinedRID}`)
-			const room = Rooms.get(this.curJoinedRID)
-			// this.log(`leaveRoom(${this.curJoinedRID}), room: ${room && room.rid}`)
-			this.curJoinedRID = null
-			return room ? room.removeUser(this) : false
 		},
-		joinRoom: function (room) {
-			if (!room) {
-				console.log(`error - bad room param: ${room}`)
+		joinRoom: function (rid) {
+			if (!rid) {
+				console.log(`error - bad joinRoom param: ${rid}`)
 				return false
 			}
-			if ((this.curJoinedRID && this.leaveRoom()) || !this.curJoinedRID) {
-				if (room.addUser(this)) {
-					const socket = io.of("/").connected[this.socketID]
-					socket.join(`${room.rid}`)
-					this.curJoinedRID = room.rid
-					this.log(`joined ${room.rname}#${room.rid}`)
-					return true
-				}
+			const room = Rooms.get(rid)
+			if (room && room.addUser(this.uid)) {
+				const socket = io.of("/").connected[this.socketID]
+				socket.join(`${rid}`)
+				this.myRooms.push(`${rid}`)
+				this.log(`joined ${room.rname}#${rid}`)
+				return true
 			}
 			return false
+		},
+		disconnect: function () {
+			const rooms = [...this.myRooms]
+			rooms.forEach((rid) => this.leaveRoom(rid))
 		},
 		log: function (msg) {
 			console.log(`${this.uname}#${this.uid}: ${msg}`)
@@ -68,10 +69,11 @@ module.exports = function (io, sessionMiddleware, db) {
 		get: function (val) {
 			let output = this.active[val]
 			if (!output) {
-				Object.keys(this.active).forEach((id) => {
+				Object.keys(this.active).find((id) => {
 					const curUser = this.active[id]
 					const match = Object.keys(curUser).find((key) => curUser[key] === val)
 					if (match) output = curUser
+					return match
 				})
 			}
 			return output
@@ -79,7 +81,8 @@ module.exports = function (io, sessionMiddleware, db) {
 		disconnect: function (sid) {
 			const user = this.get(sid)
 			if (user) {
-				user.leaveRoom()
+				user.log("disconnecting --> leaving all rooms")
+				user.disconnect()
 				delete this.active[user.uid]
 				return true
 			}
@@ -99,30 +102,30 @@ module.exports = function (io, sessionMiddleware, db) {
 			self.rname = rname
 			self.password = password
 			self.activeUsers = activeUsers
-			console.log(`>>> ${rname}#${rid} created`)
+			self.log(`>>> CREATED`)
 			return self
 		},
 		contains: function (uid) {
 			return !!this.activeUsers.find((id) => id === uid)
 		},
-		addUser: function (user) {
-			if (!user) {
-				this.log("addUser() error, no user")
+		addUser: function (uid) {
+			if (this.contains(uid)) {
+				this.log(`addUser(${uid}) error`)
 				return false
 			}
-			this.activeUsers.push(user.uid)
+			this.activeUsers.push(uid)
 			io.in(`${this.rid}`).emit("updateRoom", this.clientCopy())
-			// this.log(`added user ${user.uname}#${user.uid}`)
+			this.log(`added user#${uid}`)
 			return true
 		},
-		removeUser: function (user) {
-			if (!user || !this.activeUsers.find((uid) => uid === user.uid)) {
-				this.log(`removeUser() error`)
+		removeUser: function (uid) {
+			if (!this.contains(uid)) {
+				this.log(`removeUser(${uid}) error`)
 				return false
 			}
-			this.activeUsers = this.activeUsers.filter((uid) => uid !== user.uid)
-			// this.log(`removed user ${user.uname}#${user.uid}`)
-			if (this.activeUsers.length < 1) Rooms.destroy(this)
+			this.activeUsers = this.activeUsers.filter((u) => u !== uid)
+			this.log(`removed user#${uid}`)
+			if (this.activeUsers.length < 1) Rooms.destroy(this.rid)
 			else io.in(`${this.rid}`).emit("updateRoom", this.clientCopy())
 			return true
 		},
@@ -132,7 +135,10 @@ module.exports = function (io, sessionMiddleware, db) {
 				rid,
 				rname,
 				password,
-				activeUsers: activeUsers.map((uid) => Users.get(uid).clientCopy()),
+				activeUsers: activeUsers.reduce((acc, uid) => {
+					acc[uid] = Users.get(uid).clientCopy()
+					return acc
+				}, {}),
 			}
 		},
 		log: function (msg) {
@@ -150,10 +156,9 @@ module.exports = function (io, sessionMiddleware, db) {
 		get: function (rid) {
 			return this.active[rid]
 		},
-		destroy: function (room) {
-			if (room && this.active[room.rid]) {
-				// console.log(`>>> deleted room ${room.rname}#${room.rid}`)
-				delete this.active[room.rid]
+		destroy: function (rid) {
+			if (this.active[rid]) {
+				delete this.active[rid]
 				return true
 			}
 			return false
@@ -175,8 +180,7 @@ module.exports = function (io, sessionMiddleware, db) {
 			if (!uname && !uid) return clientCB({ error: "server error - setupUser() - bad params" })
 
 			// Check if user is already active.
-			if (!uid) uid = Object.keys(Users.active).find((id) => Users.active[id].uname === uname)
-			let user = Users.get(uid)
+			let user = Users.get(uid || uname)
 			if (user) {
 				if (user.socketID === socket.id)
 					return clientCB({ success: "server success - setupUser() - you're already setup", user })
@@ -295,7 +299,7 @@ module.exports = function (io, sessionMiddleware, db) {
 					ORDER BY m.created_at ASC`
 				const msgsRes = await db.query(getRoomMsgsSQL, [rid, ...(lastMsgTS ? [lastMsgTS] : [])])
 
-				user.joinRoom(room)
+				user.joinRoom(rid)
 
 				clientCB({
 					success: "server success - joinRoom()",
@@ -320,7 +324,7 @@ module.exports = function (io, sessionMiddleware, db) {
 				const leaveRoomSQL = `DELETE FROM users_rooms WHERE uid = $1 AND rid = $2`
 				await db.query(leaveRoomSQL, [uid, rid])
 
-				if (user.curJoinedRID === rid) user.leaveRoom()
+				user.leaveRoom(rid)
 
 				clientCB({ success: "server success - deleteRoom()" })
 			} catch (error) {

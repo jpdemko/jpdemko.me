@@ -316,29 +316,32 @@ function ChatNav({ myRooms, myDMs, curRoomRID, createRoom, joinRoom, deleteRoom,
 				<Rooms>
 					{myRooms &&
 						curRoomRID &&
-						myRooms?.map((r) => (
-							<Room key={r.rid} isFocused={r.rid === curRoomRID.rid}>
+						Object.keys(myRooms).map((rid) => (
+							<Room key={rid} isFocused={rid === curRoomRID}>
 								<RoomData>
 									<RoomDataBtn
 										svg={ArrowRightSVG}
-										isFocused={r.rid === curRoomRID.rid}
-										onClick={() => joinPrevRoom(r)}
+										isFocused={rid === curRoomRID}
+										onClick={() => joinPrevRoom(myRooms[rid])}
 									>
 										<Data>
-											<span>{r.rname}</span>
-											<Lessen>RID#{r.rid}</Lessen>
+											<span>{myRooms[rid]?.rname}</span>
+											<Lessen>RID#{rid}</Lessen>
 										</Data>
 									</RoomDataBtn>
-									<RoomCloseBtn svg={CloseSVG} color="red" onClick={() => deleteRoom(r.rid)} />
+									<RoomCloseBtn svg={CloseSVG} color="red" onClick={() => deleteRoom(rid)} />
 								</RoomData>
-								{r.rid === curRoomRID.rid &&
-									curRoomRID?.activeUsers?.map((u) => (
-										<div key={u.uid}>
-											<User svg={UserSVG} isFocused={u.uid === user.uid}>
-												{u.uname}
-											</User>
-										</div>
-									))}
+								{rid === curRoomRID &&
+									Object.keys(myRooms[curRoomRID]?.activeUsers)?.map((uid) => {
+										const actUser = myRooms[curRoomRID].activeUsers[uid]
+										return (
+											<div key={uid}>
+												<User svg={UserSVG} isFocused={uid === actUser.uid}>
+													{actUser.uname}
+												</User>
+											</div>
+										)
+									})}
 							</Room>
 						))}
 				</Rooms>

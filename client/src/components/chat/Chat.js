@@ -88,41 +88,30 @@ class Chat extends React.Component {
 		this.setState({ myRooms })
 	}
 
-	loadUser = (prevState) => {
-		let { user, curRoomRID, myRooms, myDMs } = prevState ?? this.state
+	loadUser = (passedData) => {
+		let { user, curRoomRID, myRooms } = passedData ?? this.state
 		if (!user) return console.log("loadUser() skipped, no user found")
 
 		console.log("loadUser() start")
 		this.context.setIsLoading(true)
 		this.socketSetupUser(user)
 			.then(async ({ data }) => {
-				// data = { user, myRooms, myDMs }
+				// { user, myRooms, myDMs } = data
+				user = data.user
 				myRooms = { ...data.myRooms, ...(myRooms && myRooms) }
-				const room2join = curRoomRID ? myRooms[curRoomRID] : myRooms[Object.keys(myRooms)[0]]
 				try {
-					// join first room as fast as possible and then join user's other rooms after
-					console.log("hmm")
-					const res = await this.socketJoinRoom(room2join)
-					console.log(res)
-					myRooms[res.room.rid] = res.room
-					this.setState({ curRoomRID: res.room.rid, myRooms })
-				} catch (error) {
-					console.log(error)
-					throw Error(error + "first")
-				}
-				try {
-					// other rooms now
-					const joinOtherRoomsProm = Object.keys(myRooms)
-						.filter((key) => key !== `${curRoomRID}`)
-						.map((rid) => this.socketJoinRoom(myRooms[rid]))
-					const otherRoomsRes = await Promise.all(joinOtherRoomsProm)
-					let otherRooms = otherRoomsRes.reduce((acc, cur) => {
-						acc[cur.rid] = cur
+					const joinRoomPromises = Object.keys(myRooms).map((rid) =>
+						this.socketJoinRoom(myRooms[rid], user)
+					)
+					const roomsRes = await Promise.all(joinRoomPromises)
+					let loadedRooms = roomsRes.reduce((acc, curRes) => {
+						if (curRes) acc[curRes.room.rid] = curRes.room
 						return acc
 					}, {})
-					this.setState({ myRooms: { ...myRooms, ...otherRooms } })
+					this.setState({ myRooms: { ...myRooms, ...loadedRooms }, curRoomRID: curRoomRID ?? 1, user })
 				} catch (error) {
-					throw Error(error + "second")
+					console.log(error)
+					throw Error(error)
 				}
 			})
 			.catch((err) => {
@@ -135,15 +124,15 @@ class Chat extends React.Component {
 	saveUserData = () => {
 		if (!this.state.user || !this.state.myRooms)
 			return console.log("saveUserData() skipped, not enough data")
-		let prevData = sessionStorage.getItem("Chat")
-		prevData = prevData ? JSON.parse(prevData) : {}
-		sessionStorage.setItem(
-			"Chat",
-			JSON.stringify({
-				...prevData,
-				...this.state,
-			})
-		)
+		// let prevData = sessionStorage.getItem("Chat")
+		// prevData = prevData ? JSON.parse(prevData) : {}
+		// sessionStorage.setItem(
+		// 	"Chat",
+		// 	JSON.stringify({
+		// 		...prevData,
+		// 		...this.state,
+		// 	})
+		// )
 		// msgIDs.clear()
 		// chatrooms = {}
 	}
@@ -164,10 +153,13 @@ class Chat extends React.Component {
 		})
 	}
 
-	socketJoinRoom = (room) => {
-		let { socket, user } = this.state
+	socketJoinRoom = (room, passedUser) => {
+		console.log("socketJoinRoom params: ", room, passedUser)
+		let user = passedUser ?? this.state.user
 		let { rid, password, msgs } = room
-		if (!socket || !user || !rid) {
+
+		if (!this.state.socket || !user || !rid) {
+			console.log("user: ", user, "rid#:", rid)
 			return Promise.reject({ error: "client error - socketJoinRoom() - bad params" })
 		}
 
@@ -181,7 +173,7 @@ class Chat extends React.Component {
 				const mids = Object.keys(msgs)
 				ioVars.lastMsgTS = msgs[mids[mids.length - 1]].created_at
 			} else msgs = {}
-			socket.emit("joinRoom", ioVars, ({ success, error, room: roomRes }) => {
+			this.state.socket.emit("joinRoom", ioVars, ({ success, error, room: roomRes }) => {
 				console.log(success || error, roomRes)
 				if (error) reject({ error })
 				else if (success && roomRes) {
@@ -322,11 +314,6 @@ class Chat extends React.Component {
 							<Logs data={curRoomRID} user={user} />
 							<Messaging send={this.send} />
 						</Main>
-						<div style={{ position: "absolute", left: "50%", top: "8px" }}>
-							<Button variant="outline" onClick={this.log}>
-								log
-							</Button>
-						</div>
 					</>
 				) : (
 					<form onSubmit={this.submitName}>
@@ -346,6 +333,11 @@ class Chat extends React.Component {
 						</Button>
 					</form>
 				)}
+				<div style={{ position: "absolute", left: "50%", top: "8px" }}>
+					<Button variant="outline" onClick={this.log}>
+						log
+					</Button>
+				</div>
 			</Root>
 		)
 	}
