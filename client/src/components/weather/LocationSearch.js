@@ -94,7 +94,7 @@ function LocationSearch({ map, modulesLoaded, onLocationFound }) {
 				managersLoadedRef.current = true
 			} catch (error) {
 				managersLoadedRef.current = false
-				console.log(error)
+				console.error(error)
 			}
 		}
 
@@ -118,7 +118,7 @@ function LocationSearch({ map, modulesLoaded, onLocationFound }) {
 			},
 			({ code, message }) => {
 				const output = `Geolocation error #${code}: ${message}`
-				console.log(output)
+				console.error(output)
 				alert(output)
 			},
 			{ enableHighAccuracy: true }

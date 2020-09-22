@@ -112,9 +112,9 @@ function Logs({ data, user, ...props }) {
 	function getMsgs() {
 		return !data?.msgs
 			? null
-			: data.msgs.map((msg) => {
-					const key = Object.keys(msg).find((k) => k.includes("id"))
-					return key ? <Msg key={key} data={msg} authored={user.uid === msg.uid} /> : null
+			: Object.keys(data.msgs).map((id) => {
+					const msg = data.msgs[id]
+					return <Msg key={id} data={msg} authored={user.uid === msg.uid} />
 			  })
 	}
 

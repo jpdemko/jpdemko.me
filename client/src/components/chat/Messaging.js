@@ -14,7 +14,7 @@ function IO({ send, ...props }) {
 		e.preventDefault()
 		send(text)
 			.then(() => setText(""))
-			.catch((err) => console.log("IO send message error.", err))
+			.catch((err) => console.error("IO send message error.", err))
 	}
 
 	function handleTextChange(e) {

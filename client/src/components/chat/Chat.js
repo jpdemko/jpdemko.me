@@ -79,13 +79,18 @@ class Chat extends React.Component {
 		return output
 	}
 
-	updateRoom = (data) => {
-		let { rid, msgs, activeUsers } = data
+	updateRoom = (room, makeCur = false) => {
 		let myRooms = { ...this.state.myRooms }
-		let room = myRooms[rid]
+		let { rid, msgs, activeUsers } = room
+		room = myRooms[rid] ?? room
+
 		if (msgs) room.msgs = { ...room.msgs, ...msgs }
 		if (activeUsers) room.activeUsers = activeUsers
-		this.setState({ myRooms })
+
+		this.setState({
+			myRooms,
+			...(makeCur && { curRoomRID: rid }),
+		})
 	}
 
 	loadUser = (passedData) => {
@@ -101,7 +106,7 @@ class Chat extends React.Component {
 				myRooms = { ...data.myRooms, ...(myRooms && myRooms) }
 				try {
 					const joinRoomPromises = Object.keys(myRooms).map((rid) =>
-						this.socketJoinRoom(myRooms[rid], user)
+						this.socketJoinRoom({ room: myRooms[rid], user })
 					)
 					const roomsRes = await Promise.all(joinRoomPromises)
 					let loadedRooms = roomsRes.reduce((acc, curRes) => {
@@ -110,12 +115,12 @@ class Chat extends React.Component {
 					}, {})
 					this.setState({ myRooms: { ...myRooms, ...loadedRooms }, curRoomRID: curRoomRID ?? 1, user })
 				} catch (error) {
-					console.log(error)
+					console.error(error)
 					throw Error(error)
 				}
 			})
 			.catch((err) => {
-				console.log(err)
+				console.error(err)
 				this.setState({ user: null, curRoomRID: null, curDMid: null, myRooms: null, myDMs: null })
 			})
 			.finally(() => this.context.setIsLoading(false))
@@ -153,13 +158,13 @@ class Chat extends React.Component {
 		})
 	}
 
-	socketJoinRoom = (room, passedUser) => {
-		console.log("socketJoinRoom params: ", room, passedUser)
+	socketJoinRoom = ({ room, user: passedUser, makeCur = false }) => {
+		console.log("socketJoinRoom params: ", { room, passedUser, makeCur })
 		let user = passedUser ?? this.state.user
 		let { rid, password, msgs } = room
 
 		if (!this.state.socket || !user || !rid) {
-			console.log("user: ", user, "rid#:", rid)
+			console.log({ user, rid })
 			return Promise.reject({ error: "client error - socketJoinRoom() - bad params" })
 		}
 
@@ -168,10 +173,12 @@ class Chat extends React.Component {
 				uid: user.uid,
 				rid,
 				password,
+				makeCur,
 			}
 			if (msgs) {
 				const mids = Object.keys(msgs)
-				ioVars.lastMsgTS = msgs[mids[mids.length - 1]].created_at
+				const lastMsg = msgs[mids[mids.length - 1]]
+				if (lastMsg) ioVars.lastMsgTS = lastMsg.created_at
 			} else msgs = {}
 			this.state.socket.emit("joinRoom", ioVars, ({ success, error, room: roomRes }) => {
 				console.log(success || error, roomRes)
@@ -185,21 +192,17 @@ class Chat extends React.Component {
 		})
 	}
 
-	joinRoom = (room) => {
+	joinRoom = ({ room, user }) => {
 		if (!room?.rid) return Promise.reject({ error: "client error - joinRoom() - no rid# provided" })
-
-		const { rid } = room
 		let { curRoomRID, myRooms } = this.state
 
-		if (rid === curRoomRID) {
+		if (room.rid == curRoomRID) {
 			return Promise.reject({ error: "client error - joinRoom() - already in that room" })
 		} else {
-			return this.socketJoinRoom(room).then((res) => {
+			return this.socketJoinRoom({ room: myRooms[room.rid] ?? room, user, makeCur: true }).then((res) => {
 				let { room: roomRes } = res
 				roomRes.unread = 0
-				this.updateRoom(roomRes)
-				// myRooms = { ...myRooms, [roomRes.rid]: roomRes }
-				// this.setState({ myRooms, curRoomRID: rid })
+				this.updateRoom(roomRes, true)
 				return res
 			})
 		}
@@ -218,9 +221,9 @@ class Chat extends React.Component {
 		})
 			.then(async () => {
 				console.log(`client deleteRoom(${rid}) start`)
-				if (curRoomRID === rid) {
+				if (curRoomRID == rid) {
 					try {
-						await this.joinRoom(myRooms.find((r) => r.rid !== rid))
+						await this.joinRoom({ room: myRooms[1], makeCur: true })
 					} catch (error) {
 						throw Error(error)
 					}
@@ -311,7 +314,7 @@ class Chat extends React.Component {
 							user={user}
 						/>
 						<Main>
-							<Logs data={curRoomRID} user={user} />
+							<Logs data={myRooms ? myRooms[curRoomRID] : null} user={user} />
 							<Messaging send={this.send} />
 						</Main>
 					</>

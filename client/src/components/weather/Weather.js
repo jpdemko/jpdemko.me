@@ -84,7 +84,7 @@ function Weather({ ...props }) {
 				Microsoft.Maps.loadModule(["Microsoft.Maps.AutoSuggest", "Microsoft.Maps.Search"], {
 					callback: () => setModulesLoaded(true),
 					errorCallback: (error) => {
-						console.log(error)
+						console.error(error)
 						setModulesLoaded(false)
 					},
 				})
@@ -94,7 +94,7 @@ function Weather({ ...props }) {
 				setMap(genMap)
 				return true
 			} catch (error) {
-				console.log(error)
+				console.error(error)
 				setModulesLoaded(false)
 				return false
 			}
@@ -153,7 +153,7 @@ function Weather({ ...props }) {
 					mapLoadLocation(mapData)
 					toggleDrawer()
 				})
-				.catch(console.log)
+				.catch(console.error)
 				.finally(() => setIsLoading(false))
 		}
 	}
@@ -209,7 +209,7 @@ function Weather({ ...props }) {
 				setCurLocation(nextCurLocation)
 				setLocations(nextLocations)
 			})
-			.catch(console.log)
+			.catch(console.error)
 			.finally(() => setIsLoading(false))
 	}
 

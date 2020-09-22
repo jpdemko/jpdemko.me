@@ -270,11 +270,11 @@ function ChatNav({ myRooms, myDMs, curRoomRID, createRoom, joinRoom, deleteRoom,
 	function submitJoinRoom(e) {
 		e.preventDefault()
 		const fixRID = Object.prototype.toString.call(rid) === "[object String]" ? Number.parseInt(rid) : rid
-		let vars = { rid: fixRID, password: password?.length < 6 ? null : password }
+		let roomVars = { rid: fixRID, password: password?.length < 6 ? null : password }
 		// console.log("submitRoom() vars: ", vars)
-		joinRoom(vars)
+		joinRoom({ room: roomVars })
 			.then(() => setModalShown(false))
-			.catch(console.log)
+			.catch(console.error)
 			.finally(() => {
 				setRID("")
 				setPassword("")
@@ -293,7 +293,7 @@ function ChatNav({ myRooms, myDMs, curRoomRID, createRoom, joinRoom, deleteRoom,
 	}
 
 	function joinPrevRoom(room) {
-		joinRoom(room).then(console.log).catch(console.log)
+		joinRoom({ room }).then(console.log).catch(console.log)
 	}
 
 	const accordionData = [
@@ -317,11 +317,11 @@ function ChatNav({ myRooms, myDMs, curRoomRID, createRoom, joinRoom, deleteRoom,
 					{myRooms &&
 						curRoomRID &&
 						Object.keys(myRooms).map((rid) => (
-							<Room key={rid} isFocused={rid === curRoomRID}>
+							<Room key={rid} isFocused={rid == curRoomRID}>
 								<RoomData>
 									<RoomDataBtn
 										svg={ArrowRightSVG}
-										isFocused={rid === curRoomRID}
+										isFocused={rid == curRoomRID}
 										onClick={() => joinPrevRoom(myRooms[rid])}
 									>
 										<Data>
@@ -331,7 +331,7 @@ function ChatNav({ myRooms, myDMs, curRoomRID, createRoom, joinRoom, deleteRoom,
 									</RoomDataBtn>
 									<RoomCloseBtn svg={CloseSVG} color="red" onClick={() => deleteRoom(rid)} />
 								</RoomData>
-								{rid === curRoomRID &&
+								{rid == curRoomRID &&
 									Object.keys(myRooms[curRoomRID]?.activeUsers)?.map((uid) => {
 										const actUser = myRooms[curRoomRID].activeUsers[uid]
 										return (

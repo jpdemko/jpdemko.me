@@ -23,6 +23,7 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
 app.use(cookieParser(process.env.SESSION_SECRET))
 const sessionMiddleware = session({
+	name: "sessionID",
 	store: new pgSession({ pool: db }),
 	secret: process.env.SESSION_SECRET,
 	resave: false,

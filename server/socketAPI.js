@@ -15,29 +15,31 @@ module.exports = function (io, sessionMiddleware, db) {
 			self.uname = uname
 			self.socketID = socketID
 			self.myRooms = []
+			self.curRoomRID = 1
 			return self
 		},
 		clientCopy: function () {
-			const { uid, uname, socketID, myRooms } = this
+			const { uid, uname, socketID, myRooms, curRoomRID } = this
 			return {
 				uid,
 				uname,
 				socketID,
 				myRooms,
+				curRoomRID,
 			}
 		},
 		leaveRoom: function (rid) {
 			if (this.myRooms.find((r) => r === rid)) {
 				const socket = io.of("/").connected[this.socketID]
 				socket.leave(`${rid}`)
-				this.myRooms = this.myRooms.filter((r) => `${r}` !== `${rid}`)
+				this.myRooms = this.myRooms.filter((r) => r != rid)
 				const room = Rooms.get(rid)
 				return room ? room.removeUser(this.uid) : false
 			}
 		},
-		joinRoom: function (rid) {
+		joinRoom: function (rid, makeCur = true) {
 			if (!rid) {
-				console.log(`error - bad joinRoom param: ${rid}`)
+				console.error(`error - bad joinRoom param: ${rid}`)
 				return false
 			}
 			const room = Rooms.get(rid)
@@ -45,6 +47,7 @@ module.exports = function (io, sessionMiddleware, db) {
 				const socket = io.of("/").connected[this.socketID]
 				socket.join(`${rid}`)
 				this.myRooms.push(`${rid}`)
+				if (makeCur) this.curRoomRID = rid
 				this.log(`joined ${room.rname}#${rid}`)
 				return true
 			}
@@ -89,19 +92,19 @@ module.exports = function (io, sessionMiddleware, db) {
 			return false
 		},
 		log: function () {
-			console.log("### USERS ###")
+			console.info("### USERS ###")
 			console.log(this.active)
 		},
 	}
 
 	var Room = {
-		create: function ({ rid, rname, password = null, activeUsers = [] }) {
+		create: function ({ rid, rname, password = null }) {
 			if (!rid || !rname) throw Error("Room.create() bad params")
 			var self = Object.create(this)
 			self.rid = rid
 			self.rname = rname
 			self.password = password
-			self.activeUsers = activeUsers
+			self.activeUsers = []
 			self.log(`>>> CREATED`)
 			return self
 		},
@@ -136,7 +139,8 @@ module.exports = function (io, sessionMiddleware, db) {
 				rname,
 				password,
 				activeUsers: activeUsers.reduce((acc, uid) => {
-					acc[uid] = Users.get(uid).clientCopy()
+					const user = Users.get(uid)
+					if (user.curRoomRID == this.rid) acc[uid] = user.clientCopy()
 					return acc
 				}, {}),
 			}
@@ -164,7 +168,7 @@ module.exports = function (io, sessionMiddleware, db) {
 			return false
 		},
 		log: function () {
-			console.log("### ROOMS ### ")
+			console.info("### ROOMS ### ")
 			console.log(this.active)
 		},
 	}
@@ -174,7 +178,7 @@ module.exports = function (io, sessionMiddleware, db) {
 	})
 
 	io.on("connection", function (socket) {
-		console.log(`socket#${socket.id} connected`)
+		console.info(`socket#${socket.id} connected`)
 
 		socket.on("setupUser", async function ({ uid, uname }, clientCB) {
 			if (!uname && !uid) return clientCB({ error: "server error - setupUser() - bad params" })
@@ -225,9 +229,8 @@ module.exports = function (io, sessionMiddleware, db) {
 						},
 					})
 				} catch (error) {
-					error = `server error - setupUser() - ${error}`
-					console.log(error)
-					return clientCB({ error })
+					console.error(error)
+					return clientCB({ error: `server error - setupUser() - ${error}` })
 				}
 			}
 		})
@@ -249,17 +252,16 @@ module.exports = function (io, sessionMiddleware, db) {
 				await db.query(joinRoomSQL, [uid, rid])
 
 				const room = Rooms.create(nextRoom)
-				user.joinRoom(room)
+				user.joinRoom(room.rid)
 
 				clientCB({ success: "server success - createRoom()", room: room.clientCopy() })
 			} catch (error) {
-				error = `server error - createRoom() - ${error}`
-				console.log(error)
-				clientCB({ error })
+				console.error(error)
+				clientCB({ error: `server error - createRoom() - ${error}` })
 			}
 		})
 
-		socket.on("joinRoom", async function ({ uid, rid, password = null, lastMsgTS }, clientCB) {
+		socket.on("joinRoom", async function ({ uid, rid, password = null, makeCur, lastMsgTS }, clientCB) {
 			let user = Users.get(uid)
 			if (!rid || !user) {
 				// console.log("uid:", uid, "user: ", user, "rid: ", rid)
@@ -299,7 +301,7 @@ module.exports = function (io, sessionMiddleware, db) {
 					ORDER BY m.created_at ASC`
 				const msgsRes = await db.query(getRoomMsgsSQL, [rid, ...(lastMsgTS ? [lastMsgTS] : [])])
 
-				user.joinRoom(rid)
+				user.joinRoom(rid, makeCur)
 
 				clientCB({
 					success: "server success - joinRoom()",
@@ -309,9 +311,8 @@ module.exports = function (io, sessionMiddleware, db) {
 					},
 				})
 			} catch (error) {
-				error = `server error - joinRoom() - ${error}`
-				console.log(error)
-				clientCB({ error })
+				console.error(error)
+				clientCB({ error: `server error - joinRoom() - ${error}` })
 			}
 		})
 
@@ -328,9 +329,8 @@ module.exports = function (io, sessionMiddleware, db) {
 
 				clientCB({ success: "server success - deleteRoom()" })
 			} catch (error) {
-				error = `server error - deleteRoom() - ${error}`
-				console.log(error)
-				clientCB({ error })
+				console.error(error)
+				clientCB({ error: `server error - deleteRoom() - ${error}` })
 			}
 		})
 
@@ -346,17 +346,16 @@ module.exports = function (io, sessionMiddleware, db) {
 
 				clientCB({ success: "server success - sendMsg()", msgs })
 			} catch (error) {
-				error = `server error - sendMsg() - ${error}`
-				console.log(error)
-				clientCB({ error })
+				console.error(error)
+				clientCB({ error: `server error - sendMsg() - ${error}` })
 			}
 		})
 
 		socket.on("log", function () {
-			console.log("- - - - - - - - - - - - - - - - -")
+			console.info("- - - - - - - - - - - - - - - - -")
 			Rooms.log()
 			Users.log()
-			console.log("- - - - - - - - - - - - - - - - -")
+			console.info("- - - - - - - - - - - - - - - - -")
 		})
 
 		socket.on("disconnecting", function () {

@@ -168,7 +168,7 @@ export class Styles {
 			}
 			return Array.isArray(style) ? style : [style]
 		} catch (err) {
-			console.log(err)
+			console.error(err)
 			return null
 		}
 	}
