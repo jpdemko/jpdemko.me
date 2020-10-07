@@ -1,6 +1,6 @@
 import * as React from "react"
-import { throttle } from "throttle-debounce"
 import { ThemeContext } from "styled-components/macro"
+import throttle from "lodash/throttle"
 
 import { themes } from "./shared"
 
@@ -155,14 +155,14 @@ export function useResizeObserver(callback, throttleMS = 200) {
 	const callbackOutputRef = useUpdatedValRef(callbackOutput)
 
 	const throttledCallback = React.useCallback(
-		throttle(throttleMS, (rect) => {
+		throttle((rect) => {
 			const prevOutput = callbackOutputRef.current
 			const nextOutput = callbackRef.current(rect)
 			if (prevOutput !== nextOutput) {
 				callbackOutputRef.current = nextOutput
 				setCallbackOutput(nextOutput)
 			}
-		}),
+		}, throttleMS),
 		[callbackRef, callbackOutputRef]
 	)
 

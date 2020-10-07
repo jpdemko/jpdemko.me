@@ -1,7 +1,7 @@
 import * as React from "react"
 import styled, { css } from "styled-components/macro"
 import { TransitionGroup } from "react-transition-group"
-import { throttle } from "throttle-debounce"
+import throttle from "lodash/throttle"
 
 import { getRect, ls, themes } from "../../shared/shared"
 import About from "../about/About"
@@ -98,8 +98,8 @@ const apps = {}
 class Display extends React.Component {
 	constructor(props) {
 		super(props)
-		const { appNames, zIndexLeader } = ls.get("Display") || {}
-		const prevOpenedApps = (appNames || []).map(this.genApp)
+		const { appNames, zIndexLeader } = ls.get("Display") ?? {}
+		const prevOpenedApps = (appNames ?? []).map(this.genApp)
 		this.state = {
 			openedApps: prevOpenedApps,
 			mainNavBurgerCB: null,
@@ -108,8 +108,8 @@ class Display extends React.Component {
 				cols: 1,
 			},
 		}
-		this.zIndexLeader = zIndexLeader || 999
-		this.setGridDimsThrottled = throttle(200, this.setGridDims)
+		this.zIndexLeader = zIndexLeader ?? 999
+		this.setGridDimsThrottled = throttle(this.setGridDims, 200)
 		this.dragAreaRef = React.createRef()
 	}
 
@@ -139,7 +139,7 @@ class Display extends React.Component {
 	saveApp = (title, extraData = {}) => {
 		if (!title) return
 
-		const prevData = ls.get(title) || {}
+		const prevData = ls.get(title) ?? {}
 		ls.set(title, {
 			title,
 			...prevData,
@@ -161,8 +161,8 @@ class Display extends React.Component {
 		const { width, height } = getRect(this.dragAreaRef.current)
 		const optCell = 16 * 7 + 16 * 0.75 // 7em + (1em * .75)
 		const nextGrid = {
-			rows: Math.floor(height / optCell) || 1,
-			cols: Math.floor(width / optCell) || 1,
+			rows: Math.floor(height / optCell) ?? 1,
+			cols: Math.floor(width / optCell) ?? 1,
 		}
 		const { grid } = this.state
 		if (nextGrid.rows !== grid.rows || nextGrid.cols !== grid.cols) this.setState({ grid: nextGrid })
@@ -172,7 +172,7 @@ class Display extends React.Component {
 		if (!title) return
 
 		const { isMobileSite } = this.props
-		const prevData = ls.get(title) || {}
+		const prevData = ls.get(title) ?? {}
 		const { window, ...desiredData } = prevData
 		const newData = {
 			title,

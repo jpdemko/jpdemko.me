@@ -1,9 +1,41 @@
-function row2obj(row, keyName) {
-	return row.reduce((acc, ele) => {
-		if (!keyName) keyName = Object.keys(ele).find((key) => key.includes("id"))
-		acc[ele[keyName]] = ele
+/**
+ * Turns node-pg query result (array of objects) into a single object with each element of the array
+ * being a K,V pair. The key will be the passed uniqColumnName or a column containing 'id'.
+ * @param {Array<Object>} rows
+ * @param {string} [uniqColumnName]
+ * @returns {Object}
+ */
+function rows2obj(rows, uniqColumnName) {
+	return rows.reduce((acc, row) => {
+		if (!uniqColumnName) uniqColumnName = Object.keys(row).find((key) => key.includes("id"))
+		if (row.msg && row.unread) acc.unread = (acc.unread ? acc.unread : 0) + 1
+		acc[row[uniqColumnName]] = row
 		return acc
 	}, {})
+}
+
+/**
+ * Every msg will be made unread unless optional UID is passed, which will change the default behavior
+ * to make every message after the user's last message unread instead.
+ * @param {Array<Object>} msgsArr
+ * @param {string|number} [optionalUID]
+ * @returns {Array<Object>}
+ */
+function makeMsgsUnread(msgsArr, optionalUID) {
+	msgsArr = msgsArr.slice()
+	let startIdx = 0
+	if (optionalUID) {
+		for (let i = msgsArr.length - 1; i > 0; i--) {
+			if (msgsArr[i].uid == optionalUID) {
+				startIdx = i
+				break
+			}
+		}
+	}
+	for (let i = 0; i < msgsArr.length; i++) {
+		msgsArr[i].unread = msgsArr[i].uid != optionalUID && i >= startIdx
+	}
+	return msgsArr
 }
 
 module.exports = function (io, sessionMiddleware, db) {
@@ -15,7 +47,7 @@ module.exports = function (io, sessionMiddleware, db) {
 			self.uname = uname
 			self.socketID = socketID
 			self.myRooms = []
-			self.curRoomRID = 1
+			self.curRoomRID = null
 			return self
 		},
 		clientCopy: function () {
@@ -42,13 +74,17 @@ module.exports = function (io, sessionMiddleware, db) {
 				console.error(`error - bad joinRoom param: ${rid}`)
 				return false
 			}
-			const room = Rooms.get(rid)
-			if (room && room.addUser(this.uid)) {
-				const socket = io.of("/").connected[this.socketID]
-				socket.join(`${rid}`)
-				this.myRooms.push(`${rid}`)
-				if (makeCur) this.curRoomRID = rid
-				this.log(`joined ${room.rname}#${rid}`)
+			const socket = io.of("/").connected[this.socketID]
+			const curRoom = Rooms.get(this.curRoomRID)
+			const nextRoom = Rooms.get(rid)
+			if (nextRoom) {
+				if (makeCur) this.curRoomRID = nextRoom.rid
+				if (nextRoom.addUser(this.uid)) {
+					socket.join(`${rid}`)
+					this.myRooms.push(`${rid}`)
+				}
+				if (curRoom) socket.to(`${curRoom.rid}`).emit("updateRoom", curRoom.clientCopy())
+				socket.to(`${nextRoom.rid}`).emit("updateRoom", nextRoom.clientCopy())
 				return true
 			}
 			return false
@@ -58,7 +94,7 @@ module.exports = function (io, sessionMiddleware, db) {
 			rooms.forEach((rid) => this.leaveRoom(rid))
 		},
 		log: function (msg) {
-			console.log(`${this.uname}#${this.uid}: ${msg}`)
+			console.log(`User >>> ${this.uname}#${this.uid}: ${msg}`)
 		},
 	}
 
@@ -74,7 +110,7 @@ module.exports = function (io, sessionMiddleware, db) {
 			if (!output) {
 				Object.keys(this.active).find((id) => {
 					const curUser = this.active[id]
-					const match = Object.keys(curUser).find((key) => curUser[key] === val)
+					const match = Object.keys(curUser).find((key) => curUser[key] == val)
 					if (match) output = curUser
 					return match
 				})
@@ -109,15 +145,12 @@ module.exports = function (io, sessionMiddleware, db) {
 			return self
 		},
 		contains: function (uid) {
-			return !!this.activeUsers.find((id) => id === uid)
+			return !!this.activeUsers.find((id) => id == uid)
 		},
 		addUser: function (uid) {
-			if (this.contains(uid)) {
-				this.log(`addUser(${uid}) error`)
-				return false
-			}
+			const user = Users.get(uid)
+			if (!user || this.contains(uid)) return false
 			this.activeUsers.push(uid)
-			io.in(`${this.rid}`).emit("updateRoom", this.clientCopy())
 			this.log(`added user#${uid}`)
 			return true
 		},
@@ -146,7 +179,7 @@ module.exports = function (io, sessionMiddleware, db) {
 			}
 		},
 		log: function (msg) {
-			console.log(`${this.rname}#${this.rid}: ${msg}`)
+			console.log(`Room >>> ${this.rname}#${this.rid}: ${msg}`)
 		},
 	}
 
@@ -224,8 +257,8 @@ module.exports = function (io, sessionMiddleware, db) {
 						success: "server success - setupUser()",
 						data: {
 							user: { ...user.clientCopy() },
-							myRooms: row2obj(usersRoomsRes.rows, "rid"),
-							myDMs: row2obj(usersDMsRes.rows, "dmid"),
+							myRooms: rows2obj(usersRoomsRes.rows, "rid"),
+							myDMs: rows2obj(usersDMsRes.rows, "dmid"),
 						},
 					})
 				} catch (error) {
@@ -269,20 +302,12 @@ module.exports = function (io, sessionMiddleware, db) {
 			}
 			try {
 				let room = Rooms.get(rid)
-				if (room) {
-					// Double check if user has already joined said room.
-					if (room.contains(uid)) {
-						return clientCB({
-							success: "server success - joinRoom() - user already in room",
-							room: room.clientCopy(),
-						})
-					}
-				} else {
+				if (!room) {
 					const getRoomDataSQL = `SELECT rid, rname, password FROM rooms WHERE rid = $1`
 					const roomRes = await db.query(getRoomDataSQL, [rid])
 					if (roomRes.rows.length < 1) throw Error("room doesn't exist")
 					room = Rooms.create(roomRes.rows[0])
-				}
+				} else if (room && user.curRoomRID == rid) throw Error("currently in room you're trying to join")
 				// Check for and deal with room password. For now not hashing/encrypting.
 				if (room.password && room.password !== password) throw Error("invalid room password")
 
@@ -294,20 +319,27 @@ module.exports = function (io, sessionMiddleware, db) {
 					const joinRoomSQL = `INSERT INTO users_rooms(uid, rid) VALUES ($1, $2)`
 					await db.query(joinRoomSQL, [uid, rid])
 				}
-				// Grab all the messages from the room their joining. Query changes based if given last msg timestamp.
-				const getRoomMsgsSQL = `SELECT m.mid, m.msg, m.created_at, u.uid, u.uname FROM msgs m
+				// If user is joining room for the first time on server then go get potential missed msgs from DB.
+				let msgsRes = { rows: [] }
+				if (!room.contains(uid)) {
+					// Grab all the messages from the room their joining. Query changes based if given last msg timestamp.
+					const getRoomMsgsSQL = `SELECT m.mid, m.msg, m.created_at, u.uid, u.uname FROM msgs m
 					INNER JOIN users u ON m.uid = u.uid WHERE rid = $1
 					AND m.created_at > ${lastMsgTS ? "$2" : "NOW() - INTERVAL '60 DAYS'"}
 					ORDER BY m.created_at ASC`
-				const msgsRes = await db.query(getRoomMsgsSQL, [rid, ...(lastMsgTS ? [lastMsgTS] : [])])
+					msgsRes = await db.query(getRoomMsgsSQL, [rid, ...(lastMsgTS ? [lastMsgTS] : [])])
+					msgsRes.rows = makeMsgsUnread(msgsRes.rows, uid)
+				}
 
+				// If user's curRoomRID is null and rid param is 1 then go ahead and make makeCur = true
+				makeCur = user.curRoomRID === null && rid == 1 ? true : makeCur
 				user.joinRoom(rid, makeCur)
 
 				clientCB({
 					success: "server success - joinRoom()",
 					room: {
 						...room.clientCopy(),
-						msgs: row2obj(msgsRes.rows, "mid"),
+						msgs: rows2obj(msgsRes.rows, "mid"),
 					},
 				})
 			} catch (error) {
@@ -341,10 +373,11 @@ module.exports = function (io, sessionMiddleware, db) {
 				INNER JOIN users u ON m.uid = u.uid`
 			try {
 				const insertMsgRes = await db.query(sendMsgQuery, [uid, rid, msg])
-				const msgs = row2obj(insertMsgRes.rows, "mid")
-				io.in(`${rid}`).emit("updateRoom", { ...Rooms.get(rid).clientCopy(), msgs })
+				const selfMsgs = rows2obj(makeMsgsUnread(insertMsgRes.rows, uid), "mid")
+				const othersMsgs = rows2obj(makeMsgsUnread(insertMsgRes.rows), "mid")
+				socket.to(`${rid}`).emit("updateRoom", { ...Rooms.get(rid).clientCopy(), msgs: othersMsgs })
 
-				clientCB({ success: "server success - sendMsg()", msgs })
+				clientCB({ success: "server success - sendMsg()", msgs: selfMsgs })
 			} catch (error) {
 				console.error(error)
 				clientCB({ error: `server error - sendMsg() - ${error}` })

@@ -3,6 +3,8 @@ import styled, { css } from "styled-components/macro"
 
 import Button from "./Button"
 
+/* --------------------------------- STYLES --------------------------------- */
+
 const AccordRoot = styled.div`
 	display: flex;
 	flex-direction: column;
@@ -31,6 +33,8 @@ const MenuContent = styled.div`
 		overflow-y: ${opened ? "auto" : "hidden"};
 	`}
 `
+
+/* -------------------------------- COMPONENT ------------------------------- */
 
 function Menu({ data }) {
 	const [opened, setOpened] = React.useState(true)

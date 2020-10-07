@@ -1,14 +1,16 @@
 import * as React from "react"
 import styled from "styled-components/macro"
 import socketIOClient from "socket.io-client"
+import mergeWith from "lodash/mergeWith"
 
 import { setupAppSharedOptions, themes, Contexts, ls } from "../../shared/shared"
 import { ReactComponent as ChatSVG } from "../../shared/assets/icons/chat.svg"
 import ChatNav from "./ChatNav"
 import Logs from "./Logs"
-import Messaging from "./Messaging"
+import ChatInput from "./ChatInput"
 import { Input } from "../ui/IO"
 import Button from "../ui/Button"
+import { DateTime } from "luxon"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -24,16 +26,12 @@ const Main = styled.div`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-// const msgIDs = new Set()
-// let chatrooms = {}
-
 class Chat extends React.Component {
 	constructor(props) {
 		super(props)
-		this.timeChatOpened = new Date().getTime()
 		const prevData = this.getUserData()
 		this.state = {
-			curRoomRID: null,
+			curRoomRID: 1,
 			curDMid: null,
 			myRooms: null,
 			myDMs: null,
@@ -44,27 +42,59 @@ class Chat extends React.Component {
 			socket: socketIOClient(process.env.REACT_APP_SERVER_URL),
 		}
 		this.initUsernameRef = React.createRef()
+		this.intervalHandleUnreadMsgs = null
 	}
 
 	componentDidMount() {
 		const { socket, user } = this.state
+
+		// Setup socket event listeners.
 		socket.on("updateRoom", this.updateRoom)
 		socket.on("reconnect", () => {
-			console.log("client socket.io reconnect event fired - loadUser() called")
+			console.log("socket.io reconnect event - loadUser() called")
 			this.loadUser()
 		})
 		socket.on("disconnect", (reason) => {
-			console.log(`socket#${socket.id} disconnect event, reason: ${reason}`)
+			console.log(`socket#${socket.id} disconnect event - reason: ${reason}`)
+			socket.disconnect()
 		})
+		// Setup data save on exit.
 		window.addEventListener("beforeunload", this.saveUserData)
+		// Attempt to load prev. save data if any.
 		this.loadUser()
+		// Auto focus username input field if available.
 		if (!user && this.initUsernameRef.current) this.initUsernameRef.current.focus({ preventScroll: true })
+		// Setup interval to mark messages as read for current room/DM.
+		this.intervalHandleUnreadMsgs = setInterval(this.unreadMsgsHandler, 1000 * 45)
+	}
+
+	componentDidUpdate(prevProps, prevState) {
+		// Reset unread msgs interval on room change.
+		if (prevState.curRoomRID != this.state.curRoomRID) {
+			clearInterval(this.intervalHandleUnreadMsgs)
+			this.intervalHandleUnreadMsgs = setInterval(this.unreadMsgsHandler, 1000 * 45)
+		}
 	}
 
 	componentWillUnmount() {
+		// All of these are precautions if they fail to occur in other places.
 		if (this.state.socket) this.state.socket.disconnect()
 		this.saveUserData()
+		// Remove events & unread msgs interval.
 		window.removeEventListener("beforeunload", this.saveUserData)
+		clearInterval(this.intervalHandleUnreadMsgs)
+	}
+
+	unreadMsgsHandler = () => {
+		let { curRoomRID, myRooms } = this.state
+		if (!myRooms || !curRoomRID || !this.props.appActive) return
+		myRooms = { ...myRooms }
+		Object.keys(myRooms[curRoomRID].msgs).forEach((mid) => {
+			const val = myRooms[curRoomRID].msgs[mid]
+			if (isNaN(val)) val.unread = false
+		})
+		myRooms[curRoomRID].msgs.unread = 0
+		this.setState({ myRooms })
 	}
 
 	getUserData = (passedUser) => {
@@ -80,12 +110,13 @@ class Chat extends React.Component {
 	}
 
 	updateRoom = (room, makeCur = false) => {
-		let myRooms = { ...this.state.myRooms }
-		let { rid, msgs, activeUsers } = room
-		room = myRooms[rid] ?? room
+		const myRooms = { ...this.state.myRooms }
+		const { rid } = room
+		if (!rid) return console.error("updateRoom() error: no rid#, printing room param", room)
 
-		if (msgs) room.msgs = { ...room.msgs, ...msgs }
-		if (activeUsers) room.activeUsers = activeUsers
+		myRooms[rid] = mergeWith(myRooms[rid] ?? {}, room, (objValue, srcValue) => {
+			if (!isNaN(objValue)) return objValue + srcValue
+		})
 
 		this.setState({
 			myRooms,
@@ -95,9 +126,8 @@ class Chat extends React.Component {
 
 	loadUser = (passedData) => {
 		let { user, curRoomRID, myRooms } = passedData ?? this.state
-		if (!user) return console.log("loadUser() skipped, no user found")
+		if (!user) return
 
-		console.log("loadUser() start")
 		this.context.setIsLoading(true)
 		this.socketSetupUser(user)
 			.then(async ({ data }) => {
@@ -106,7 +136,7 @@ class Chat extends React.Component {
 				myRooms = { ...data.myRooms, ...(myRooms && myRooms) }
 				try {
 					const joinRoomPromises = Object.keys(myRooms).map((rid) =>
-						this.socketJoinRoom({ room: myRooms[rid], user })
+						this.socketJoinRoom({ room: myRooms[rid], user, makeCur: rid == curRoomRID })
 					)
 					const roomsRes = await Promise.all(joinRoomPromises)
 					let loadedRooms = roomsRes.reduce((acc, curRes) => {
@@ -127,8 +157,7 @@ class Chat extends React.Component {
 	}
 
 	saveUserData = () => {
-		if (!this.state.user || !this.state.myRooms)
-			return console.log("saveUserData() skipped, not enough data")
+		if (!this.state.user || !this.state.myRooms) return
 		// let prevData = sessionStorage.getItem("Chat")
 		// prevData = prevData ? JSON.parse(prevData) : {}
 		// sessionStorage.setItem(
@@ -138,8 +167,6 @@ class Chat extends React.Component {
 		// 		...this.state,
 		// 	})
 		// )
-		// msgIDs.clear()
-		// chatrooms = {}
 	}
 
 	socketSetupUser = (nextUser) => {
@@ -151,20 +178,31 @@ class Chat extends React.Component {
 				return
 			}
 			socket.emit("setupUser", { uname: nextUser.uname }, ({ success, error, data }) => {
-				console.log(success || error, data)
+				console.log(success ?? error, data)
 				if (error) reject(error)
 				else if (success) resolve({ success, data })
 			})
 		})
 	}
 
-	socketJoinRoom = ({ room, user: passedUser, makeCur = false }) => {
-		console.log("socketJoinRoom params: ", { room, passedUser, makeCur })
-		let user = passedUser ?? this.state.user
+	getLastTimestamp = (obj) => {
+		let lastTS = null
+		Object.keys(obj).forEach((key) => {
+			if (obj[key]?.created_at) {
+				const time = DateTime.fromISO(obj[key].created_at).toLocal()
+				if (!lastTS || time > lastTS) lastTS = time
+			}
+		})
+		return lastTS.toISO()
+	}
+
+	socketJoinRoom = ({ room, user, makeCur = false }) => {
+		user = user ?? this.state.user
+		room = this.state.myRooms?.[room?.rid] ?? room
 		let { rid, password, msgs } = room
 
 		if (!this.state.socket || !user || !rid) {
-			console.log({ user, rid })
+			console.error("client error - socketJoinRoom() - bad params", { user, rid })
 			return Promise.reject({ error: "client error - socketJoinRoom() - bad params" })
 		}
 
@@ -175,17 +213,12 @@ class Chat extends React.Component {
 				password,
 				makeCur,
 			}
-			if (msgs) {
-				const mids = Object.keys(msgs)
-				const lastMsg = msgs[mids[mids.length - 1]]
-				if (lastMsg) ioVars.lastMsgTS = lastMsg.created_at
-			} else msgs = {}
+			if (msgs) ioVars.lastMsgTS = this.getLastTimestamp(msgs)
 			this.state.socket.emit("joinRoom", ioVars, ({ success, error, room: roomRes }) => {
-				console.log(success || error, roomRes)
+				console.log(success ?? error, roomRes)
 				if (error) reject({ error })
 				else if (success && roomRes) {
-					roomRes.msgs = { ...msgs, ...roomRes.msgs }
-					roomRes.unread = Object.keys(roomRes.msgs).length
+					roomRes.msgs = { ...(msgs ?? {}), ...roomRes.msgs }
 					resolve({ success, room: roomRes })
 				}
 			})
@@ -194,14 +227,12 @@ class Chat extends React.Component {
 
 	joinRoom = ({ room, user }) => {
 		if (!room?.rid) return Promise.reject({ error: "client error - joinRoom() - no rid# provided" })
-		let { curRoomRID, myRooms } = this.state
 
-		if (room.rid == curRoomRID) {
+		if (room.rid == this.state.curRoomRID) {
 			return Promise.reject({ error: "client error - joinRoom() - already in that room" })
 		} else {
-			return this.socketJoinRoom({ room: myRooms[room.rid] ?? room, user, makeCur: true }).then((res) => {
+			return this.socketJoinRoom({ room, user, makeCur: true }).then((res) => {
 				let { room: roomRes } = res
-				roomRes.unread = 0
 				this.updateRoom(roomRes, true)
 				return res
 			})
@@ -214,13 +245,12 @@ class Chat extends React.Component {
 
 		new Promise((resolve, reject) => {
 			socket.emit("deleteRoom", { uid: user.uid, rid }, ({ success, error }) => {
-				console.log(success || error)
+				console.log(success ?? error)
 				if (error) reject({ error })
 				else resolve({ success })
 			})
 		})
 			.then(async () => {
-				console.log(`client deleteRoom(${rid}) start`)
 				if (curRoomRID == rid) {
 					try {
 						await this.joinRoom({ room: myRooms[1], makeCur: true })
@@ -230,7 +260,7 @@ class Chat extends React.Component {
 				}
 				this.setState({ myRooms: myRooms.filter((r) => r.rid !== rid) })
 			})
-			.catch(console.log)
+			.catch(console.error)
 	}
 
 	socketCreateRoom = (room) => {
@@ -243,7 +273,7 @@ class Chat extends React.Component {
 		}
 		return new Promise((resolve, reject) => {
 			socket.emit("createRoom", ioVars, ({ error, success, room: roomRes }) => {
-				console.log(error || success, roomRes)
+				console.log(error ?? success, roomRes)
 				if (error) return reject({ error })
 				return resolve({ success, room: roomRes })
 			})
@@ -261,7 +291,7 @@ class Chat extends React.Component {
 		const { socket, curRoomRID, user } = this.state
 		return new Promise((resolve) => {
 			socket.emit("sendMsg", { msg, rid: curRoomRID, uid: user.uid }, ({ error, success, msgs }) => {
-				console.log(success || error, msgs)
+				console.log(success ?? error, msgs)
 				if (success && msgs) resolve({ success, msgs })
 			})
 		})
@@ -294,7 +324,6 @@ class Chat extends React.Component {
 
 	log = () => {
 		const { socket } = this.state
-		// console.log("chatrooms: ", chatrooms, "\nmsgs: ", msgIDs)
 		if (socket) socket.emit("log")
 	}
 
@@ -315,7 +344,7 @@ class Chat extends React.Component {
 						/>
 						<Main>
 							<Logs data={myRooms ? myRooms[curRoomRID] : null} user={user} />
-							<Messaging send={this.send} />
+							<ChatInput send={this.send} />
 						</Main>
 					</>
 				) : (

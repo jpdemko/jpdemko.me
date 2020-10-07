@@ -271,7 +271,6 @@ function ChatNav({ myRooms, myDMs, curRoomRID, createRoom, joinRoom, deleteRoom,
 		e.preventDefault()
 		const fixRID = Object.prototype.toString.call(rid) === "[object String]" ? Number.parseInt(rid) : rid
 		let roomVars = { rid: fixRID, password: password?.length < 6 ? null : password }
-		// console.log("submitRoom() vars: ", vars)
 		joinRoom({ room: roomVars })
 			.then(() => setModalShown(false))
 			.catch(console.error)
@@ -323,6 +322,7 @@ function ChatNav({ myRooms, myDMs, curRoomRID, createRoom, joinRoom, deleteRoom,
 										svg={ArrowRightSVG}
 										isFocused={rid == curRoomRID}
 										onClick={() => joinPrevRoom(myRooms[rid])}
+										badge={myRooms[rid]?.msgs?.unread > 0 ? myRooms[rid]?.msgs?.unread : null}
 									>
 										<Data>
 											<span>{myRooms[rid]?.rname}</span>

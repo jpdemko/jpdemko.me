@@ -1,5 +1,4 @@
 import * as React from "react"
-import styled, { css } from "styled-components/macro"
 
 import { MsgBox } from "../ui/IO"
 
@@ -7,7 +6,7 @@ import { MsgBox } from "../ui/IO"
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function IO({ send, ...props }) {
+function ChatInput({ send, ...props }) {
 	const [text, setText] = React.useState("")
 
 	function submitMsg(e) {
@@ -39,4 +38,4 @@ function IO({ send, ...props }) {
 	)
 }
 
-export default IO
+export default ChatInput

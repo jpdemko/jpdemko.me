@@ -10,7 +10,7 @@ import { createBrowserHistory } from "history"
 
 import * as serviceWorker from "./serviceWorker"
 import { useMedia } from "./shared/hooks"
-import { themes, mediaBreakpoints } from "./shared/shared"
+import { themes, mediaBreakpoints, Contexts } from "./shared/shared"
 import Display from "./components/display/Display"
 import AuthProvider from "./components/auth/AuthProvider"
 
@@ -43,6 +43,17 @@ const history = createBrowserHistory()
 
 function FakeOS() {
 	const isMobileSite = useMedia([`(min-width: ${mediaBreakpoints.desktop}px)`], [false], true)
+	const [tabHidden, setTabHidden] = React.useState(document.hidden)
+
+	function handleVisibChange() {
+		console.log(`EVENT - Visibility hidden? ${document.hidden}`)
+		setTabHidden(document.hidden)
+	}
+
+	React.useEffect(() => {
+		document.addEventListener("visibilitychange", handleVisibChange, false)
+		return () => document.removeEventListener("visibilitychange", handleVisibChange, false)
+	}, [])
 
 	return (
 		<>
@@ -50,7 +61,9 @@ function FakeOS() {
 			<ThemeProvider theme={themes.blue}>
 				<Router history={history}>
 					<AuthProvider>
-						<Display isMobileSite={isMobileSite} />
+						<Contexts.TabHidden.Provider value={tabHidden}>
+							<Display isMobileSite={isMobileSite} tabHidden={tabHidden} />
+						</Contexts.TabHidden.Provider>
 					</AuthProvider>
 				</Router>
 			</ThemeProvider>

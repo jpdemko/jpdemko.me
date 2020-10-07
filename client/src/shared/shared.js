@@ -15,6 +15,7 @@ export const flags = {
 /* -------------------------------------------------------------------------- */
 
 export const Contexts = {
+	TabHidden: React.createContext(),
 	AppNav: React.createContext(),
 	Auth: React.createContext(),
 	IsMobileWindow: React.createContext(),

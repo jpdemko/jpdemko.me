@@ -2,7 +2,7 @@ import * as React from "react"
 import { gsap, Draggable } from "gsap/all"
 import styled, { css } from "styled-components/macro"
 import { Transition } from "react-transition-group"
-import { throttle } from "throttle-debounce"
+import throttle from "lodash/throttle"
 import { rgba } from "polished"
 
 import { ReactComponent as CloseSVG } from "../../shared/assets/icons/close.svg"
@@ -26,20 +26,16 @@ const Root = styled.div`
 	backface-visibility: hidden;
 	${({ minWindowCSS, zIndex, isFocused, isMobileSite, isMaximized, theme }) => css`
 		z-index: ${zIndex};
-			${
-				!isMobileSite &&
-				css`
-					min-height: ${minWindowCSS.height}px;
-					min-width: ${minWindowCSS.width}px;
-				`
-			}
-		border: ${
-			isMaximized
-				? "none"
-				: isFocused
-				? `1px solid ${theme.accent}`
-				: `1px solid ${opac(0.5, theme.accent)}`
-		};
+		${!isMobileSite &&
+		css`
+			min-height: ${minWindowCSS.height}px;
+			min-width: ${minWindowCSS.width}px;
+		`}
+		border: ${isMaximized
+			? "none"
+			: isFocused
+			? `1px solid ${theme.accent}`
+			: `1px solid ${opac(0.5, theme.accent)}`};
 		filter: ${isFocused && `drop-shadow(0 1px 12px ${opac(0.2, theme.accent)})`} blur(0);
 	`}
 `
@@ -139,12 +135,12 @@ export default class Window extends React.Component {
 	constructor(props) {
 		super(props)
 		this.rootRef = React.createRef()
-		this.handleViewportResizeThrottled = throttle(200, this.handleViewportResize)
+		this.handleViewportResizeThrottled = throttle(this.handleViewportResize, 200)
 
 		const { top, left, width, height } = getRect("window-wireframe")
-		const prevData = ls.get(props.title) || {}
+		const prevData = ls.get(props.title) ?? {}
 		const { window: loadedWdow } = prevData
-		this.data = loadedWdow?.data || {
+		this.data = loadedWdow?.data ?? {
 			closedProperly: true,
 			css: {
 				minimized: {
@@ -182,7 +178,7 @@ export default class Window extends React.Component {
 				},
 			},
 		}
-		this.state = loadedWdow?.state || { isMobileWindow: props.isMobileSite }
+		this.state = loadedWdow?.state ?? { isMobileWindow: props.isMobileSite }
 	}
 
 	componentDidMount() {
@@ -344,7 +340,7 @@ export default class Window extends React.Component {
 
 	save = () => {
 		const { title } = this.props
-		const prevData = ls.get(title) || {}
+		const prevData = ls.get(title) ?? {}
 		const nextData = {
 			title,
 			...prevData,

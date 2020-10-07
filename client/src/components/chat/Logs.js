@@ -3,6 +3,7 @@ import styled, { css } from "styled-components/macro"
 import { DateTime } from "luxon"
 
 import Button from "../ui/Button"
+import HorizLine from "../ui/HorizLine"
 import { ReactComponent as UserSVG } from "../../shared/assets/icons/user.svg"
 import { opac } from "../../shared/shared"
 
@@ -29,7 +30,6 @@ const LogsRoot = styled.div`
 
 const Row = styled.div`
 	max-width: 90%;
-	border-radius: 0.5em;
 	${({ authored }) => css`
 		align-self: ${authored ? "flex-end" : "flex-start"};
 	`}
@@ -110,11 +110,22 @@ function Logs({ data, user, ...props }) {
 	}, [data])
 
 	function getMsgs() {
+		let foundUnread = false
 		return !data?.msgs
 			? null
-			: Object.keys(data.msgs).map((id) => {
-					const msg = data.msgs[id]
-					return <Msg key={id} data={msg} authored={user.uid === msg.uid} />
+			: Object.keys(data.msgs).map((mid) => {
+					const msg = data.msgs[mid]
+					let HL = null
+					if (!foundUnread && msg?.unread) {
+						foundUnread = true
+						HL = <HorizLine>MISSED MESSAGES</HorizLine>
+					}
+					return (
+						<React.Fragment key={mid}>
+							{HL}
+							<Msg data={msg} authored={user.uid === msg.uid} />
+						</React.Fragment>
+					)
 			  })
 	}
 
