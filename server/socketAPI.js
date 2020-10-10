@@ -1,41 +1,48 @@
 /**
  * Turns node-pg query result (array of objects) into a single object with each element of the array
  * being a K,V pair. The key will be the passed uniqColumnName or a column containing 'id'.
- * @param {Array<Object>} rows
- * @param {string} [uniqColumnName]
+ * @param {Array<Object>} arr
+ * @param {string} [uniqKey]
  * @returns {Object}
  */
-function rows2obj(rows, uniqColumnName) {
-	return rows.reduce((acc, row) => {
-		if (!uniqColumnName) uniqColumnName = Object.keys(row).find((key) => key.includes("id"))
-		if (row.msg && row.unread) acc.unread = (acc.unread ? acc.unread : 0) + 1
-		acc[row[uniqColumnName]] = row
+function arr2obj(arr, uniqKey) {
+	return arr.reduce((acc, obj) => {
+		if (!uniqKey) uniqKey = Object.keys(obj).find((key) => key.includes("id"))
+		if (obj.msg && obj.unread) acc.unread = (acc.unread ? acc.unread : 0) + 1
+		acc[obj[uniqKey]] = obj
 		return acc
 	}, {})
 }
 
 /**
- * Every msg will be made unread unless optional UID is passed, which will change the default behavior
- * to make every message after the user's last message unread instead.
- * @param {Array<Object>} msgsArr
- * @param {string|number} [optionalUID]
- * @returns {Array<Object>}
+ * 1. Every msg will be made unread unless optional UID is passed, which will change the default
+ * behavior to make every message after the user's last message unread instead.
+ *
+ * 2. Deep copied msgs array will then be transformed into an object of objects.
+ * @param {Array<Object>} msgsRow
+ * @param {Object} [options={}]
+ * @param {string|number} [options.uid]
+ * @param {string} [options.uniqKey]
+ * @returns {Object}
  */
-function makeMsgsUnread(msgsArr, optionalUID) {
-	msgsArr = msgsArr.slice()
+function transformMsgs(msgsRow, options = {}) {
+	const msgs = msgsRow.slice()
 	let startIdx = 0
-	if (optionalUID) {
-		for (let i = msgsArr.length - 1; i > 0; i--) {
-			if (msgsArr[i].uid == optionalUID) {
+	if (options.uid) {
+		for (let i = msgs.length - 1; i > 0; i--) {
+			if (msgs[i].uid == options.uid) {
 				startIdx = i
 				break
 			}
 		}
 	}
-	for (let i = 0; i < msgsArr.length; i++) {
-		msgsArr[i].unread = msgsArr[i].uid != optionalUID && i >= startIdx
+	for (let i = 0; i < msgs.length; i++) {
+		msgs[i] = {
+			...msgs[i],
+			unread: msgs[i].uid != options.uid && i >= startIdx,
+		}
 	}
-	return msgsArr
+	return arr2obj(msgs, options.uniqKey)
 }
 
 module.exports = function (io, sessionMiddleware, db) {
@@ -257,8 +264,8 @@ module.exports = function (io, sessionMiddleware, db) {
 						success: "server success - setupUser()",
 						data: {
 							user: { ...user.clientCopy() },
-							myRooms: rows2obj(usersRoomsRes.rows, "rid"),
-							myDMs: rows2obj(usersDMsRes.rows, "dmid"),
+							myRooms: arr2obj(usersRoomsRes.rows, "rid"),
+							myDMs: arr2obj(usersDMsRes.rows, "dmid"),
 						},
 					})
 				} catch (error) {
@@ -320,7 +327,7 @@ module.exports = function (io, sessionMiddleware, db) {
 					await db.query(joinRoomSQL, [uid, rid])
 				}
 				// If user is joining room for the first time on server then go get potential missed msgs from DB.
-				let msgsRes = { rows: [] }
+				let msgs = {}
 				if (!room.contains(uid)) {
 					// Grab all the messages from the room their joining. Query changes based if given last msg timestamp.
 					const getRoomMsgsSQL = `SELECT m.mid, m.msg, m.created_at, u.uid, u.uname FROM msgs m
@@ -328,7 +335,7 @@ module.exports = function (io, sessionMiddleware, db) {
 					AND m.created_at > ${lastMsgTS ? "$2" : "NOW() - INTERVAL '60 DAYS'"}
 					ORDER BY m.created_at ASC`
 					msgsRes = await db.query(getRoomMsgsSQL, [rid, ...(lastMsgTS ? [lastMsgTS] : [])])
-					msgsRes.rows = makeMsgsUnread(msgsRes.rows, uid)
+					msgs = transformMsgs(msgsRes.rows, { uid, uniqKey: "mid" })
 				}
 
 				// If user's curRoomRID is null and rid param is 1 then go ahead and make makeCur = true
@@ -339,7 +346,7 @@ module.exports = function (io, sessionMiddleware, db) {
 					success: "server success - joinRoom()",
 					room: {
 						...room.clientCopy(),
-						msgs: rows2obj(msgsRes.rows, "mid"),
+						msgs,
 					},
 				})
 			} catch (error) {
@@ -366,18 +373,19 @@ module.exports = function (io, sessionMiddleware, db) {
 			}
 		})
 
-		socket.on("sendMsg", async function ({ msg, rid, uid }, clientCB) {
+		socket.on("sendRoomMsg", async function ({ msg, rid, uid }, clientCB) {
 			const sendMsgQuery = `WITH m AS (
 				INSERT INTO msgs(uid, rid, msg) VALUES ($1, $2, $3) RETURNING * )
 				SELECT m.mid, m.uid, m.msg, m.created_at, u.uname FROM m
 				INNER JOIN users u ON m.uid = u.uid`
 			try {
 				const insertMsgRes = await db.query(sendMsgQuery, [uid, rid, msg])
-				const selfMsgs = rows2obj(makeMsgsUnread(insertMsgRes.rows, uid), "mid")
-				const othersMsgs = rows2obj(makeMsgsUnread(insertMsgRes.rows), "mid")
-				socket.to(`${rid}`).emit("updateRoom", { ...Rooms.get(rid).clientCopy(), msgs: othersMsgs })
 
-				clientCB({ success: "server success - sendMsg()", msgs: selfMsgs })
+				const emittedMsgs = transformMsgs(insertMsgRes.rows, { uniqKey: "mid" })
+				socket.to(`${rid}`).emit("receiveMsg", { ...Rooms.get(rid).clientCopy(), msgs: emittedMsgs })
+
+				const cbMsgs = transformMsgs(insertMsgRes.rows, { uid, uniqKey: "mid" })
+				clientCB({ success: "server success - sendMsg()", msgs: cbMsgs })
 			} catch (error) {
 				console.error(error)
 				clientCB({ error: `server error - sendMsg() - ${error}` })

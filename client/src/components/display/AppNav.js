@@ -76,6 +76,8 @@ function AppNav({ title, isFocused, isMobileSite, setMainNavBurgerCB }) {
 	// Some apps require the user to be logged in. We check this per 'app' config and the Auth context.
 	const authContext = React.useContext(Contexts.Auth)
 
+	// TODO Remove MobileHamburgerButton and implement it inside Window.
+	// TODO Move Drawer and Loading features into Window or somewhere else. Need to think about things...
 	if (App && (!App.shared.authRequired || (App.shared.authRequired && authContext.isAuthed))) {
 		return (
 			<>

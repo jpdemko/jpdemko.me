@@ -37,7 +37,7 @@ class Chat extends React.Component {
 			myDMs: null,
 			user: null,
 			initUsername: "",
-			roomsView: true,
+			roomsShown: true,
 			...prevData,
 			socket: socketIOClient(process.env.REACT_APP_SERVER_URL),
 		}
@@ -50,14 +50,12 @@ class Chat extends React.Component {
 
 		// Setup socket event listeners.
 		socket.on("updateRoom", this.updateRoom)
+		socket.on("receiveMsg", this.receiveMsg)
 		socket.on("reconnect", () => {
-			console.log("socket.io reconnect event - loadUser() called")
+			console.log("socket reconnect event - loadUser() called")
 			this.loadUser()
 		})
-		socket.on("disconnect", (reason) => {
-			console.log(`socket#${socket.id} disconnect event - reason: ${reason}`)
-			socket.disconnect()
-		})
+		socket.on("disconnect", (reason) => console.log("socket disconnect event - reason: ", reason))
 		// Setup data save on exit.
 		window.addEventListener("beforeunload", this.saveUserData)
 		// Attempt to load prev. save data if any.
@@ -65,20 +63,21 @@ class Chat extends React.Component {
 		// Auto focus username input field if available.
 		if (!user && this.initUsernameRef.current) this.initUsernameRef.current.focus({ preventScroll: true })
 		// Setup interval to mark messages as read for current room/DM.
-		this.intervalHandleUnreadMsgs = setInterval(this.unreadMsgsHandler, 1000 * 45)
+		this.intervalHandleUnreadMsgs = setInterval(this.unreadMsgsHandler, 1000 * 60)
 	}
 
 	componentDidUpdate(prevProps, prevState) {
 		// Reset unread msgs interval on room change.
-		if (prevState.curRoomRID != this.state.curRoomRID) {
+		if (prevState.curRoomRID != this.state.curRoomRID || prevProps.appActive !== this.props.appActive) {
 			clearInterval(this.intervalHandleUnreadMsgs)
-			this.intervalHandleUnreadMsgs = setInterval(this.unreadMsgsHandler, 1000 * 45)
+			this.intervalHandleUnreadMsgs = setInterval(this.unreadMsgsHandler, 1000 * 60)
 		}
 	}
 
 	componentWillUnmount() {
+		const { socket } = this.state
 		// All of these are precautions if they fail to occur in other places.
-		if (this.state.socket) this.state.socket.disconnect()
+		if (socket) console.log("cWU() socket.disconnect(): ", socket.disconnect())
 		this.saveUserData()
 		// Remove events & unread msgs interval.
 		window.removeEventListener("beforeunload", this.saveUserData)
@@ -88,6 +87,7 @@ class Chat extends React.Component {
 	unreadMsgsHandler = () => {
 		let { curRoomRID, myRooms } = this.state
 		if (!myRooms || !curRoomRID || !this.props.appActive) return
+
 		myRooms = { ...myRooms }
 		Object.keys(myRooms[curRoomRID].msgs).forEach((mid) => {
 			const val = myRooms[curRoomRID].msgs[mid]
@@ -113,9 +113,10 @@ class Chat extends React.Component {
 		const myRooms = { ...this.state.myRooms }
 		const { rid } = room
 		if (!rid) return console.error("updateRoom() error: no rid#, printing room param", room)
+		console.log("updateRoom() called")
 
-		myRooms[rid] = mergeWith(myRooms[rid] ?? {}, room, (objValue, srcValue) => {
-			if (!isNaN(objValue)) return objValue + srcValue
+		myRooms[rid] = mergeWith(myRooms[rid] ?? {}, room, (objValue, srcValue, key) => {
+			if (key == "unread" && !isNaN(objValue)) return objValue + srcValue
 		})
 
 		this.setState({
@@ -156,6 +157,7 @@ class Chat extends React.Component {
 			.finally(() => this.context.setIsLoading(false))
 	}
 
+	// CHECKUP Recheck/redo after shared.js ls object finishes.
 	saveUserData = () => {
 		if (!this.state.user || !this.state.myRooms) return
 		// let prevData = sessionStorage.getItem("Chat")
@@ -228,6 +230,7 @@ class Chat extends React.Component {
 	joinRoom = ({ room, user }) => {
 		if (!room?.rid) return Promise.reject({ error: "client error - joinRoom() - no rid# provided" })
 
+		this.setState({ roomsShown: true })
 		if (room.rid == this.state.curRoomRID) {
 			return Promise.reject({ error: "client error - joinRoom() - already in that room" })
 		} else {
@@ -287,25 +290,27 @@ class Chat extends React.Component {
 		})
 	}
 
-	socketSendMsg = (msg) => {
+	socketSendRoomMsg = (msg) => {
 		const { socket, curRoomRID, user } = this.state
-		return new Promise((resolve) => {
-			socket.emit("sendMsg", { msg, rid: curRoomRID, uid: user.uid }, ({ error, success, msgs }) => {
+		return new Promise((resolve, reject) => {
+			socket.emit("sendRoomMsg", { msg, rid: curRoomRID, uid: user.uid }, ({ error, success, msgs }) => {
 				console.log(success ?? error, msgs)
-				if (success && msgs) resolve({ success, msgs })
+				if (success && msgs) {
+					this.updateRoom({ rid: curRoomRID, msgs })
+					resolve({ success, msgs })
+				} else reject({ error })
 			})
 		})
 	}
 
-	socketSendDM = (msg) => {}
-
-	send = (msg) => {
-		const { curRoomRID } = this.state
-		return this.socketSendMsg(msg).then((res) => {
-			const { msgs } = res
-			this.updateRoom({ rid: curRoomRID, msgs })
-			return res
-		})
+	receiveMsg = (data) => {
+		if (this.props.appActive && data.msgs) {
+			Object.keys(data.msgs).forEach((mid) => {
+				if (!isNaN(mid)) data.msgs[mid].unread = false
+			})
+			data.msgs.unread = 0
+		}
+		this.updateRoom(data)
 	}
 
 	submitName = (e) => {
@@ -318,17 +323,13 @@ class Chat extends React.Component {
 		this.setState({ initUsername: e.target.value })
 	}
 
-	setRoomsView = (bool = true) => {
-		this.setState({ roomsView: bool })
-	}
-
 	log = () => {
 		const { socket } = this.state
 		if (socket) socket.emit("log")
 	}
 
 	render() {
-		const { user, initUsername, curRoomRID, myRooms, myDMs } = this.state
+		const { user, initUsername, curRoomRID, myRooms, myDMs, roomsShown } = this.state
 		return (
 			<Root>
 				{user?.uname ? (
@@ -340,11 +341,12 @@ class Chat extends React.Component {
 							createRoom={this.createRoom}
 							joinRoom={this.joinRoom}
 							deleteRoom={this.deleteRoom}
+							sendDM={this.sendDM}
 							user={user}
 						/>
 						<Main>
-							<Logs data={myRooms ? myRooms[curRoomRID] : null} user={user} />
-							<ChatInput send={this.send} />
+							<Logs data={myRooms ? myRooms[curRoomRID] : null} user={user} sendDM={this.sendDM} />
+							<ChatInput socketSendRoomMsg={this.socketSendRoomMsg} roomsShown={roomsShown} />
 						</Main>
 					</>
 				) : (

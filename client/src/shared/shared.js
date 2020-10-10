@@ -76,6 +76,7 @@ export const mediaBreakpoints = { desktop: 813 }
 
 /* -------------------------------------------------------------------------- */
 
+// TODO Create React hook that utilizes this and also implement _.mergeWith?
 export const ls = {
 	get: function (key, skipParse = false) {
 		try {

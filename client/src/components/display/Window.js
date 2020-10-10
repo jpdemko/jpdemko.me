@@ -338,6 +338,7 @@ export default class Window extends React.Component {
 		if (isMobileSite) this.dragInstances.forEach((i) => i[0].disable())
 	}
 
+	// CHECKUP Recheck/redo after shared.js ls object finishes.
 	save = () => {
 		const { title } = this.props
 		const prevData = ls.get(title) ?? {}

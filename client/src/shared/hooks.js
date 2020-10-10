@@ -3,9 +3,11 @@ import { ThemeContext } from "styled-components/macro"
 import throttle from "lodash/throttle"
 
 import { themes } from "./shared"
+import { ElementFlags } from "typescript"
 
 /* -------------------------------------------------------------------------- */
 
+// CHECKUP Recheck/redo after shared.js ls object finishes.
 /**
  * Custom hook to expedite the common React localStorage scenario.
  * @param {string} key
@@ -196,4 +198,41 @@ export function useCorrectTheme(color) {
 		output.theme = themes[color]
 	}
 	return output
+}
+
+/* -------------------------------------------------------------------------- */
+
+export function useEventListener(eventName, handler, eleRef) {
+	const savedHandler = React.useRef()
+
+	// Update ref.current value if handler changes. This allows our effect below to always get latest
+	// handler without us needing to pass it in effect deps array and potentially cause effect to
+	// re-run every render.
+	React.useEffect(() => {
+		savedHandler.current = handler
+	}, [handler])
+
+	React.useEffect(
+		() => {
+			// Create event listener that calls handler function stored in ref.
+			const eventListener = (event) => savedHandler.current(event)
+			// Add event listener
+			if (eleRef.current?.addEventListener) eleRef.current.addEventListener(eventName, eventListener)
+
+			// Remove event listener and possible throttle/debounce w/ cancel() on cleanup.
+			const ele = eleRef.current
+			return () => {
+				// Check if handler is a throttle/debounce related, if so then we need to cancel it.
+				if (savedHandler.current?.cancel) {
+					// console.log(`useEventListener-${eventName} throttle/debounce cancel() called`)
+					savedHandler.current.cancel()
+				}
+				if (ele?.removeEventListener) {
+					// console.log(`useEventListener-${eventName} removeEventListener() called`)
+					ele.removeEventListener(eventName, eventListener)
+				}
+			}
+		},
+		[eventName, eleRef] // Re-run if eventName or element changes
+	)
 }

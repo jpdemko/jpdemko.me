@@ -151,7 +151,7 @@ const DmTextSum = styled.span`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function ChatNav({ myRooms, myDMs, curRoomRID, createRoom, joinRoom, deleteRoom, user }) {
+function ChatNav({ myRooms, myDMs, curRoomRID, createRoom, joinRoom, deleteRoom, sendDM, user }) {
 	const isMobileWindow = React.useContext(Contexts.IsMobileWindow)
 	const { setDrawerContent } = React.useContext(Contexts.AppNav)
 
@@ -336,7 +336,11 @@ function ChatNav({ myRooms, myDMs, curRoomRID, createRoom, joinRoom, deleteRoom,
 										const actUser = myRooms[curRoomRID].activeUsers[uid]
 										return (
 											<div key={uid}>
-												<User svg={UserSVG} isFocused={uid === actUser.uid}>
+												<User
+													svg={UserSVG}
+													isFocused={actUser.uid == user.uid}
+													onClick={() => sendDM(actUser.uid)}
+												>
 													{actUser.uname}
 												</User>
 											</div>

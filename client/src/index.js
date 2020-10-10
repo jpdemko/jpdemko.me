@@ -46,7 +46,7 @@ function FakeOS() {
 	const [tabHidden, setTabHidden] = React.useState(document.hidden)
 
 	function handleVisibChange() {
-		console.log(`EVENT - Visibility hidden? ${document.hidden}`)
+		// console.log(`EVENT - Visibility hidden? ${document.hidden}`)
 		setTabHidden(document.hidden)
 	}
 

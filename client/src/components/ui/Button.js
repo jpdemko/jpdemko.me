@@ -32,6 +32,7 @@ export const ButtonBase = styled.button.attrs(({ svg, theme, color, ...props }) 
 	outline: none;
 	font-weight: 500;
 	position: relative;
+	border-radius: 0;
 	${({ theme, varCSS, disabled, column, isFocused }) => css`
 		flex-direction: ${column ? "column" : "row"};
 		align-items: ${column ? "stretch" : "center"};

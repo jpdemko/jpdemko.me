@@ -1,11 +1,14 @@
 import * as React from "react"
 import styled, { css } from "styled-components/macro"
 import { DateTime } from "luxon"
+import throttle from "lodash/throttle"
 
 import Button from "../ui/Button"
 import HorizLine from "../ui/HorizLine"
 import { ReactComponent as UserSVG } from "../../shared/assets/icons/user.svg"
 import { opac } from "../../shared/shared"
+import { useEventListener } from "../../shared/hooks"
+import { transpileModule } from "typescript"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -70,15 +73,9 @@ const Lessen = styled.span`
 		`}
 `
 
-const ScrollHelper = styled.span`
-	padding: 0;
-	margin: 0;
-	height: 0;
-`
-
 /* ------------------------------- COMPONENTS ------------------------------- */
 
-function Msg({ data, authored, ...props }) {
+function Msg({ data, authored, sendDM, ...props }) {
 	const { uid, uname, mid, msg, created_at } = data
 
 	if (!mid) return null
@@ -91,7 +88,7 @@ function Msg({ data, authored, ...props }) {
 				<Content authored={authored}>{msg}</Content>
 			</ContentBG>
 			<Info authored={authored}>
-				<Button svg={UserSVG} isFocused={authored}>
+				<Button svg={UserSVG} isFocused={authored} onClick={() => sendDM(uid)}>
 					{uname}
 				</Button>
 				<Lessen authored={authored}>
@@ -103,36 +100,63 @@ function Msg({ data, authored, ...props }) {
 }
 
 function Logs({ data, user, ...props }) {
-	const scrollHelperRef = React.useRef()
+	const rootRef = React.useRef()
+	const [followLast, setFollowLast] = React.useState(null)
 
+	// TODO Add button that scrolls to bottom and pins. Should only showup if !followLast.
+	const scroll2end = React.useCallback(() => {
+		if (rootRef.current) rootRef.current.scrollTop = rootRef.current.scrollHeight
+		if (!followLast) setFollowLast(true)
+	}, [followLast])
+
+	const msgsLength = Object.keys(data.msgs).length
 	React.useEffect(() => {
-		if (scrollHelperRef.current) scrollHelperRef.current.scrollIntoView({ block: "end" })
-	}, [data])
+		if (followLast === null) {
+			const horizLine = document.getElementById("chat-unread-msgs-start")
+			if (horizLine) horizLine.scrollIntoView({ block: "center" })
+			else scroll2end()
+		} else if (followLast) scroll2end()
+	}, [msgsLength, followLast, scroll2end])
+
+	const handleScrolling = React.useCallback(
+		throttle(() => {
+			const root = rootRef.current
+			const { height: rootHeight } = root.getBoundingClientRect()
+			const atBottom = rootHeight + root.scrollTop === root.scrollHeight
+			setFollowLast(atBottom)
+		}, 1000),
+		[rootRef.current]
+	)
+	useEventListener("scroll", handleScrolling, rootRef)
 
 	function getMsgs() {
+		if (data?.msgs?.length < 1) return null
+
 		let foundUnread = false
-		return !data?.msgs
-			? null
-			: Object.keys(data.msgs).map((mid) => {
-					const msg = data.msgs[mid]
-					let HL = null
-					if (!foundUnread && msg?.unread) {
-						foundUnread = true
-						HL = <HorizLine>MISSED MESSAGES</HorizLine>
-					}
-					return (
-						<React.Fragment key={mid}>
-							{HL}
-							<Msg data={msg} authored={user.uid === msg.uid} />
-						</React.Fragment>
-					)
-			  })
+		const mids = Object.keys(data.msgs).filter((key) => isNaN(data.msgs[key]))
+		return mids.map((mid, i) => {
+			const msg = data.msgs[mid]
+			let HL = null
+			if (!foundUnread && msg?.unread) {
+				foundUnread = true
+				HL = <HorizLine id="chat-unread-msgs-start">NEW MESSAGES BELOW</HorizLine>
+			}
+			return (
+				<React.Fragment key={mid}>
+					{HL}
+					<Msg
+						data={msg}
+						authored={user.uid == msg.uid}
+						id={i === mids.length - 1 ? "last-msg" : null}
+					/>
+				</React.Fragment>
+			)
+		})
 	}
 
 	return (
-		<LogsRoot>
+		<LogsRoot {...props} ref={rootRef} id="logs-root">
 			{getMsgs()}
-			<ScrollHelper ref={scrollHelperRef} />
 		</LogsRoot>
 	)
 }

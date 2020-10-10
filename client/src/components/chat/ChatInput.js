@@ -6,14 +6,14 @@ import { MsgBox } from "../ui/IO"
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function ChatInput({ send, ...props }) {
+function ChatInput({ socketSendRoomMsg, roomsShown, ...props }) {
 	const [text, setText] = React.useState("")
 
 	function submitMsg(e) {
 		e.preventDefault()
-		send(text)
+		socketSendRoomMsg(text)
 			.then(() => setText(""))
-			.catch((err) => console.error("IO send message error.", err))
+			.catch((err) => console.error("ChatInput send room message error: ", err))
 	}
 
 	function handleTextChange(e) {

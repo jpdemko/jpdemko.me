@@ -136,6 +136,7 @@ class Display extends React.Component {
 		}
 	}
 
+	// CHECKUP Recheck/redo after shared.js ls object finishes.
 	saveApp = (title, extraData = {}) => {
 		if (!title) return
 
