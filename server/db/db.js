@@ -8,7 +8,7 @@ pool.on("error", function (err, client) {
 })
 
 pool.query("SELECT * FROM pg_catalog.pg_tables", function (selectErr, selectRes) {
-	console.info(`Checking PG credentials:`)
+	console.log(`Checking PG credentials:`)
 
 	console.log(`PGHOST=${process.env.PGHOST}`)
 	console.log(`PGUSER=${process.env.PGUSER}`)

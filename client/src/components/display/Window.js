@@ -3,14 +3,18 @@ import { gsap, Draggable } from "gsap/all"
 import styled, { css } from "styled-components/macro"
 import { Transition } from "react-transition-group"
 import throttle from "lodash/throttle"
+import merge from "lodash/merge"
 import { rgba } from "polished"
 
 import { ReactComponent as CloseSVG } from "../../shared/assets/icons/close.svg"
 import { ReactComponent as MinimizeSVG } from "../../shared/assets/icons/minimize.svg"
 import { ReactComponent as FullscreenExitSVG } from "../../shared/assets/icons/fullscreen-exit.svg"
 import { ReactComponent as FullscreenSVG } from "../../shared/assets/icons/fullscreen.svg"
+import { ReactComponent as MenuSVG } from "../../shared/assets/icons/menu.svg"
 import { getRect, isDoubleTouch, opac, ls, Styles, mediaBreakpoints, Contexts } from "../../shared/shared"
 import Button from "../ui/Button"
+import Drawer from "../ui/Drawer"
+import Loading from "../ui/Loading"
 
 gsap.registerPlugin(Draggable)
 
@@ -178,32 +182,43 @@ export default class Window extends React.Component {
 				},
 			},
 		}
-		this.state = loadedWdow?.state ?? { isMobileWindow: props.isMobileSite }
+		this.appDrawerContent = null
+		this.state = merge(
+			{
+				context: {
+					isMobileWindow: props.isMobileSite,
+					setAppDrawerContent: this.setAppDrawerContent,
+					setAppLoading: this.setAppLoading,
+				},
+				appLoading: false,
+				appDrawerContent: null,
+				appDrawerShown: false,
+			},
+			loadedWdow?.state ?? {}
+		)
 	}
 
 	componentDidMount() {
+		this.mounted = true
 		this.genDraggables()
 		this.enterAnim()
 		window.addEventListener("resize", this.handleViewportResizeThrottled)
 		window.addEventListener("beforeunload", this.save)
-		this.handleViewportResize()
+		this.handleViewportResizeThrottled()
+		this.determineMainNavBurgerCB()
 	}
 
 	componentWillUnmount() {
-		this.handleViewportResizeThrottled.cancel()
+		this.mounted = false
+		this.handleExit()
 		window.removeEventListener("resize", this.handleViewportResizeThrottled)
 		window.removeEventListener("beforeunload", this.save)
+		this.handleViewportResizeThrottled.cancel()
 		if (this.dragInstances) this.dragInstances.forEach((i) => i[0].kill())
-		this.handleExit()
 	}
 
 	componentDidUpdate(prevProps, prevState) {
-		const { isMinimized, isMaximized } = this.props
-
-		// Save CSS before animation occurs.
-		const prevWindowed = !prevProps.isMinimized && !prevProps.isMaximized
-		const curWindowed = !isMinimized && !isMaximized
-		if (prevWindowed && !curWindowed) this.setLastWindowedCSS(true)
+		const { isMinimized, isMaximized, isFocused } = this.props
 
 		// Determine if any animations need to occur.
 		if (prevProps.isMinimized !== isMinimized) {
@@ -217,7 +232,39 @@ export default class Window extends React.Component {
 			else this.animWindowed()
 		}
 
+		// If focused and isMobileSite use 'setMainNavBurgerCB' to toggle this app's Drawer.
+		const newDrawerContent = prevState.appDrawerContent === null && !!this.state.appDrawerContent
+		if ((!prevProps.isFocused && isFocused) || newDrawerContent) {
+			this.determineMainNavBurgerCB()
+		}
+
+		// Resize listener isn't sufficient for all cases if window instantly resizes
 		this.handleViewportResizeThrottled()
+	}
+
+	determineMainNavBurgerCB = () => {
+		if (this.props.isMobileSite && this.props.isFocused) {
+			const cb = this.state.appDrawerContent ? this.toggleAppDrawerShown : null
+			this.props.setMainNavBurgerCB(cb)
+		}
+	}
+
+	toggleAppDrawerShown = () => {
+		const { appDrawerShown } = this.state
+		this.setState({ appDrawerShown: !appDrawerShown, appDrawerContent: this.appDrawerContent })
+	}
+
+	setAppDrawerContent = (appDrawerContent) => {
+		this.appDrawerContent = appDrawerContent
+		if (this.state.appDrawerShown || this.state.appDrawerContent === null) {
+			this.setState({ appDrawerContent })
+		}
+	}
+
+	setAppLoading = (bool) => {
+		this.setState((prev) => ({
+			appLoading: bool ?? !prev.appLoading,
+		}))
 	}
 
 	genDraggables = () => {
@@ -338,15 +385,22 @@ export default class Window extends React.Component {
 		if (isMobileSite) this.dragInstances.forEach((i) => i[0].disable())
 	}
 
-	// CHECKUP Recheck/redo after shared.js ls object finishes.
 	save = () => {
+		this.setLastWindowedCSS()
 		const { title } = this.props
+		const { appDrawerContent, context, ...otherState } = this.state
+		const { isMobileWindow } = context
 		const prevData = ls.get(title) ?? {}
 		const nextData = {
 			title,
 			...prevData,
 			window: {
-				state: { ...this.state },
+				state: {
+					...otherState,
+					context: {
+						isMobileWindow,
+					},
+				},
 				data: { ...this.data },
 			},
 		}
@@ -359,14 +413,25 @@ export default class Window extends React.Component {
 	}
 
 	handleViewportResize = () => {
+		if (!this.mounted) return
 		const width = this.data.css.current.width
-		const { isMobileWindow } = this.state
+		const { isMobileWindow } = this.state.context
 
-		// console.count(`${this.props.title} - handleViewportResize()`)
 		if (!isMobileWindow && width < mediaBreakpoints.desktop) {
-			this.setState({ isMobileWindow: true })
+			this.setState((prev) => ({
+				context: {
+					...prev.context,
+					isMobileWindow: true,
+				},
+			}))
 		} else if (isMobileWindow && width >= mediaBreakpoints.desktop) {
-			this.setState({ isMobileWindow: false })
+			this.setState((prev) => ({
+				context: {
+					...prev.context,
+					isMobileWindow: false,
+				},
+				appDrawerShown: false,
+			}))
 		}
 		if (this.draggableWindow) this.draggableWindow[0].update(true)
 	}
@@ -408,7 +473,6 @@ export default class Window extends React.Component {
 		const badValue = Object.keys(roundedVars).find((k) => !Number.isFinite(roundedVars[k]))
 		if (badValue) return
 
-		// console.count(`${this.props.title} - preventSubpixelValues()`)
 		this.data.css.windowed = {
 			...this.data.css.windowed,
 			...roundedVars,
@@ -476,27 +540,22 @@ export default class Window extends React.Component {
 			const vars = { duration: animTime }
 			!isMaximized ? wdow.animWindowed(vars) : wdow.animMaximize(vars)
 		} else {
-			if (isMinimized) gsap.set(wdow.rootRef.current, { ...css.minimized })
-			else gsap.set(wdow.rootRef.current, { ...(isMaximized ? css.maximized : css.windowed) })
+			if (isMinimized) {
+				gsap.set(wdow.rootRef.current, { ...css.minimized })
+			} else {
+				gsap.set(wdow.rootRef.current, { ...(isMaximized ? css.maximized : css.windowed) })
+			}
 		}
 		this.data.closedProperly = false
 	}
 
 	render() {
+		const { in: show, title, isMaximized, ...props } = this.props
 		const {
-			in: show,
-			title,
-			isMobileSite,
-			isFocused,
-			zIndex,
-			minWindowCSS,
-			isMaximized,
-			closeApp,
-			focusApp,
-			toggleMaximize,
-			toggleMinimize,
-			...props
-		} = this.props
+			appDrawerContent,
+			appDrawerShown,
+			context: { isMobileWindow },
+		} = this.state
 
 		return (
 			<Transition
@@ -512,40 +571,50 @@ export default class Window extends React.Component {
 					id={`window-${title}`}
 					ref={this.rootRef}
 					isMaximized={isMaximized}
-					isFocused={isFocused}
-					isMobileSite={isMobileSite}
-					minWindowCSS={minWindowCSS}
-					zIndex={zIndex}
+					isFocused={this.props.isFocused}
+					isMobileSite={this.props.isMobileSite}
+					minWindowCSS={this.props.minWindowCSS}
+					zIndex={this.props.zIndex}
 				>
 					<TitleBar
 						id={`title-bar-${title}`}
-						isFocused={isFocused}
-						isMobileSite={isMobileSite}
-						onDoubleClick={() => toggleMaximize(title)}
+						isFocused={this.props.isFocused}
+						isMobileSite={this.props.isMobileSite}
+						onDoubleClick={() => this.props.toggleMaximize(title)}
 						onTouchEnd={(e) => {
 							// 'onDoubleClick' doesn't work w/ touch events even though the normal 'onClick' does?
-							if (isDoubleTouch(e)) toggleMaximize(title)
+							if (isDoubleTouch(e)) this.props.toggleMaximize(title)
 						}}
 					>
-						<div style={{ paddingLeft: ".75em " }}>{title}</div>
+						<Button
+							onClick={this.toggleAppDrawerShown}
+							svg={MenuSVG}
+							disabled={appDrawerContent === null || !isMobileWindow}
+						/>
+						<div style={{ paddingLeft: ".25em " }}>{title}</div>
 						<div style={{ display: "flex", marginLeft: "auto" }}>
+							<Button onClick={() => this.props.toggleMinimize(title)} svg={MinimizeSVG} />
 							<Button
-								onClick={() => toggleMinimize(title)}
-								svg={MinimizeSVG}
-								className="check-contrast"
-							/>
-							<Button
-								onClick={() => toggleMaximize(title)}
+								onClick={() => this.props.toggleMaximize(title)}
 								svg={isMaximized ? FullscreenExitSVG : FullscreenSVG}
-								className="check-contrast"
 							/>
-							<Button color="red" onClick={() => closeApp(title)} svg={CloseSVG} />
+							<Button color="red" onClick={() => this.props.closeApp(title)} svg={CloseSVG} />
 						</div>
 					</TitleBar>
-					<Content onClick={() => focusApp(title)}>
-						<Contexts.IsMobileWindow.Provider value={this.state.isMobileWindow}>
+					<Content onClick={() => this.props.focusApp(title)}>
+						<Loading isLoading={this.state.appLoading} />
+						{appDrawerContent !== null && isMobileWindow && (
+							<Drawer
+								side={this.props.isMobileSite ? "right" : "left"}
+								isShown={appDrawerShown}
+								onClose={this.toggleAppDrawerShown}
+							>
+								{appDrawerContent}
+							</Drawer>
+						)}
+						<Contexts.Window.Provider value={this.state.context}>
 							{this.props.children}
-						</Contexts.IsMobileWindow.Provider>
+						</Contexts.Window.Provider>
 					</Content>
 					<Side position="top" id={`side-top-${title}`} />
 					<Side position="right" id={`side-right-${title}`} />

@@ -94,8 +94,7 @@ function WeatherNav({
 	removeLocation,
 	...props
 }) {
-	const isMobileWindow = React.useContext(Contexts.IsMobileWindow)
-	const { setDrawerContent } = React.useContext(Contexts.AppNav)
+	const { setAppDrawerContent, isMobileWindow } = React.useContext(Contexts.Window)
 
 	// Update clock for all locations every minute.
 	const [date, setDate] = React.useState(DateTime.local())
@@ -136,7 +135,8 @@ function WeatherNav({
 			</Footer>
 		</Root>
 	)
-	React.useEffect(() => setDrawerContent(navContent))
+	// Can't update during an existing state transition. So defer it.
+	React.useEffect(() => setAppDrawerContent(navContent))
 
 	return !isMobileWindow && <DesktopNav>{navContent}</DesktopNav>
 }

@@ -1,8 +1,17 @@
 import * as React from "react"
+import styled from "styled-components/macro"
 
 import { MsgBox } from "../ui/IO"
 
 /* --------------------------------- STYLES --------------------------------- */
+
+const ChatIO = styled(MsgBox)`
+	max-height: 40vmin;
+	transition: all 0.4s;
+	&:focus {
+		min-height: calc(var(--nav-height) * 3);
+	}
+`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
@@ -25,8 +34,8 @@ function ChatInput({ socketSendRoomMsg, roomsShown, ...props }) {
 	}
 
 	return (
-		<form onSubmit={submitMsg}>
-			<MsgBox
+		<form onSubmit={submitMsg} {...props}>
+			<ChatIO
 				minLength="1"
 				required
 				value={text}

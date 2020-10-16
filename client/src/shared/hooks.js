@@ -2,12 +2,10 @@ import * as React from "react"
 import { ThemeContext } from "styled-components/macro"
 import throttle from "lodash/throttle"
 
-import { themes } from "./shared"
-import { ElementFlags } from "typescript"
+import { themes, ls } from "./shared"
 
 /* -------------------------------------------------------------------------- */
 
-// CHECKUP Recheck/redo after shared.js ls object finishes.
 /**
  * Custom hook to expedite the common React localStorage scenario.
  * @param {string} key
@@ -16,12 +14,10 @@ import { ElementFlags } from "typescript"
  */
 export function useLocalStorage(key, initValue) {
 	const [value, setValue] = React.useState(() => {
-		let item = localStorage.getItem(key)
-		if (item && item !== "undefined") {
-			item = JSON.parse(item)
-		} else if (initValue) {
+		let item = ls.get(key)
+		if (initValue) {
 			item = initValue
-			localStorage.setItem(key, JSON.stringify(item))
+			ls.set(key, item)
 		}
 		return item
 	})
@@ -31,7 +27,7 @@ export function useLocalStorage(key, initValue) {
 	 * @param {*} value
 	 */
 	function set(value) {
-		localStorage.setItem(key, JSON.stringify(typeof value !== "undefined" ? value : null))
+		ls.set(key, value)
 		setValue(value)
 	}
 

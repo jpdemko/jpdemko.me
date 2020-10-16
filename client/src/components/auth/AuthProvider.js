@@ -21,7 +21,7 @@ function AuthProvider({ children }) {
 					setUser(res.data)
 				}
 			})
-			.catch(console.log)
+			.catch(console.error)
 	}
 
 	return (

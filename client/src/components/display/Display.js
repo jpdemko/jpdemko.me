@@ -10,7 +10,7 @@ import Chat from "../chat/Chat"
 import Button from "../ui/Button"
 import Window from "./Window"
 import Nav from "./Nav"
-import AppNav from "./AppNav"
+import App from "./App"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -129,14 +129,13 @@ class Display extends React.Component {
 		const { isMobileSite } = this.props
 		if (!prevProps.isMobileSite && isMobileSite) {
 			const nextApps = Object.keys(apps).map((t) => {
-				apps[t].isMaximized = true
+				if (!apps[t].isMinimized && !apps[t].isMaximized) apps[t].isMaximized = true
 				return apps[t]
 			})
 			this.setState({ openedApps: nextApps })
 		}
 	}
 
-	// CHECKUP Recheck/redo after shared.js ls object finishes.
 	saveApp = (title, extraData = {}) => {
 		if (!title) return
 
@@ -241,7 +240,7 @@ class Display extends React.Component {
 			apps[t].isFocused = false
 			return apps[t]
 		})
-		this.setState({ openedApps: nextApps })
+		this.setState({ openedApps: nextApps, mainNavBurgerCB: null })
 	}
 
 	getBelowApp = (title) => {
@@ -264,21 +263,21 @@ class Display extends React.Component {
 		const app = apps[title]
 		if (!force && app?.isFocused && Object.keys(changes) < 1) return
 
-		let matched = false
+		let noMatches = true
 		const nextApps = Object.keys(apps).map((t) => {
-			matched = t === title
+			const appFound = t === title
+			if (appFound) noMatches = false
 			apps[t] = {
 				...apps[t],
-				...(matched && {
+				...(appFound && {
 					...changes,
 					zIndex: ++this.zIndexLeader,
 				}),
-				isFocused: matched,
+				isFocused: appFound,
 			}
 			return apps[t]
 		})
-		this.setState({ openedApps: nextApps, ...(!matched && { mainNavBurgerCB: null }) })
-		return matched
+		this.setState({ openedApps: nextApps, ...(noMatches && { mainNavBurgerCB: null }) })
 	}
 
 	setMainNavBurgerCB = (mainNavBurgerCB) => {
@@ -326,14 +325,9 @@ class Display extends React.Component {
 								isMaximized={app.isMaximized}
 								toggleMaximize={this.toggleMaximize}
 								toggleMinimize={this.toggleMinimize}
+								setMainNavBurgerCB={this.setMainNavBurgerCB}
 							>
-								<AppNav
-									isFocused={app.isFocused}
-									isMobileSite={this.props.isMobileSite}
-									setMainNavBurgerCB={this.setMainNavBurgerCB}
-									title={app.title}
-									app={app}
-								/>
+								<App isFocused={app.isFocused} tabHidden={this.props.tabHidden} title={app.title} />
 							</Window>
 						))}
 					</TransitionGroup>

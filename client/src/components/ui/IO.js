@@ -5,7 +5,6 @@ import styled, { css } from "styled-components/macro"
 
 const InputRoot = styled.input`
 	outline: none;
-	/* margin: 1px; */
 	${({ theme }) => css`
 		color: ${theme.contrast};
 		box-shadow: 0 0 0 0 ${theme.accent};
@@ -23,7 +22,7 @@ export const Input = React.forwardRef((props, ref) => <InputRoot {...props} ref=
 
 export const MsgBox = styled.textarea`
 	outline: none;
-	min-height: calc(var(--nav-height) * 3);
+	min-height: var(--nav-height);
 	height: 100%;
 	width: 100%;
 	resize: none;

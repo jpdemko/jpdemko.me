@@ -113,7 +113,6 @@ class Chat extends React.Component {
 		const myRooms = { ...this.state.myRooms }
 		const { rid } = room
 		if (!rid) return console.error("updateRoom() error: no rid#, printing room param", room)
-		console.log("updateRoom() called")
 
 		myRooms[rid] = mergeWith(myRooms[rid] ?? {}, room, (objValue, srcValue, key) => {
 			if (key == "unread" && !isNaN(objValue)) return objValue + srcValue
@@ -129,7 +128,7 @@ class Chat extends React.Component {
 		let { user, curRoomRID, myRooms } = passedData ?? this.state
 		if (!user) return
 
-		this.context.setIsLoading(true)
+		this.context.setAppLoading(true)
 		this.socketSetupUser(user)
 			.then(async ({ data }) => {
 				// { user, myRooms, myDMs } = data
@@ -154,10 +153,10 @@ class Chat extends React.Component {
 				console.error(err)
 				this.setState({ user: null, curRoomRID: null, curDMid: null, myRooms: null, myDMs: null })
 			})
-			.finally(() => this.context.setIsLoading(false))
+			.finally(() => this.context.setAppLoading(false))
 	}
 
-	// CHECKUP Recheck/redo after shared.js ls object finishes.
+	// CHECKUP Recheck/redo after Chat app is finished.
 	saveUserData = () => {
 		if (!this.state.user || !this.state.myRooms) return
 		// let prevData = sessionStorage.getItem("Chat")
@@ -195,7 +194,7 @@ class Chat extends React.Component {
 				if (!lastTS || time > lastTS) lastTS = time
 			}
 		})
-		return lastTS.toISO()
+		return lastTS?.toISO()
 	}
 
 	socketJoinRoom = ({ room, user, makeCur = false }) => {
@@ -204,7 +203,7 @@ class Chat extends React.Component {
 		let { rid, password, msgs } = room
 
 		if (!this.state.socket || !user || !rid) {
-			console.error("client error - socketJoinRoom() - bad params", { user, rid })
+			console.log("client error - socketJoinRoom() - bad params", { user, rid })
 			return Promise.reject({ error: "client error - socketJoinRoom() - bad params" })
 		}
 
@@ -303,6 +302,10 @@ class Chat extends React.Component {
 		})
 	}
 
+	sendDM = (data) => {
+		console.log("senDM() data: ", data)
+	}
+
 	receiveMsg = (data) => {
 		if (this.props.appActive && data.msgs) {
 			Object.keys(data.msgs).forEach((mid) => {
@@ -377,7 +380,7 @@ class Chat extends React.Component {
 	}
 }
 
-Chat.contextType = Contexts.AppNav
+Chat.contextType = Contexts.Window
 Chat.shared = setupAppSharedOptions({
 	title: "Chat",
 	logo: ChatSVG,

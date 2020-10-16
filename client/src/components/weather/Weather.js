@@ -58,7 +58,7 @@ const radar = {
 }
 
 function Weather({ ...props }) {
-	const { toggleDrawer, setIsLoading } = React.useContext(Contexts.AppNav)
+	const { setAppLoading } = React.useContext(Contexts.Window)
 	const [curLocation, setCurLocation] = useLocalStorage("curLocation")
 	const [locations, setLocations] = useLocalStorage("locations", [])
 
@@ -151,10 +151,9 @@ function Weather({ ...props }) {
 					setLocations([...locationsCopy, newLocation])
 					setCurLocation(newLocation)
 					mapLoadLocation(mapData)
-					toggleDrawer()
 				})
 				.catch(console.error)
-				.finally(() => setIsLoading(false))
+				.finally(() => setAppLoading(false))
 		}
 	}
 
@@ -181,7 +180,7 @@ function Weather({ ...props }) {
 	async function fetchData(mapData) {
 		try {
 			const { latitude: lat, longitude: lng } = mapData.location
-			setIsLoading(true)
+			setAppLoading(true)
 			const weatherData = await fetchWeatherData(lat, lng)
 			const { results: sunData } = await fetchSunData(lat, lng, weatherData)
 			return {
@@ -192,7 +191,7 @@ function Weather({ ...props }) {
 				weatherData,
 			}
 		} catch (err) {
-			console.log("<Weather /> fetchData() error: ", err)
+			console.error("<Weather /> fetchData() error: ", err)
 			return Promise.reject(err)
 		}
 	}
@@ -210,7 +209,7 @@ function Weather({ ...props }) {
 				setLocations(nextLocations)
 			})
 			.catch(console.error)
-			.finally(() => setIsLoading(false))
+			.finally(() => setAppLoading(false))
 	}
 
 	// On initial load and subsequent intervals we get new data for user's locations.

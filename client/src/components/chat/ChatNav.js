@@ -152,8 +152,7 @@ const DmTextSum = styled.span`
 /* -------------------------------- COMPONENT ------------------------------- */
 
 function ChatNav({ myRooms, myDMs, curRoomRID, createRoom, joinRoom, deleteRoom, sendDM, user }) {
-	const isMobileWindow = React.useContext(Contexts.IsMobileWindow)
-	const { setDrawerContent } = React.useContext(Contexts.AppNav)
+	const { setAppDrawerContent, isMobileWindow } = React.useContext(Contexts.Window)
 
 	const [rname, setRName] = React.useState("")
 	const [password, setPassword] = React.useState("")
@@ -284,7 +283,7 @@ function ChatNav({ myRooms, myDMs, curRoomRID, createRoom, joinRoom, deleteRoom,
 		e.preventDefault()
 		createRoom({ rname, password: password?.length < 6 ? null : password })
 			.then(() => setModalShown(false))
-			.catch(console.log)
+			.catch(console.error)
 			.finally(() => {
 				setRName("")
 				setPassword("")
@@ -292,7 +291,7 @@ function ChatNav({ myRooms, myDMs, curRoomRID, createRoom, joinRoom, deleteRoom,
 	}
 
 	function joinPrevRoom(room) {
-		joinRoom({ room }).then(console.log).catch(console.log)
+		joinRoom({ room }).then(console.log).catch(console.error)
 	}
 
 	const accordionData = [
@@ -383,7 +382,8 @@ function ChatNav({ myRooms, myDMs, curRoomRID, createRoom, joinRoom, deleteRoom,
 			<Accordion data={accordionData} />
 		</DrawerRoot>
 	)
-	React.useEffect(() => setDrawerContent(drawerContent))
+	// Can't update during an existing state transition. So defer it.
+	React.useEffect(() => setAppDrawerContent(drawerContent))
 
 	return (
 		<>

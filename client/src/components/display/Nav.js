@@ -50,7 +50,7 @@ const Taskbar = styled.div`
 	height: var(--nav-height);
 	display: flex;
 	position: relative;
-	z-index: 4999;
+	z-index: 248000;
 	opacity: 0.95;
 	${({ theme }) => css`
 		background: ${theme.background};

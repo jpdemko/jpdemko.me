@@ -9,7 +9,7 @@ import Backdrop from "./Backdrop"
 
 const Root = styled.div`
 	position: absolute;
-	z-index: 175000;
+	z-index: 260000;
 	top: 0;
 	bottom: 0;
 	max-width: 90%;

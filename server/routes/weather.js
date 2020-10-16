@@ -12,7 +12,7 @@ router.get("/sun", function (req, res, next) {
 		.then((apiRes) => apiRes.json())
 		.then((data) => res.json(data))
 		.catch((err) => {
-			console.log("GET /sun error: ", err)
+			console.error("GET /sun error: ", err)
 			next(err)
 		})
 })
@@ -27,7 +27,7 @@ router.get("/forecast", function (req, res, next) {
 		.then((apiRes) => apiRes.json())
 		.then((data) => res.json(data))
 		.catch((err) => {
-			console.log("GET /forecast error: ", err)
+			console.error("GET /forecast error: ", err)
 			next(err)
 		})
 })

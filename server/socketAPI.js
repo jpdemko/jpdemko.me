@@ -78,7 +78,7 @@ module.exports = function (io, sessionMiddleware, db) {
 		},
 		joinRoom: function (rid, makeCur = true) {
 			if (!rid) {
-				console.error(`error - bad joinRoom param: ${rid}`)
+				console.log(`error - bad joinRoom param: ${rid}`)
 				return false
 			}
 			const socket = io.of("/").connected[this.socketID]
@@ -135,7 +135,7 @@ module.exports = function (io, sessionMiddleware, db) {
 			return false
 		},
 		log: function () {
-			console.info("### USERS ###")
+			console.log("### USERS ###")
 			console.log(this.active)
 		},
 	}
@@ -208,7 +208,7 @@ module.exports = function (io, sessionMiddleware, db) {
 			return false
 		},
 		log: function () {
-			console.info("### ROOMS ### ")
+			console.log("### ROOMS ### ")
 			console.log(this.active)
 		},
 	}
@@ -218,7 +218,7 @@ module.exports = function (io, sessionMiddleware, db) {
 	})
 
 	io.on("connection", function (socket) {
-		console.info(`socket#${socket.id} connected`)
+		console.log(`socket#${socket.id} connected`)
 
 		socket.on("setupUser", async function ({ uid, uname }, clientCB) {
 			if (!uname && !uid) return clientCB({ error: "server error - setupUser() - bad params" })
@@ -304,7 +304,6 @@ module.exports = function (io, sessionMiddleware, db) {
 		socket.on("joinRoom", async function ({ uid, rid, password = null, makeCur, lastMsgTS }, clientCB) {
 			let user = Users.get(uid)
 			if (!rid || !user) {
-				// console.log("uid:", uid, "user: ", user, "rid: ", rid)
 				return clientCB({ error: "server error - joinRoom() - bad params" })
 			}
 			try {
@@ -393,10 +392,10 @@ module.exports = function (io, sessionMiddleware, db) {
 		})
 
 		socket.on("log", function () {
-			console.info("- - - - - - - - - - - - - - - - -")
+			console.log("- - - - - - - - - - - - - - - - -")
 			Rooms.log()
 			Users.log()
-			console.info("- - - - - - - - - - - - - - - - -")
+			console.log("- - - - - - - - - - - - - - - - -")
 		})
 
 		socket.on("disconnecting", function () {
