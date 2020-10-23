@@ -1,4 +1,3 @@
-import * as React from "react"
 import styled, { css, keyframes } from "styled-components/macro"
 
 import { opac } from "../../shared/shared"

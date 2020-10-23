@@ -1,4 +1,4 @@
-import * as React from "react"
+import { createRef, Component } from "react"
 import styled, { css } from "styled-components/macro"
 import { TransitionGroup } from "react-transition-group"
 import throttle from "lodash/throttle"
@@ -95,7 +95,7 @@ appClasses.forEach((app) => (mountableApps[app.shared.title] = app))
 
 const apps = {}
 
-class Display extends React.Component {
+class Display extends Component {
 	constructor(props) {
 		super(props)
 		const { appNames, zIndexLeader } = ls.get("Display") ?? {}
@@ -110,7 +110,7 @@ class Display extends React.Component {
 		}
 		this.zIndexLeader = zIndexLeader ?? 999
 		this.setGridDimsThrottled = throttle(this.setGridDims, 200)
-		this.dragAreaRef = React.createRef()
+		this.dragAreaRef = createRef()
 	}
 
 	componentDidMount() {

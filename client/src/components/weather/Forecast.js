@@ -1,4 +1,4 @@
-import * as React from "react"
+import { memo, useMemo, useState, useEffect } from "react"
 import styled, { css } from "styled-components/macro"
 import { DateTime } from "luxon"
 
@@ -133,14 +133,14 @@ const MapEntry = styled.div`
 function DaySummary({ data: { dayName, ordDay, timezone, day }, getTemp, ...props }) {
 	const { icon, apparentTemperatureLow: low, apparentTemperatureHigh: high } = day
 
-	function checkDayName(name) {
+	function checkDayName() {
 		const curOrdDay = DateTime.local().setZone(timezone).toFormat("o")
 		return curOrdDay === ordDay ? "Today" : dayName
 	}
 
 	return (
 		<Card {...props}>
-			<div>{checkDayName(dayName)}</div>
+			<div>{checkDayName()}</div>
 			<HR />
 			<Temps>
 				{/* <span>H: {getTemp(high)}&deg;</span>
@@ -254,14 +254,14 @@ const usaZones = [
 	"Pacific/Honolulu",
 ]
 
-const Forecast = React.memo(({ curLocation, getTemp }) => {
-	const [isValidZone, setIsValidZone] = React.useState(true)
+const Forecast = memo(({ curLocation, getTemp }) => {
+	const [isValidZone, setIsValidZone] = useState(true)
 
-	React.useEffect(() => {
+	useEffect(() => {
 		setIsValidZone(curLocation && usaZones.includes(curLocation.weatherData.timezone))
 	}, [curLocation])
 
-	const bingMapRadar = React.useMemo(
+	const bingMapRadar = useMemo(
 		() => ({
 			id: "bingMapRadar",
 			tabHeader: (
@@ -283,7 +283,7 @@ const Forecast = React.memo(({ curLocation, getTemp }) => {
 		[isValidZone]
 	)
 
-	const tabsContent = React.useMemo(() => {
+	const tabsContent = useMemo(() => {
 		if (!curLocation) return [bingMapRadar]
 		const { daily, hourly, timezone } = curLocation.weatherData
 

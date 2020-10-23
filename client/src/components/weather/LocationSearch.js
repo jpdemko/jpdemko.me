@@ -1,6 +1,6 @@
 /* global Microsoft */
 
-import * as React from "react"
+import { useState, useEffect, useRef } from "react"
 import styled, { css } from "styled-components/macro"
 
 import { useUpdatedValRef } from "../../shared/hooks"
@@ -70,12 +70,12 @@ let uniqueID = 0
 
 function LocationSearch({ map, modulesLoaded, onLocationFound }) {
 	const onLocationFoundRef = useUpdatedValRef(onLocationFound)
-	const idRef = React.useRef(uniqueID++)
-	const [input, setInput] = React.useState("")
+	const idRef = useRef(uniqueID++)
+	const [input, setInput] = useState("")
 
-	const mapManagersRef = React.useRef()
-	const managersLoadedRef = React.useRef(false)
-	React.useEffect(() => {
+	const mapManagersRef = useRef()
+	const managersLoadedRef = useRef(false)
+	useEffect(() => {
 		if (map && modulesLoaded && !managersLoadedRef.current) {
 			try {
 				mapManagersRef.current = {

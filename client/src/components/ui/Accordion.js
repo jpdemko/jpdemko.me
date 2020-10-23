@@ -1,4 +1,4 @@
-import * as React from "react"
+import { useState } from "react"
 import styled, { css } from "styled-components/macro"
 
 import Button from "./Button"
@@ -37,7 +37,7 @@ const MenuContent = styled.div`
 /* -------------------------------- COMPONENT ------------------------------- */
 
 function Menu({ data }) {
-	const [opened, setOpened] = React.useState(true)
+	const [opened, setOpened] = useState(true)
 	const { title, content } = data
 	return !data ? null : (
 		<MenuRoot opened={opened}>

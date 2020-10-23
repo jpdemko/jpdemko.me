@@ -1,4 +1,4 @@
-import * as React from "react"
+import { createContext, FunctionComponent, SVGProps } from "react"
 import { transparentize, readableColor } from "polished"
 import { parse, stringify } from "flatted"
 
@@ -16,11 +16,11 @@ export const flags = {
 /* -------------------------------------------------------------------------- */
 
 export const Contexts = {
-	TabHidden: React.createContext(),
-	Window: React.createContext(),
-	Auth: React.createContext(),
-	IsMobileWindow: React.createContext(),
-	Themes: React.createContext(),
+	TabHidden: createContext(),
+	Window: createContext(),
+	Auth: createContext(),
+	IsMobileWindow: createContext(),
+	Themes: createContext(),
 }
 
 /* -------------------------------------------------------------------------- */
@@ -108,7 +108,7 @@ export const ls = {
  * Also used for testing when I need some default app options.
  * @param {Object} options
  * @param {string} options.title
- * @param {React.FunctionComponent<React.SVGProps<SVGSVGElement>>} options.logo
+ * @param {FunctionComponent<SVGProps<SVGSVGElement>>} options.logo
  * @param {Object} options.theme
  * @param {boolean} options.authRequired
  * @return {Object}

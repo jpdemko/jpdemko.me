@@ -1,4 +1,4 @@
-import * as React from "react"
+import { useState, useEffect, useRef, useContext, useCallback } from "react"
 import { ThemeContext } from "styled-components/macro"
 import throttle from "lodash/throttle"
 
@@ -13,7 +13,7 @@ import { themes, ls } from "./shared"
  * @return {[*, const():void]}
  */
 export function useLocalStorage(key, initValue) {
-	const [value, setValue] = React.useState(() => {
+	const [value, setValue] = useState(() => {
 		let item = ls.get(key)
 		if (initValue) {
 			item = initValue
@@ -51,9 +51,9 @@ export function useMedia(queries = [], values, defaultValue = null) {
 		return typeof values[index] !== "undefined" ? values[index] : defaultValue
 	}
 
-	const [value, setValue] = React.useState(getValue)
+	const [value, setValue] = useState(getValue)
 
-	React.useEffect(() => {
+	useEffect(() => {
 		const handler = () => setValue(getValue)
 		mediaQueryLists.forEach((mql) => mql.addListener(handler))
 		return () => mediaQueryLists.forEach((mql) => mql.removeListener(handler))
@@ -65,39 +65,49 @@ export function useMedia(queries = [], values, defaultValue = null) {
 
 /* -------------------------------------------------------------------------- */
 
-export function useOnClickOutside(ref, handler) {
-	const handledRecentlyRef = React.useRef(false)
+export function useOnClick(interactFn) {
+	const eleRef = useRef()
+	const handledRecentlyRef = useRef(false)
 
-	React.useEffect(() => {
+	useEffect(() => {
+		const ele = eleRef.current
+
 		function listener(event) {
-			if (!ref.current || ref.current.contains(event.target) || handledRecentlyRef.current) return
+			if (!ele || !ele.contains(event.target) || handledRecentlyRef.current) return
 			handledRecentlyRef.current = true
-			handler(event)
+			interactFn(event)
 			setTimeout(() => {
 				handledRecentlyRef.current = false
 			}, 200)
 		}
-		document.addEventListener("mousedown", listener)
-		document.addEventListener("touchstart", listener)
+
+		if (ele && interactFn) {
+			ele.addEventListener("mousedown", listener)
+			ele.addEventListener("touchstart", listener)
+		}
 
 		return () => {
-			document.removeEventListener("mousedown", listener)
-			document.removeEventListener("touchstart", listener)
+			if (ele && interactFn) {
+				ele.removeEventListener("mousedown", listener)
+				ele.removeEventListener("touchstart", listener)
+			}
 		}
-	}, [ref, handler])
+	}, [handledRecentlyRef, interactFn])
+
+	return eleRef
 }
 
 /* -------------------------------------------------------------------------- */
 
 export function useInterval(callback, delay) {
-	const callbackRef = React.useRef()
+	const callbackRef = useRef()
 
-	React.useEffect(() => {
+	useEffect(() => {
 		callbackRef.current = callback
 	}, [callback])
 
-	const finishedRef = React.useRef(false)
-	React.useEffect(() => {
+	const finishedRef = useRef(false)
+	useEffect(() => {
 		const tick = (...args) => {
 			if (callbackRef.current(...args)) finishedRef.current = true
 		}
@@ -111,9 +121,9 @@ export function useInterval(callback, delay) {
 /* -------------------------------------------------------------------------- */
 
 export function usePrevious(value) {
-	const ref = React.useRef()
+	const ref = useRef()
 
-	React.useEffect(() => {
+	useEffect(() => {
 		ref.current = value
 	}, [value])
 
@@ -123,9 +133,9 @@ export function usePrevious(value) {
 /* -------------------------------------------------------------------------- */
 
 export function useUpdatedValRef(value) {
-	const ref = React.useRef()
+	const ref = useRef()
 
-	React.useEffect(() => {
+	useEffect(() => {
 		ref.current = value
 	}, [value])
 
@@ -145,14 +155,14 @@ export function useUpdatedValRef(value) {
  * @param {number} throttleMS=number
  */
 export function useResizeObserver(callback, throttleMS = 200) {
-	const eleRef = React.useRef()
-	const callbackRef = React.useRef(callback)
-	const isLoadedRef = React.useRef(true)
+	const eleRef = useRef()
+	const callbackRef = useRef(callback)
+	const isLoadedRef = useRef(true)
 
-	const [callbackOutput, setCallbackOutput] = React.useState()
+	const [callbackOutput, setCallbackOutput] = useState()
 	const callbackOutputRef = useUpdatedValRef(callbackOutput)
 
-	const throttledCallback = React.useCallback(
+	const throttledCallback = useCallback(
 		throttle((rect) => {
 			const prevOutput = callbackOutputRef.current
 			const nextOutput = callbackRef.current(rect)
@@ -164,7 +174,7 @@ export function useResizeObserver(callback, throttleMS = 200) {
 		[callbackRef, callbackOutputRef]
 	)
 
-	React.useEffect(() => {
+	useEffect(() => {
 		const element = eleRef.current
 		const resizeObserver = new ResizeObserver((entries) => {
 			if (!Array.isArray(entries) || !entries.length || !isLoadedRef.current) return
@@ -186,7 +196,7 @@ export function useResizeObserver(callback, throttleMS = 200) {
 /* -------------------------------------------------------------------------- */
 
 export function useCorrectTheme(color) {
-	const curTheme = React.useContext(ThemeContext)
+	const curTheme = useContext(ThemeContext)
 	const output = {}
 	if (color && Object.keys(themes).find((name) => name === color)) {
 		if (curTheme.name === color) color = "dark"
@@ -199,16 +209,16 @@ export function useCorrectTheme(color) {
 /* -------------------------------------------------------------------------- */
 
 export function useEventListener(eventName, handler, eleRef) {
-	const savedHandler = React.useRef()
+	const savedHandler = useRef()
 
 	// Update ref.current value if handler changes. This allows our effect below to always get latest
 	// handler without us needing to pass it in effect deps array and potentially cause effect to
 	// re-run every render.
-	React.useEffect(() => {
+	useEffect(() => {
 		savedHandler.current = handler
 	}, [handler])
 
-	React.useEffect(
+	useEffect(
 		() => {
 			// Create event listener that calls handler function stored in ref.
 			const eventListener = (event) => savedHandler.current(event)

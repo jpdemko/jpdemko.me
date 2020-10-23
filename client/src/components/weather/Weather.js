@@ -1,8 +1,9 @@
 /* global Microsoft */
 
-import * as React from "react"
+import { useState, useEffect, useCallback, useContext } from "react"
 import styled, { css } from "styled-components/macro"
 import { DateTime, Interval } from "luxon"
+import { gsap } from "gsap/all"
 
 import { getCurWeatherBG } from "./WeatherIcon"
 import { ReactComponent as SunnySVG } from "../../shared/assets/weather-icons/wi-day-sunny.svg"
@@ -57,15 +58,15 @@ const radar = {
 	],
 }
 
-function Weather({ ...props }) {
-	const { setAppLoading } = React.useContext(Contexts.Window)
+function Weather({ title, ...props }) {
+	const { setAppLoading } = useContext(Contexts.Window)
 	const [curLocation, setCurLocation] = useLocalStorage("curLocation")
 	const [locations, setLocations] = useLocalStorage("locations", [])
 
 	// Setup map and add radar data.
-	const [map, setMap] = React.useState()
-	const [modulesLoaded, setModulesLoaded] = React.useState(false)
-	React.useEffect(() => {
+	const [map, setMap] = useState()
+	const [modulesLoaded, setModulesLoaded] = useState(false)
+	useEffect(() => {
 		function initMap() {
 			try {
 				const genMap = new Microsoft.Maps.Map("#BingMapRadar", {
@@ -101,7 +102,7 @@ function Weather({ ...props }) {
 		}
 		let doneLoading = false
 		const interval = setInterval(() => {
-			if (!doneLoading && initMap()) doneLoading = true
+			if (!doneLoading && !gsap.isTweening(`#window-${title}`) && initMap()) doneLoading = true
 		}, 1000)
 
 		return () => {
@@ -213,7 +214,7 @@ function Weather({ ...props }) {
 	}
 
 	// On initial load and subsequent intervals we get new data for user's locations.
-	React.useEffect(() => {
+	useEffect(() => {
 		updateLocations()
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
@@ -221,13 +222,12 @@ function Weather({ ...props }) {
 		updateLocations()
 	}, 1000 * 60 * updateInterval)
 
-	const [isMetric, setIsMetric] = React.useState(false)
-	const getTemp = React.useCallback(
-		(temp) => (isMetric ? Math.round((5 / 9) * (temp - 32)) : Math.round(temp)),
-		[isMetric]
-	)
+	const [isMetric, setIsMetric] = useState(false)
+	const getTemp = useCallback((temp) => (isMetric ? Math.round((5 / 9) * (temp - 32)) : Math.round(temp)), [
+		isMetric,
+	])
 
-	const checkIfLandscape = React.useCallback(
+	const checkIfLandscape = useCallback(
 		(resizeEleRect) => resizeEleRect.width > resizeEleRect.height * 1.25,
 		[]
 	)

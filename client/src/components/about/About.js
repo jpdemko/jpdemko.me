@@ -1,4 +1,3 @@
-import * as React from "react"
 import styled, { css } from "styled-components/macro"
 
 import { createTheme, setupAppSharedOptions } from "../../shared/shared"

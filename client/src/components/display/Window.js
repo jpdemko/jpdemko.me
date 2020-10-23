@@ -1,4 +1,4 @@
-import * as React from "react"
+import { createRef, Component } from "react"
 import { gsap, Draggable } from "gsap/all"
 import styled, { css } from "styled-components/macro"
 import { Transition } from "react-transition-group"
@@ -135,10 +135,10 @@ const CornerSW = styled(Corner)`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-export default class Window extends React.Component {
+export default class Window extends Component {
 	constructor(props) {
 		super(props)
-		this.rootRef = React.createRef()
+		this.rootRef = createRef()
 		this.handleViewportResizeThrottled = throttle(this.handleViewportResize, 200)
 
 		const { top, left, width, height } = getRect("window-wireframe")

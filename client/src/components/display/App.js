@@ -1,4 +1,4 @@
-import * as React from "react"
+import { useMemo, useContext } from "react"
 
 import { Contexts } from "../../shared/shared"
 import SocialLogin from "../auth/SocialLogin"
@@ -13,10 +13,10 @@ function App({ title, isFocused, tabHidden }) {
 
 	// Prevent renders for apps from frequent Display and Window component updates.
 	const App = mountableApps[title]
-	const memoApp = React.useMemo(() => <App appActive={appActive} />, [appActive])
+	const memoApp = useMemo(() => <App appActive={appActive} title={title} />, [appActive, title])
 
 	// Some apps require the user to be logged in. We check this per 'app' config and the Auth context.
-	const authContext = React.useContext(Contexts.Auth)
+	const authContext = useContext(Contexts.Auth)
 
 	if (App && (!App.shared.authRequired || (App.shared.authRequired && authContext.isAuthed))) {
 		return memoApp

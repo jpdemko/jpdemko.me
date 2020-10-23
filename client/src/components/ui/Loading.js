@@ -1,4 +1,3 @@
-import * as React from "react"
 import styled, { css } from "styled-components/macro"
 import { Transition } from "react-transition-group"
 

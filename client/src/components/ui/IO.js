@@ -1,4 +1,4 @@
-import * as React from "react"
+import { forwardRef } from "react"
 import styled, { css } from "styled-components/macro"
 
 /* --------------------------------- STYLES --------------------------------- */
@@ -18,7 +18,7 @@ const InputRoot = styled.input`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-export const Input = React.forwardRef((props, ref) => <InputRoot {...props} ref={ref} />)
+export const Input = forwardRef((props, ref) => <InputRoot {...props} ref={ref} />)
 
 export const MsgBox = styled.textarea`
 	outline: none;

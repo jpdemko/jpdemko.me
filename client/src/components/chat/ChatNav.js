@@ -1,6 +1,6 @@
 /* eslint-disable jsx-a11y/label-has-associated-control */
 
-import * as React from "react"
+import { useState, useRef, useContext, useEffect } from "react"
 import styled, { css } from "styled-components/macro"
 
 import { ReactComponent as CloseSVG } from "../../shared/assets/icons/close.svg"
@@ -152,16 +152,16 @@ const DmTextSum = styled.span`
 /* -------------------------------- COMPONENT ------------------------------- */
 
 function ChatNav({ myRooms, myDMs, curRoomRID, createRoom, joinRoom, deleteRoom, sendDM, user }) {
-	const { setAppDrawerContent, isMobileWindow } = React.useContext(Contexts.Window)
+	const { setAppDrawerContent, isMobileWindow } = useContext(Contexts.Window)
 
-	const [rname, setRName] = React.useState("")
-	const [password, setPassword] = React.useState("")
-	const [rid, setRID] = React.useState("")
+	const [rname, setRName] = useState("")
+	const [password, setPassword] = useState("")
+	const [rid, setRID] = useState("")
 
-	const [modalShown, setModalShown] = React.useState(false)
-	const [createConfig, setCreateConfig] = React.useState(true)
+	const [modalShown, setModalShown] = useState(false)
+	const [createConfig, setCreateConfig] = useState(true)
 
-	const createRoomModalRef = React.useRef()
+	const createRoomModalRef = useRef()
 	const createRoomModal = (
 		<ModalRoot>
 			<form onSubmit={submitCreateRoom}>
@@ -205,7 +205,7 @@ function ChatNav({ myRooms, myDMs, curRoomRID, createRoom, joinRoom, deleteRoom,
 		</ModalRoot>
 	)
 
-	const joinRoomModalRef = React.useRef()
+	const joinRoomModalRef = useRef()
 	const joinRoomModal = (
 		<ModalRoot>
 			<form onSubmit={submitJoinRoom}>
@@ -259,7 +259,7 @@ function ChatNav({ myRooms, myDMs, curRoomRID, createRoom, joinRoom, deleteRoom,
 		setModalShown(true)
 	}
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (modalShown) {
 			const ref = createConfig ? createRoomModalRef : joinRoomModalRef
 			if (ref.current) ref.current.focus()
@@ -331,6 +331,7 @@ function ChatNav({ myRooms, myDMs, curRoomRID, createRoom, joinRoom, deleteRoom,
 									<RoomCloseBtn svg={CloseSVG} color="red" onClick={() => deleteRoom(rid)} />
 								</RoomData>
 								{rid == curRoomRID &&
+									myRooms[curRoomRID]?.activeUsers &&
 									Object.keys(myRooms[curRoomRID]?.activeUsers)?.map((uid) => {
 										const actUser = myRooms[curRoomRID].activeUsers[uid]
 										return (
@@ -383,7 +384,7 @@ function ChatNav({ myRooms, myDMs, curRoomRID, createRoom, joinRoom, deleteRoom,
 		</DrawerRoot>
 	)
 	// Can't update during an existing state transition. So defer it.
-	React.useEffect(() => setAppDrawerContent(drawerContent))
+	useEffect(() => setAppDrawerContent(drawerContent))
 
 	return (
 		<>

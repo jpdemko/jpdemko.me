@@ -1,4 +1,4 @@
-import * as React from "react"
+import { useContext } from "react"
 import styled, { css } from "styled-components/macro"
 
 import { addTheme, setupAppSharedOptions, Contexts } from "../../shared/shared"
@@ -9,7 +9,7 @@ import { ReactComponent as SmileSVG } from "../../shared/assets/icons/smile.svg"
 /* -------------------------------- COMPONENT ------------------------------- */
 
 function Themes({ ...props }) {
-	const setCurTheme = React.useContext(Contexts.Themes)
+	const setCurTheme = useContext(Contexts.Themes)
 }
 
 export default Themes

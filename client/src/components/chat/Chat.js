@@ -1,7 +1,6 @@
-import * as React from "react"
+import { Component, createRef } from "react"
 import styled from "styled-components/macro"
 import socketIOClient from "socket.io-client"
-import mergeWith from "lodash/mergeWith"
 
 import { setupAppSharedOptions, themes, Contexts, ls } from "../../shared/shared"
 import { ReactComponent as ChatSVG } from "../../shared/assets/icons/chat.svg"
@@ -26,7 +25,7 @@ const Main = styled.div`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-class Chat extends React.Component {
+class Chat extends Component {
 	constructor(props) {
 		super(props)
 		const prevData = this.getUserData()
@@ -41,7 +40,7 @@ class Chat extends React.Component {
 			...prevData,
 			socket: socketIOClient(process.env.REACT_APP_SERVER_URL),
 		}
-		this.initUsernameRef = React.createRef()
+		this.initUsernameRef = createRef()
 		this.intervalHandleUnreadMsgs = null
 	}
 
@@ -110,13 +109,18 @@ class Chat extends React.Component {
 	}
 
 	updateRoom = (room, makeCur = false) => {
-		const myRooms = { ...this.state.myRooms }
-		const { rid } = room
+		let myRooms = { ...this.state.myRooms }
+		const { rid, msgs } = room
 		if (!rid) return console.error("updateRoom() error: no rid#, printing room param", room)
 
-		myRooms[rid] = mergeWith(myRooms[rid] ?? {}, room, (objValue, srcValue, key) => {
-			if (key == "unread" && !isNaN(objValue)) return objValue + srcValue
-		})
+		myRooms[rid] = {
+			...(myRooms[rid] ?? {}),
+			...room,
+			msgs: {
+				...(myRooms[rid]?.msgs ?? {}),
+				...(msgs ?? {}),
+			},
+		}
 
 		this.setState({
 			myRooms,
@@ -241,26 +245,28 @@ class Chat extends React.Component {
 		}
 	}
 
-	deleteRoom = (rid) => {
+	deleteRoom = (selectedRID) => {
 		const { curRoomRID, socket, user, myRooms } = this.state
-		if (rid === 1) return console.log("deleteRoom() - can't delete 'General'")
+		if (selectedRID === 1) return console.log("deleteRoom() - can't delete 'General'")
 
 		new Promise((resolve, reject) => {
-			socket.emit("deleteRoom", { uid: user.uid, rid }, ({ success, error }) => {
+			socket.emit("deleteRoom", { uid: user.uid, rid: selectedRID }, ({ success, error }) => {
 				console.log(success ?? error)
 				if (error) reject({ error })
 				else resolve({ success })
 			})
 		})
 			.then(async () => {
-				if (curRoomRID == rid) {
+				if (curRoomRID == selectedRID) {
 					try {
-						await this.joinRoom({ room: myRooms[1], makeCur: true })
+						await this.joinRoom({ room: myRooms[1], user })
 					} catch (error) {
 						throw Error(error)
 					}
 				}
-				this.setState({ myRooms: myRooms.filter((r) => r.rid !== rid) })
+				let nextRooms = { ...myRooms }
+				delete nextRooms[selectedRID]
+				this.setState({ myRooms: nextRooms })
 			})
 			.catch(console.error)
 	}
@@ -303,7 +309,9 @@ class Chat extends React.Component {
 	}
 
 	sendDM = (data) => {
-		console.log("senDM() data: ", data)
+		// const { socket } = this.state
+		// return new Promise((resolve, reject) => {
+		// })
 	}
 
 	receiveMsg = (data) => {

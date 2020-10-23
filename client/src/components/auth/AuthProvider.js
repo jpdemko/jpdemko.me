@@ -1,14 +1,14 @@
-import * as React from "react"
+import { useState, useEffect } from "react"
 import { useLocation } from "react-router-dom"
 
 import { Contexts } from "../../shared/shared"
 
 function AuthProvider({ children }) {
-	const [isAuthed, setIsAuthed] = React.useState(false)
-	const [user, setUser] = React.useState(null)
+	const [isAuthed, setIsAuthed] = useState(false)
+	const [user, setUser] = useState(null)
 	const location = useLocation()
 
-	React.useEffect(() => {
+	useEffect(() => {
 		// getUser()
 	}, [])
 

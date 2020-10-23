@@ -1,4 +1,4 @@
-import * as React from "react"
+import { memo, useState, useRef, useEffect, useCallback, Fragment } from "react"
 import styled, { css, keyframes } from "styled-components/macro"
 import { DateTime } from "luxon"
 import throttle from "lodash/throttle"
@@ -100,7 +100,7 @@ const SnapEndBtn = styled(Button)`
 
 /* ------------------------------- COMPONENTS ------------------------------- */
 
-const Msg = React.memo(({ data, authored, sendDM }) => {
+const Msg = memo(({ data, authored, sendDM }) => {
 	const { uid, uname, mid, msg, created_at } = data
 	if (!mid) return null
 
@@ -124,18 +124,18 @@ const Msg = React.memo(({ data, authored, sendDM }) => {
 })
 
 function Logs({ data, user, sendDM, ...props }) {
-	const rootRef = React.useRef()
-	const [followLast, setFollowLast] = React.useState(null)
+	const rootRef = useRef()
+	const [followLast, setFollowLast] = useState(null)
 
-	const scroll2end = React.useCallback(() => {
+	const scroll2end = useCallback(() => {
 		if (rootRef.current) rootRef.current.scrollTop = rootRef.current.scrollHeight
 		if (!followLast) {
 			setFollowLast(true)
 		}
 	}, [followLast])
 
-	const msgsLength = Object.keys(data.msgs).length
-	React.useEffect(() => {
+	const msgsLength = data?.msgs ? Object.keys(data.msgs).length : 0
+	useEffect(() => {
 		if (followLast === null) {
 			const horizLine = document.getElementById("chat-unread-msgs-start")
 			if (horizLine) horizLine.scrollIntoView({ block: "center" })
@@ -143,7 +143,7 @@ function Logs({ data, user, sendDM, ...props }) {
 		} else if (followLast) scroll2end()
 	}, [msgsLength, followLast, scroll2end])
 
-	const handleScrolling = React.useCallback(
+	const handleScrolling = useCallback(
 		throttle(() => {
 			const root = rootRef.current
 			const { height: rootHeight } = root.getBoundingClientRect()
@@ -156,7 +156,7 @@ function Logs({ data, user, sendDM, ...props }) {
 	useEventListener("scroll", handleScrolling, rootRef)
 
 	function getMsgs() {
-		if (data?.msgs?.length < 1) return null
+		if (!data?.msgs || data.msgs.length < 1) return null
 
 		let foundUnread = false
 		const mids = Object.keys(data.msgs).filter((key) => isNaN(data.msgs[key]))
@@ -168,7 +168,7 @@ function Logs({ data, user, sendDM, ...props }) {
 				HL = <HorizLine id="chat-unread-msgs-start">NEW MESSAGES BELOW</HorizLine>
 			}
 			return (
-				<React.Fragment key={mid}>
+				<Fragment key={mid}>
 					{HL}
 					<Msg
 						data={msg}
@@ -176,7 +176,7 @@ function Logs({ data, user, sendDM, ...props }) {
 						id={i === mids.length - 1 ? "last-msg" : null}
 						sendDM={sendDM}
 					/>
-				</React.Fragment>
+				</Fragment>
 			)
 		})
 	}

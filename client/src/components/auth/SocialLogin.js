@@ -1,4 +1,4 @@
-import * as React from "react"
+import { useContext } from "react"
 import styled, { css } from "styled-components/macro"
 
 import { Contexts } from "../../shared/shared"
@@ -15,7 +15,7 @@ const Root = styled.div`
 /* -------------------------------- COMPONENT ------------------------------- */
 
 function SocialLogin() {
-	const authContext = React.useContext(Contexts.Auth)
+	const authContext = useContext(Contexts.Auth)
 
 	return (
 		<Root>

@@ -1,4 +1,4 @@
-import * as React from "react"
+import { forwardRef } from "react"
 import styled, { css } from "styled-components/macro"
 import { Transition } from "react-transition-group"
 
@@ -27,12 +27,14 @@ const tgBackdropStyles = {
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function Backdrop({ isShown = false, animDuration = 0.4, ...props }) {
+const Backdrop = forwardRef(({ isShown = false, animDuration = 0.4, interactFn, ...props }, ref) => {
 	return (
 		<Transition timeout={animDuration * 1000} in={isShown}>
-			{(state) => <Root {...props} animDuration={animDuration} style={{ ...tgBackdropStyles[state] }} />}
+			{(state) => (
+				<Root {...props} ref={ref} animDuration={animDuration} style={{ ...tgBackdropStyles[state] }} />
+			)}
 		</Transition>
 	)
-}
+})
 
 export default Backdrop

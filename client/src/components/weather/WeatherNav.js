@@ -1,4 +1,4 @@
-import * as React from "react"
+import { useState, useEffect, useContext } from "react"
 import styled, { css, ThemeProvider } from "styled-components/macro"
 import { DateTime } from "luxon"
 
@@ -94,10 +94,10 @@ function WeatherNav({
 	removeLocation,
 	...props
 }) {
-	const { setAppDrawerContent, isMobileWindow } = React.useContext(Contexts.Window)
+	const { setAppDrawerContent, isMobileWindow } = useContext(Contexts.Window)
 
 	// Update clock for all locations every minute.
-	const [date, setDate] = React.useState(DateTime.local())
+	const [date, setDate] = useState(DateTime.local())
 	useInterval(() => {
 		const nextDate = DateTime.local()
 		if (nextDate.minute !== date.minute) setDate(nextDate)
@@ -136,7 +136,7 @@ function WeatherNav({
 		</Root>
 	)
 	// Can't update during an existing state transition. So defer it.
-	React.useEffect(() => setAppDrawerContent(navContent))
+	useEffect(() => setAppDrawerContent(navContent))
 
 	return !isMobileWindow && <DesktopNav>{navContent}</DesktopNav>
 }

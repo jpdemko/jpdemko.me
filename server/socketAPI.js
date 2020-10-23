@@ -68,7 +68,7 @@ module.exports = function (io, sessionMiddleware, db) {
 			}
 		},
 		leaveRoom: function (rid) {
-			if (this.myRooms.find((r) => r === rid)) {
+			if (this.myRooms.find((r) => r == rid)) {
 				const socket = io.of("/").connected[this.socketID]
 				socket.leave(`${rid}`)
 				this.myRooms = this.myRooms.filter((r) => r != rid)
@@ -166,7 +166,7 @@ module.exports = function (io, sessionMiddleware, db) {
 				this.log(`removeUser(${uid}) error`)
 				return false
 			}
-			this.activeUsers = this.activeUsers.filter((u) => u !== uid)
+			this.activeUsers = this.activeUsers.filter((u) => u != uid)
 			this.log(`removed user#${uid}`)
 			if (this.activeUsers.length < 1) Rooms.destroy(this.rid)
 			else io.in(`${this.rid}`).emit("updateRoom", this.clientCopy())

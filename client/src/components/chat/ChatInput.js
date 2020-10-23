@@ -1,4 +1,4 @@
-import * as React from "react"
+import { useState } from "react"
 import styled from "styled-components/macro"
 
 import { MsgBox } from "../ui/IO"
@@ -16,7 +16,7 @@ const ChatIO = styled(MsgBox)`
 /* -------------------------------- COMPONENT ------------------------------- */
 
 function ChatInput({ socketSendRoomMsg, roomsShown, ...props }) {
-	const [text, setText] = React.useState("")
+	const [text, setText] = useState("")
 
 	function submitMsg(e) {
 		e.preventDefault()

@@ -1,4 +1,4 @@
-import * as React from "react"
+import { useState } from "react"
 import styled, { css } from "styled-components/macro"
 import { ContextMenuTrigger, ContextMenu, MenuItem } from "react-contextmenu"
 
@@ -71,7 +71,7 @@ const DrawerBtnsCont = styled.div`
 /* -------------------------------- COMPONENT ------------------------------- */
 
 function Nav({ openedApps, isMobileSite, handleHomeButton, openApp, closeApp, mainNavBurgerCB }) {
-	const [mainDrawerOpened, setMainDrawerOpened] = React.useState(false)
+	const [mainDrawerOpened, setMainDrawerOpened] = useState(false)
 
 	function handleClose(title) {
 		setMainDrawerOpened(false)

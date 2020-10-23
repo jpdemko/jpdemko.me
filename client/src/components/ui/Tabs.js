@@ -1,4 +1,4 @@
-import * as React from "react"
+import { useState, useEffect } from "react"
 import styled, { css } from "styled-components/macro"
 
 import { ButtonBase } from "./Button"
@@ -59,10 +59,10 @@ const TabContents = styled.div`
 const defaultContent = [{ id: 1, tabHeader: null, tabContent: null }]
 
 function Tabs({ content = defaultContent, ...props }) {
-	const [focusedID, setFocusedID] = React.useState(content[0].id)
+	const [focusedID, setFocusedID] = useState(content[0].id)
 
 	const prevContentLength = usePrevious(content?.length)
-	React.useEffect(() => {
+	useEffect(() => {
 		if (content?.length !== prevContentLength) {
 			if (!content.find((ele) => ele.id === focusedID)) {
 				const nextEle = content.find((ele) => ele.id !== focusedID)
