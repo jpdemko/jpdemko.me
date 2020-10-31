@@ -1,4 +1,4 @@
-import * as React from "react"
+import { memo } from "react"
 import styled, { css } from "styled-components/macro"
 
 import WeatherIcon from "./WeatherIcon"
@@ -76,7 +76,7 @@ const Info = styled.div`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-const CurrentWeather = React.memo(({ curLocation, getTemp, isLandscape, ...props }) => {
+const CurrentWeather = memo(({ curLocation, getTemp, isLandscape, ...props }) => {
 	const { mapData, weatherData } = curLocation ?? {}
 
 	const high = weatherData && weatherData.daily.data[0].apparentTemperatureHigh

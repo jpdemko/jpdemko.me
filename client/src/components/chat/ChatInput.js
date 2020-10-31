@@ -1,21 +1,28 @@
-import * as React from "react"
-import styled, { css } from "styled-components/macro"
+import { useState } from "react"
+import styled from "styled-components/macro"
 
 import { MsgBox } from "../ui/IO"
 
 /* --------------------------------- STYLES --------------------------------- */
 
+const ChatIO = styled(MsgBox)`
+	max-height: 40vmin;
+	transition: all 0.4s;
+	&:focus {
+		min-height: calc(var(--nav-height) * 3);
+	}
+`
+
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function IO({ send, disabled, ...props }) {
-	const [text, setText] = React.useState("")
+function ChatInput({ socketSendRoomMsg, roomsShown, ...props }) {
+	const [text, setText] = useState("")
 
 	function submitMsg(e) {
 		e.preventDefault()
-		if (disabled) return
-		send(text)
+		socketSendRoomMsg(text)
 			.then(() => setText(""))
-			.catch((err) => console.log("IO send message error.", err))
+			.catch((err) => console.error("ChatInput send room message error: ", err))
 	}
 
 	function handleTextChange(e) {
@@ -27,8 +34,8 @@ function IO({ send, disabled, ...props }) {
 	}
 
 	return (
-		<form onSubmit={submitMsg}>
-			<MsgBox
+		<form onSubmit={submitMsg} {...props}>
+			<ChatIO
 				minLength="1"
 				required
 				value={text}
@@ -40,4 +47,4 @@ function IO({ send, disabled, ...props }) {
 	)
 }
 
-export default IO
+export default ChatInput

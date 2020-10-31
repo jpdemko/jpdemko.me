@@ -1,7 +1,7 @@
-import * as React from "react"
+import { createRef, Component } from "react"
 import styled, { css } from "styled-components/macro"
 import { TransitionGroup } from "react-transition-group"
-import { throttle } from "throttle-debounce"
+import throttle from "lodash/throttle"
 
 import { getRect, ls, themes } from "../../shared/shared"
 import About from "../about/About"
@@ -10,7 +10,7 @@ import Chat from "../chat/Chat"
 import Button from "../ui/Button"
 import Window from "./Window"
 import Nav from "./Nav"
-import AppNav from "./AppNav"
+import App from "./App"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -95,11 +95,11 @@ appClasses.forEach((app) => (mountableApps[app.shared.title] = app))
 
 const apps = {}
 
-class Display extends React.Component {
+class Display extends Component {
 	constructor(props) {
 		super(props)
-		const { appNames, zIndexLeader } = ls.get("Display") || {}
-		const prevOpenedApps = (appNames || []).map(this.genApp)
+		const { appNames, zIndexLeader } = ls.get("Display") ?? {}
+		const prevOpenedApps = (appNames ?? []).map(this.genApp)
 		this.state = {
 			openedApps: prevOpenedApps,
 			mainNavBurgerCB: null,
@@ -108,9 +108,9 @@ class Display extends React.Component {
 				cols: 1,
 			},
 		}
-		this.zIndexLeader = zIndexLeader || 999
-		this.setGridDimsThrottled = throttle(200, this.setGridDims)
-		this.dragAreaRef = React.createRef()
+		this.zIndexLeader = zIndexLeader ?? 999
+		this.setGridDimsThrottled = throttle(this.setGridDims, 200)
+		this.dragAreaRef = createRef()
 	}
 
 	componentDidMount() {
@@ -129,7 +129,7 @@ class Display extends React.Component {
 		const { isMobileSite } = this.props
 		if (!prevProps.isMobileSite && isMobileSite) {
 			const nextApps = Object.keys(apps).map((t) => {
-				apps[t].isMaximized = true
+				if (!apps[t].isMinimized && !apps[t].isMaximized) apps[t].isMaximized = true
 				return apps[t]
 			})
 			this.setState({ openedApps: nextApps })
@@ -139,7 +139,7 @@ class Display extends React.Component {
 	saveApp = (title, extraData = {}) => {
 		if (!title) return
 
-		const prevData = ls.get(title) || {}
+		const prevData = ls.get(title) ?? {}
 		ls.set(title, {
 			title,
 			...prevData,
@@ -161,8 +161,8 @@ class Display extends React.Component {
 		const { width, height } = getRect(this.dragAreaRef.current)
 		const optCell = 16 * 7 + 16 * 0.75 // 7em + (1em * .75)
 		const nextGrid = {
-			rows: Math.floor(height / optCell) || 1,
-			cols: Math.floor(width / optCell) || 1,
+			rows: Math.floor(height / optCell) ?? 1,
+			cols: Math.floor(width / optCell) ?? 1,
 		}
 		const { grid } = this.state
 		if (nextGrid.rows !== grid.rows || nextGrid.cols !== grid.cols) this.setState({ grid: nextGrid })
@@ -172,7 +172,7 @@ class Display extends React.Component {
 		if (!title) return
 
 		const { isMobileSite } = this.props
-		const prevData = ls.get(title) || {}
+		const prevData = ls.get(title) ?? {}
 		const { window, ...desiredData } = prevData
 		const newData = {
 			title,
@@ -240,7 +240,7 @@ class Display extends React.Component {
 			apps[t].isFocused = false
 			return apps[t]
 		})
-		this.setState({ openedApps: nextApps })
+		this.setState({ openedApps: nextApps, mainNavBurgerCB: null })
 	}
 
 	getBelowApp = (title) => {
@@ -263,21 +263,21 @@ class Display extends React.Component {
 		const app = apps[title]
 		if (!force && app?.isFocused && Object.keys(changes) < 1) return
 
-		let matched = false
+		let noMatches = true
 		const nextApps = Object.keys(apps).map((t) => {
-			matched = t === title
+			const appFound = t === title
+			if (appFound) noMatches = false
 			apps[t] = {
 				...apps[t],
-				...(matched && {
+				...(appFound && {
 					...changes,
 					zIndex: ++this.zIndexLeader,
 				}),
-				isFocused: matched,
+				isFocused: appFound,
 			}
 			return apps[t]
 		})
-		this.setState({ openedApps: nextApps, ...(!matched && { mainNavBurgerCB: null }) })
-		return matched
+		this.setState({ openedApps: nextApps, ...(noMatches && { mainNavBurgerCB: null }) })
 	}
 
 	setMainNavBurgerCB = (mainNavBurgerCB) => {
@@ -325,14 +325,9 @@ class Display extends React.Component {
 								isMaximized={app.isMaximized}
 								toggleMaximize={this.toggleMaximize}
 								toggleMinimize={this.toggleMinimize}
+								setMainNavBurgerCB={this.setMainNavBurgerCB}
 							>
-								<AppNav
-									isFocused={app.isFocused}
-									isMobileSite={this.props.isMobileSite}
-									setMainNavBurgerCB={this.setMainNavBurgerCB}
-									title={app.title}
-									app={app}
-								/>
+								<App isFocused={app.isFocused} tabHidden={this.props.tabHidden} title={app.title} />
 							</Window>
 						))}
 					</TransitionGroup>

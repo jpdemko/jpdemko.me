@@ -3,26 +3,26 @@
 	"version": "0.1.0",
 	"private": true,
 	"scripts": {
-		"start": "cross-env NODE_ENV=development nodemon ./bin/www"
+		"start": "cross-env NODE_ENV=development & nodemon ./bin/www"
 	},
 	"dependencies": {
-		"connect-pg-simple": "^6.1.0",
+		"connect-pg-simple": "^6.2.1",
 		"cookie-parser": "^1.4.5",
 		"cors": "^2.8.5",
-		"cross-env": "^7.0.2",
-		"debug": "~2.6.9",
+		"debug": "^4.2.0",
 		"dotenv": "^8.2.0",
-		"express": "~4.16.1",
+		"express": "^4.17.1",
 		"express-session": "^1.17.1",
-		"helmet": "^3.23.3",
+		"helmet": "^4.1.1",
 		"morgan": "^1.10.0",
 		"node-fetch": "^2.6.1",
 		"passport": "^0.4.1",
 		"passport-google-oauth20": "^2.0.0",
-		"pg": "^7.18.2",
+		"pg": "^8.4.1",
 		"socket.io": "^2.3.0"
 	},
 	"devDependencies": {
-		"eslint": "^6.8.0"
+		"cross-env": "^7.0.2",
+		"eslint": "^7.11.0"
 	}
 }

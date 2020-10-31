@@ -1,8 +1,8 @@
-import * as React from "react"
+import { useCallback, useRef } from "react"
 import styled, { css } from "styled-components/macro"
 import { Transition } from "react-transition-group"
 
-import { useOnClickOutside } from "../../shared/hooks"
+import { useOnClick } from "../../shared/hooks"
 import Backdrop from "../ui/Backdrop"
 
 /* --------------------------------- STYLES --------------------------------- */
@@ -32,20 +32,19 @@ const tgRootStyles = {
 }
 
 const tgCenterStyles = {
-	entering: { zIndex: 200000 },
-	entered: { zIndex: 200000 },
-	exiting: { zIndex: 200000 },
+	entering: { zIndex: 265000 },
+	entered: { zIndex: 265000 },
+	exiting: { zIndex: 265000 },
 	exited: { zIndex: -1 },
 }
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
 function Modal({ animDuration = 0.35, isShown = false, onClose, children, ...props }) {
-	const modalRef = React.useRef()
+	const modalRef = useRef()
 
-	// 'useOnClickOutside()' will keep creating/removing event handlers on each render unless this is done.
-	const memoizedCloseModal = React.useCallback(() => isShown && onClose(), [isShown, onClose])
-	useOnClickOutside(modalRef, memoizedCloseModal)
+	const memoizedCloseModal = useCallback(() => isShown && onClose(), [isShown, onClose])
+	const bdRef = useOnClick(memoizedCloseModal)
 
 	return (
 		<>
@@ -63,7 +62,7 @@ function Modal({ animDuration = 0.35, isShown = false, onClose, children, ...pro
 					</Center>
 				)}
 			</Transition>
-			<Backdrop animDuration={animDuration} isShown={isShown} />
+			<Backdrop ref={bdRef} animDuration={animDuration} isShown={isShown} />
 		</>
 	)
 }

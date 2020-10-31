@@ -1,6 +1,6 @@
 /* eslint-disable jsx-a11y/label-has-associated-control */
 
-import * as React from "react"
+import { useState, useRef, useContext, useEffect } from "react"
 import styled, { css } from "styled-components/macro"
 
 import { ReactComponent as CloseSVG } from "../../shared/assets/icons/close.svg"
@@ -151,18 +151,17 @@ const DmTextSum = styled.span`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function ChatNav({ joinedRooms, ongoingDMs, curRoom, createRoom, joinRoom, deleteRoom, user }) {
-	const isMobileWindow = React.useContext(Contexts.IsMobileWindow)
-	const { setDrawerContent } = React.useContext(Contexts.AppNav)
+function ChatNav({ myRooms, myDMs, curRoomRID, createRoom, joinRoom, deleteRoom, sendDM, user }) {
+	const { setAppDrawerContent, isMobileWindow } = useContext(Contexts.Window)
 
-	const [rname, setRName] = React.useState("")
-	const [password, setPassword] = React.useState("")
-	const [rid, setRID] = React.useState("")
+	const [rname, setRName] = useState("")
+	const [password, setPassword] = useState("")
+	const [rid, setRID] = useState("")
 
-	const [modalShown, setModalShown] = React.useState(false)
-	const [createConfig, setCreateConfig] = React.useState(true)
+	const [modalShown, setModalShown] = useState(false)
+	const [createConfig, setCreateConfig] = useState(true)
 
-	const createRoomModalRef = React.useRef()
+	const createRoomModalRef = useRef()
 	const createRoomModal = (
 		<ModalRoot>
 			<form onSubmit={submitCreateRoom}>
@@ -206,7 +205,7 @@ function ChatNav({ joinedRooms, ongoingDMs, curRoom, createRoom, joinRoom, delet
 		</ModalRoot>
 	)
 
-	const joinRoomModalRef = React.useRef()
+	const joinRoomModalRef = useRef()
 	const joinRoomModal = (
 		<ModalRoot>
 			<form onSubmit={submitJoinRoom}>
@@ -260,7 +259,7 @@ function ChatNav({ joinedRooms, ongoingDMs, curRoom, createRoom, joinRoom, delet
 		setModalShown(true)
 	}
 
-	React.useEffect(() => {
+	useEffect(() => {
 		if (modalShown) {
 			const ref = createConfig ? createRoomModalRef : joinRoomModalRef
 			if (ref.current) ref.current.focus()
@@ -270,11 +269,10 @@ function ChatNav({ joinedRooms, ongoingDMs, curRoom, createRoom, joinRoom, delet
 	function submitJoinRoom(e) {
 		e.preventDefault()
 		const fixRID = Object.prototype.toString.call(rid) === "[object String]" ? Number.parseInt(rid) : rid
-		let vars = { rid: fixRID, password: password?.length < 6 ? null : password }
-		// console.log("submitRoom() vars: ", vars)
-		joinRoom(vars)
+		let roomVars = { rid: fixRID, password: password?.length < 6 ? null : password }
+		joinRoom({ room: roomVars })
 			.then(() => setModalShown(false))
-			.catch(console.log)
+			.catch(console.error)
 			.finally(() => {
 				setRID("")
 				setPassword("")
@@ -285,7 +283,7 @@ function ChatNav({ joinedRooms, ongoingDMs, curRoom, createRoom, joinRoom, delet
 		e.preventDefault()
 		createRoom({ rname, password: password?.length < 6 ? null : password })
 			.then(() => setModalShown(false))
-			.catch(console.log)
+			.catch(console.error)
 			.finally(() => {
 				setRName("")
 				setPassword("")
@@ -293,7 +291,7 @@ function ChatNav({ joinedRooms, ongoingDMs, curRoom, createRoom, joinRoom, delet
 	}
 
 	function joinPrevRoom(room) {
-		joinRoom(room).then(console.log).catch(console.log)
+		joinRoom({ room }).then(console.log).catch(console.error)
 	}
 
 	const accordionData = [
@@ -314,31 +312,40 @@ function ChatNav({ joinedRooms, ongoingDMs, curRoom, createRoom, joinRoom, delet
 			),
 			content: (
 				<Rooms>
-					{joinedRooms &&
-						curRoom &&
-						joinedRooms?.map((r) => (
-							<Room key={r.rid} isFocused={r.rid === curRoom.rid}>
+					{myRooms &&
+						curRoomRID &&
+						Object.keys(myRooms).map((rid) => (
+							<Room key={rid} isFocused={rid == curRoomRID}>
 								<RoomData>
 									<RoomDataBtn
 										svg={ArrowRightSVG}
-										isFocused={r.rid === curRoom.rid}
-										onClick={() => joinPrevRoom(r)}
+										isFocused={rid == curRoomRID}
+										onClick={() => joinPrevRoom(myRooms[rid])}
+										badge={myRooms[rid]?.msgs?.unread > 0 ? myRooms[rid]?.msgs?.unread : null}
 									>
 										<Data>
-											<span>{r.rname}</span>
-											<Lessen>RID#{r.rid}</Lessen>
+											<span>{myRooms[rid]?.rname}</span>
+											<Lessen>RID#{rid}</Lessen>
 										</Data>
 									</RoomDataBtn>
-									<RoomCloseBtn svg={CloseSVG} color="red" onClick={() => deleteRoom(r.rid)} />
+									<RoomCloseBtn svg={CloseSVG} color="red" onClick={() => deleteRoom(rid)} />
 								</RoomData>
-								{r.rid === curRoom.rid &&
-									curRoom?.activeUsers?.map((u) => (
-										<div key={u.uid}>
-											<User svg={UserSVG} isFocused={u.uid === user.uid}>
-												{u.uname}
-											</User>
-										</div>
-									))}
+								{rid == curRoomRID &&
+									myRooms[curRoomRID]?.activeUsers &&
+									Object.keys(myRooms[curRoomRID]?.activeUsers)?.map((uid) => {
+										const actUser = myRooms[curRoomRID].activeUsers[uid]
+										return (
+											<div key={uid}>
+												<User
+													svg={UserSVG}
+													isFocused={actUser.uid == user.uid}
+													onClick={() => sendDM(actUser.uid)}
+												>
+													{actUser.uname}
+												</User>
+											</div>
+										)
+									})}
 							</Room>
 						))}
 				</Rooms>
@@ -353,8 +360,8 @@ function ChatNav({ joinedRooms, ongoingDMs, curRoom, createRoom, joinRoom, delet
 			),
 			content: (
 				<DMs>
-					{ongoingDMs &&
-						ongoingDMs?.map((dmSum) => (
+					{myDMs &&
+						myDMs?.map((dmSum) => (
 							<LastDM key={dmSum.recip_id} column>
 								<div className="last-dm-row">
 									<UserSVG />
@@ -376,7 +383,8 @@ function ChatNav({ joinedRooms, ongoingDMs, curRoom, createRoom, joinRoom, delet
 			<Accordion data={accordionData} />
 		</DrawerRoot>
 	)
-	React.useEffect(() => setDrawerContent(drawerContent))
+	// Can't update during an existing state transition. So defer it.
+	useEffect(() => setAppDrawerContent(drawerContent))
 
 	return (
 		<>

@@ -1,9 +1,10 @@
-import * as React from "react"
+import { forwardRef } from "react"
 import styled, { css } from "styled-components/macro"
+
+/* --------------------------------- STYLES --------------------------------- */
 
 const InputRoot = styled.input`
 	outline: none;
-	/* margin: 1px; */
 	${({ theme }) => css`
 		color: ${theme.contrast};
 		box-shadow: 0 0 0 0 ${theme.accent};
@@ -15,11 +16,13 @@ const InputRoot = styled.input`
 	`}
 `
 
-export const Input = React.forwardRef((props, ref) => <InputRoot {...props} ref={ref} />)
+/* -------------------------------- COMPONENT ------------------------------- */
+
+export const Input = forwardRef((props, ref) => <InputRoot {...props} ref={ref} />)
 
 export const MsgBox = styled.textarea`
 	outline: none;
-	min-height: calc(var(--nav-height) * 3);
+	min-height: var(--nav-height);
 	height: 100%;
 	width: 100%;
 	resize: none;

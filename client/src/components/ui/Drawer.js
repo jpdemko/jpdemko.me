@@ -1,15 +1,15 @@
-import * as React from "react"
+import { useCallback, useRef } from "react"
 import styled, { css } from "styled-components/macro"
 
 import { safeTranslate } from "../../shared/shared"
-import { useOnClickOutside } from "../../shared/hooks"
+import { useOnClick } from "../../shared/hooks"
 import Backdrop from "./Backdrop"
 
 /* --------------------------------- STYLES --------------------------------- */
 
 const Root = styled.div`
 	position: absolute;
-	z-index: 175000;
+	z-index: 260000;
 	top: 0;
 	bottom: 0;
 	max-width: 90%;
@@ -31,19 +31,18 @@ const Root = styled.div`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function Drawer({ isShown = false, onClose, animDuration = 0.35, side = "left", children, ...props }) {
-	const drawerRef = React.useRef()
+function Drawer({ isShown = false, onClose, animDuration = 0.3, side = "left", children, ...props }) {
+	const drawerRef = useRef()
 
-	// 'useOnClickOutside()' will keep creating/removing event handlers on each render unless this is done.
-	const memoizedCloseDrawer = React.useCallback(() => isShown && onClose(), [isShown, onClose])
-	useOnClickOutside(drawerRef, memoizedCloseDrawer)
+	const memoizedCloseDrawer = useCallback(() => isShown && onClose(), [isShown, onClose])
+	const bdRef = useOnClick(memoizedCloseDrawer)
 
 	return (
 		<>
 			<Root ref={drawerRef} isShown={isShown} animDuration={animDuration} side={side} {...props}>
 				{children}
 			</Root>
-			<Backdrop isShown={isShown} animDuration={animDuration} />
+			<Backdrop ref={bdRef} isShown={isShown} animDuration={animDuration} />
 		</>
 	)
 }

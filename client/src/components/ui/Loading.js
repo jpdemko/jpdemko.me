@@ -1,4 +1,3 @@
-import * as React from "react"
 import styled, { css } from "styled-components/macro"
 import { Transition } from "react-transition-group"
 
@@ -50,7 +49,7 @@ const Center = styled.div`
 	align-items: center;
 	top: 0;
 	left: 0;
-	z-index: 150001;
+	z-index: 270000;
 `
 
 /* -------------------------------- COMPONENT ------------------------------- */

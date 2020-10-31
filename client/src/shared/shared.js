@@ -1,5 +1,6 @@
-import * as React from "react"
+import { createContext, FunctionComponent, SVGProps } from "react"
 import { transparentize, readableColor } from "polished"
+import { parse, stringify } from "flatted"
 
 import { ReactComponent as WrenchSVG } from "../shared/assets/icons/wrench.svg"
 
@@ -15,10 +16,11 @@ export const flags = {
 /* -------------------------------------------------------------------------- */
 
 export const Contexts = {
-	AppNav: React.createContext(),
-	Auth: React.createContext(),
-	IsMobileWindow: React.createContext(),
-	Themes: React.createContext(),
+	TabHidden: createContext(),
+	Window: createContext(),
+	Auth: createContext(),
+	IsMobileWindow: createContext(),
+	Themes: createContext(),
 }
 
 /* -------------------------------------------------------------------------- */
@@ -78,20 +80,22 @@ export const mediaBreakpoints = { desktop: 813 }
 export const ls = {
 	get: function (key, skipParse = false) {
 		try {
-			if (typeof key !== "string") key = JSON.stringify(key)
+			if (typeof key !== "string") key = stringify(key)
 			let item = localStorage.getItem(key)
-			if (item && !skipParse) item = JSON.parse(item)
+			if (item && !skipParse) item = parse(item)
 			return item
 		} catch (error) {
+			console.error(error)
 			return null
 		}
 	},
 	set: function (key, value) {
 		try {
-			if (typeof key !== "string") key = JSON.stringify(key)
-			if (typeof value !== "string") value = JSON.stringify(value)
+			if (typeof key !== "string") key = stringify(key)
+			if (typeof value !== "string") value = stringify(value)
 			localStorage.setItem(key, value)
 		} catch (error) {
+			console.error(error)
 			return null
 		}
 	},
@@ -104,7 +108,7 @@ export const ls = {
  * Also used for testing when I need some default app options.
  * @param {Object} options
  * @param {string} options.title
- * @param {React.FunctionComponent<React.SVGProps<SVGSVGElement>>} options.logo
+ * @param {FunctionComponent<SVGProps<SVGSVGElement>>} options.logo
  * @param {Object} options.theme
  * @param {boolean} options.authRequired
  * @return {Object}
@@ -168,7 +172,7 @@ export class Styles {
 			}
 			return Array.isArray(style) ? style : [style]
 		} catch (err) {
-			console.log(err)
+			console.error(err)
 			return null
 		}
 	}
