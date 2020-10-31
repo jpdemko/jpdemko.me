@@ -37,7 +37,7 @@ CREATE TABLE rooms (
 
 -- **************************************************************** --
 
--- Alternative method of designing things which would probably be more efficient
+-- Alternative method of designing things which would probably be more efficient.
 	-- https://dba.stackexchange.com/a/192767/209246
 
 CREATE TABLE msgs (
@@ -56,6 +56,8 @@ CREATE INDEX msgs_rid_index ON msgs(rid);
 CREATE TABLE users_rooms (
 	uid INT REFERENCES users(uid),
 	rid INT REFERENCES rooms(rid),
+	users_last_msg REFERENCES msgs(mid),
+	joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	PRIMARY KEY(uid, rid)
 );
 
@@ -77,7 +79,7 @@ CREATE INDEX dms_recip_index ON dms(recip);
 CREATE TABLE dms_history (
 	user1 INT REFERENCES users(uid),
 	user2 INT REFERENCES users(uid),
-	last_dm INT REFERENCES dms(dmid),
+	last_dm_between INT REFERENCES dms(dmid),
 	PRIMARY KEY(user1, user2),
 	CHECK (user1 < user2)
 );
@@ -135,6 +137,22 @@ FOR EACH ROW EXECUTE PROCEDURE join_default_room();
 
 -- **************************************************************** --
 
+-- Every time a user sends a room msg, make that msg their last sent msg in table users_rooms.
+-- We use this to retrieve their participating rooms and sort by their last activity.
+	CREATE OR REPLACE FUNCTION set_last_room_msg()
+		RETURNS trigger AS
+			$$ BEGIN
+				INSERT INTO users_rooms(uid, rid, users_last_msg) VALUES (NEW.uid, NEW.rid, NEW.mid)
+				ON CONFLICT (uid, rid) DO UPDATE SET users_last_msg = NEW.mid;
+				RETURN NEW;
+			END; $$
+	LANGUAGE 'plpgsql';
+
+	CREATE TRIGGER set_last_room_msg_trigger AFTER INSERT ON msgs
+	FOR EACH ROW EXECUTE PROCEDURE set_last_room_msg();
+
+-- **************************************************************** --
+
 CREATE OR REPLACE FUNCTION update_latest_dm()
 RETURNS trigger AS $$
 	DECLARE
@@ -145,14 +163,16 @@ RETURNS trigger AS $$
 		low := NEW.recip;
 		high := NEW.uid;
 	END IF;
-	INSERT INTO dms_history(user1, user2, last_dm) VALUES (low, high, NEW.dmid)
-	ON CONFLICT (user1, user2) DO UPDATE SET last_dm = NEW.dmid;
+	INSERT INTO dms_history(user1, user2, last_dm_between) VALUES (low, high, NEW.dmid)
+	ON CONFLICT (user1, user2) DO UPDATE SET last_dm_between = NEW.dmid;
 	RETURN NEW;
 END; $$
 LANGUAGE 'plpgsql';
 
 CREATE TRIGGER update_latest_dm_trigger AFTER INSERT ON dms
 FOR EACH ROW EXECUTE PROCEDURE update_latest_dm();
+
+-- **************************************************************** --
 
 -- DELETE ALL DATA
 -- DROP SCHEMA public CASCADE;

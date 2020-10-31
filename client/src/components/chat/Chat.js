@@ -31,7 +31,7 @@ class Chat extends Component {
 		const prevData = this.getUserData()
 		this.state = {
 			curRoomRID: 1,
-			curDMid: null,
+			curDMID: null,
 			myRooms: null,
 			myDMs: null,
 			user: null,
@@ -140,7 +140,7 @@ class Chat extends Component {
 				myRooms = { ...data.myRooms, ...(myRooms && myRooms) }
 				try {
 					const joinRoomPromises = Object.keys(myRooms).map((rid) =>
-						this.socketJoinRoom({ room: myRooms[rid], user, makeCur: rid == curRoomRID })
+						this.socketJoinRoom({ room: myRooms[rid], user })
 					)
 					const roomsRes = await Promise.all(joinRoomPromises)
 					let loadedRooms = roomsRes.reduce((acc, curRes) => {
@@ -155,7 +155,7 @@ class Chat extends Component {
 			})
 			.catch((err) => {
 				console.error(err)
-				this.setState({ user: null, curRoomRID: null, curDMid: null, myRooms: null, myDMs: null })
+				this.setState({ user: null, curRoomRID: null, curDMID: null, myRooms: null, myDMs: null })
 			})
 			.finally(() => this.context.setAppLoading(false))
 	}
@@ -201,7 +201,7 @@ class Chat extends Component {
 		return lastTS?.toISO()
 	}
 
-	socketJoinRoom = ({ room, user, makeCur = false }) => {
+	socketJoinRoom = ({ room, user, makeCur }) => {
 		user = user ?? this.state.user
 		room = this.state.myRooms?.[room?.rid] ?? room
 		let { rid, password, msgs } = room
@@ -216,7 +216,7 @@ class Chat extends Component {
 				uid: user.uid,
 				rid,
 				password,
-				makeCur,
+				makeCur: makeCur ?? this.state.curRoomRID == room.rid,
 			}
 			if (msgs) ioVars.lastMsgTS = this.getLastTimestamp(msgs)
 			this.state.socket.emit("joinRoom", ioVars, ({ success, error, room: roomRes }) => {
@@ -308,10 +308,16 @@ class Chat extends Component {
 		})
 	}
 
-	sendDM = (data) => {
-		// const { socket } = this.state
-		// return new Promise((resolve, reject) => {
-		// })
+	sendDM = (uid) => {
+		const { socket, myDMs, curDMID } = this.state
+		let nextState = { roomsShown: false }
+		// Whenever sendDM() is called immediately change to DM view.
+		// It should create a temporary room between the 2 users?
+		// If no data is exchanged between the users on new sendDM() or joinRoom() then delete the
+		// temp. DM exchange?
+
+		this.setState(nextState)
+		return new Promise((resolve, reject) => {})
 	}
 
 	receiveMsg = (data) => {
