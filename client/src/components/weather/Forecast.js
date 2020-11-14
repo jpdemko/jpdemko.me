@@ -11,9 +11,9 @@ import TempHue from "./TempHue"
 /* --------------------------------- STYLES --------------------------------- */
 
 const CustomTabs = styled(Tabs)`
-	border: none;
 	flex: 3 0;
 	font-size: 0.8em;
+	border: none;
 `
 
 const InfoMessage = styled.div`
@@ -28,12 +28,15 @@ const InfoMessage = styled.div`
 	transition: opacity 0.5s;
 	${({ theme, isValidZone }) => css`
 		background-color: ${opac(0.8, theme.background)};
-		color: ${theme.contrast};
+		color: ${theme.bgContrast};
 		opacity: ${isValidZone ? 0 : 1};
 	`}
 `
 
 const Card = styled.div`
+	> div:first-child {
+		font-weight: bold;
+	}
 	&& svg {
 		height: 2.25em;
 	}
@@ -59,9 +62,13 @@ const Temps = styled.div`
 	}
 `
 
-const StyledTempHue = styled(TempHue)`
-	font-size: 0.75em;
-	padding: 0.1em 0.3em;
+const SummaryTempHue = styled(TempHue)`
+	padding: 0em 0.3em;
+`
+
+const TableTempHue = styled(TempHue)`
+	display: inline-block;
+	padding: 0em 0.3em;
 `
 
 const Table = styled.table`
@@ -143,12 +150,9 @@ function DaySummary({ data: { dayName, ordDay, timezone, day }, getTemp, ...prop
 			<div>{checkDayName()}</div>
 			<HR />
 			<Temps>
-				{/* <span>H: {getTemp(high)}&deg;</span>
+				<SummaryTempHue temp={high}>H: {getTemp(high)}&deg;</SummaryTempHue>
 				<WeatherIcon iconName={icon} />
-				<span>L: {getTemp(low)}&deg;</span> */}
-				<StyledTempHue temp={high}>H: {getTemp(high)}&deg;</StyledTempHue>
-				<WeatherIcon iconName={icon} />
-				<StyledTempHue temp={low}>L: {getTemp(low)}&deg;</StyledTempHue>
+				<SummaryTempHue temp={low}>L: {getTemp(low)}&deg;</SummaryTempHue>
 			</Temps>
 		</Card>
 	)
@@ -185,6 +189,7 @@ const DayDetailed = ({ data: { timezone, hours }, getTemp }) => (
 					{hours.map((hour) => {
 						const time = DateTime.fromSeconds(hour.time).setZone(timezone).toFormat("h a")
 						const [h, period] = time.split(" ")
+						const temp = getTemp(hour.apparentTemperature)
 						return (
 							<TRow key={hour.time}>
 								<td>
@@ -199,7 +204,9 @@ const DayDetailed = ({ data: { timezone, hours }, getTemp }) => (
 										{hour.summary}
 									</SummaryCell>
 								</td>
-								<td>{getTemp(hour.apparentTemperature)}&deg;</td>
+								<td>
+									<TableTempHue temp={temp}>{temp}&deg;</TableTempHue>
+								</td>
 								<td>
 									<div>
 										{Math.round(hour.precipProbability * 100)}

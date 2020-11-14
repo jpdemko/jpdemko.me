@@ -1,6 +1,6 @@
 import styled, { css } from "styled-components/macro"
 
-import { createTheme, setupAppSharedOptions } from "../../shared/shared"
+import { setupAppSharedOptions } from "../../shared/shared"
 import { ReactComponent as SmileSVG } from "../../shared/assets/icons/smile.svg"
 import Link from "../ui/Link"
 
@@ -65,15 +65,16 @@ function About({ ...props }) {
 About.shared = setupAppSharedOptions({
 	title: "About",
 	logo: SmileSVG,
-	theme: createTheme("about", {
+	theme: {
+		name: "about",
 		altBackground: "#DEE2E1",
 		background: "#F4F9F7",
-		contrast: "#204234",
-		contrastColors: ["#204234", "#F4F9F7"],
+		bgContrast: "#204234",
 		highlight: "#1BDC8C",
-		color: "#1BDC8C",
+		primary: "#1BDC8C",
+		primaryContrast: "#204234",
 		accent: "#17B573",
-	}),
+	},
 })
 
 export default About

@@ -3,7 +3,7 @@ import styled, { css } from "styled-components/macro"
 import { TransitionGroup } from "react-transition-group"
 import throttle from "lodash/throttle"
 
-import { getRect, ls, themes } from "../../shared/shared"
+import { getRect, ls, Themes } from "../../shared/shared"
 import About from "../about/About"
 import Weather from "../weather/Weather"
 import Chat from "../chat/Chat"
@@ -37,7 +37,7 @@ const DiagonalBG = styled.div`
 		> div {
 			height: 200%;
 			width: 200%;
-			background: ${theme.contrast};
+			background: ${theme.bgContrast};
 			transform: translateY(20%) rotate(-10deg);
 		}
 	`}
@@ -82,7 +82,7 @@ const Shortcuts = styled.div`
 `
 
 const ShortcutButton = styled(Button)`
-	color: ${themes.dark.contrast};
+	color: ${Themes.dark.bgContrast};
 	font-size: 1.25em;
 	font-weight: 500;
 `

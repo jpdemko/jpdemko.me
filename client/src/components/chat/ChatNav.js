@@ -1,6 +1,6 @@
 /* eslint-disable jsx-a11y/label-has-associated-control */
 
-import { useState, useRef, useContext, useEffect } from "react"
+import { useState, useRef, useContext, useEffect, useMemo } from "react"
 import styled, { css } from "styled-components/macro"
 
 import { ReactComponent as CloseSVG } from "../../shared/assets/icons/close.svg"
@@ -14,6 +14,7 @@ import Button from "../ui/Button"
 import Modal from "../ui/Modal"
 import { Input } from "../ui/IO"
 import Accordion from "../ui/Accordion"
+import { DateTime } from "luxon"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -91,25 +92,23 @@ const DMs = styled.div`
 	padding: var(--chatnav-padding);
 `
 
-const LastDM = styled(Button)`
-	padding: 0 var(--chatnav-padding);
+const LatestDM = styled(Button)`
+	padding: 0;
 	text-align: left;
 	margin-bottom: var(--chatnav-padding);
 	&:last-child {
 		margin-bottom: 0;
 	}
 	${({ theme }) => css`
-		background: ${theme.altBackground};
 		border: 1px solid ${theme.accent};
-		.last-dm-row {
-			padding: var(--chatnav-padding);
+		.latest-dm-row {
+			padding: calc(var(--chatnav-padding) * 0.75);
 			svg {
 				margin-right: var(--chatnav-padding);
 			}
 		}
-		.last-dm-row:first-child {
-			display: inline-block;
-			border-bottom: 1px solid ${theme.accent};
+		.latest-dm-row:first-child {
+			background: ${theme.altBackground};
 		}
 	`}
 `
@@ -124,7 +123,7 @@ const ModalRoot = styled.div`
 	${({ theme }) => css`
 		background: ${theme.altBackground};
 		border: 1px solid ${theme.accent};
-		color: ${theme.contrast};
+		color: ${theme.bgContrast};
 	`}
 `
 
@@ -151,7 +150,7 @@ const DmTextSum = styled.span`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function ChatNav({ myRooms, myDMs, curRoomRID, createRoom, joinRoom, deleteRoom, sendDM, user }) {
+function ChatNav({ myRooms, myDMS, curDMUID, curRoomRID, createRoom, joinRoom, deleteRoom, openDM, user }) {
 	const { setAppDrawerContent, isMobileWindow } = useContext(Contexts.Window)
 
 	const [rname, setRName] = useState("")
@@ -272,7 +271,7 @@ function ChatNav({ myRooms, myDMs, curRoomRID, createRoom, joinRoom, deleteRoom,
 		let roomVars = { rid: fixRID, password: password?.length < 6 ? null : password }
 		joinRoom({ room: roomVars })
 			.then(() => setModalShown(false))
-			.catch(console.error)
+			.catch((error) => console.error("<ChatNav /> submitJoinRoom() error: ", error))
 			.finally(() => {
 				setRID("")
 				setPassword("")
@@ -283,7 +282,7 @@ function ChatNav({ myRooms, myDMs, curRoomRID, createRoom, joinRoom, deleteRoom,
 		e.preventDefault()
 		createRoom({ rname, password: password?.length < 6 ? null : password })
 			.then(() => setModalShown(false))
-			.catch(console.error)
+			.catch((error) => console.error("<ChatNav /> submitCreateRoom() error: ", error))
 			.finally(() => {
 				setRName("")
 				setPassword("")
@@ -291,8 +290,26 @@ function ChatNav({ myRooms, myDMs, curRoomRID, createRoom, joinRoom, deleteRoom,
 	}
 
 	function joinPrevRoom(room) {
-		joinRoom({ room }).then(console.log).catch(console.error)
+		joinRoom({ room })
+			.then(console.log)
+			.catch((error) => console.error("<ChatNav /> joinPrevRoom() error: ", error))
 	}
+
+	const sortedRIDS = useMemo(() => {
+		return Object.keys(myRooms).sort((rid1, rid2) => {
+			const ts1 = myRooms?.[rid1]?.users_last_msg_ts
+			const ts2 = myRooms?.[rid2]?.users_last_msg_ts
+			return ts1 < ts2 ? 1 : ts1 > ts2 ? -1 : 0
+		})
+	}, [myRooms])
+
+	const sortedDMUIDS = useMemo(() => {
+		return Object.keys(myDMS).sort((uid1, uid2) => {
+			const t1 = Object.values(myDMS[uid1]?.dms).filter(isNaN).pop()?.created_at
+			const t2 = Object.values(myDMS[uid2]?.dms).filter(isNaN).pop()?.created_at
+			return t1 < t2 ? 1 : t1 > t2 ? -1 : 0
+		})
+	}, [myDMS])
 
 	const accordionData = [
 		{
@@ -301,10 +318,20 @@ function ChatNav({ myRooms, myDMs, curRoomRID, createRoom, joinRoom, deleteRoom,
 				<Header>
 					<Title>Rooms</Title>
 					<RoomsSubHeader>
-						<HeaderBtn svg={AddSVG} variant="outline" onClick={togCreateRoomModal}>
+						<HeaderBtn
+							svg={AddSVG}
+							variant="outline"
+							onClick={togCreateRoomModal}
+							color="primaryContrast"
+						>
 							Create
 						</HeaderBtn>
-						<HeaderBtn svg={GroupAddSVG} variant="outline" onClick={togJoinRoomModal}>
+						<HeaderBtn
+							svg={GroupAddSVG}
+							variant="outline"
+							onClick={togJoinRoomModal}
+							color="primaryContrast"
+						>
 							Join
 						</HeaderBtn>
 					</RoomsSubHeader>
@@ -312,26 +339,31 @@ function ChatNav({ myRooms, myDMs, curRoomRID, createRoom, joinRoom, deleteRoom,
 			),
 			content: (
 				<Rooms>
-					{myRooms &&
+					{myDMS &&
 						curRoomRID &&
-						Object.keys(myRooms).map((rid) => (
+						sortedRIDS.map((rid) => (
 							<Room key={rid} isFocused={rid == curRoomRID}>
 								<RoomData>
 									<RoomDataBtn
 										svg={ArrowRightSVG}
 										isFocused={rid == curRoomRID}
-										onClick={() => joinPrevRoom(myRooms[rid])}
-										badge={myRooms[rid]?.msgs?.unread > 0 ? myRooms[rid]?.msgs?.unread : null}
+										onClick={() => joinPrevRoom(myRooms?.[rid])}
+										badge={myRooms?.[rid]?.msgs?.unread > 0 ? "!" : null}
 									>
 										<Data>
-											<span>{myRooms[rid]?.rname}</span>
+											<span>{myRooms?.[rid]?.rname}</span>
 											<Lessen>RID#{rid}</Lessen>
 										</Data>
 									</RoomDataBtn>
-									<RoomCloseBtn svg={CloseSVG} color="red" onClick={() => deleteRoom(rid)} />
+									<RoomCloseBtn
+										svg={CloseSVG}
+										setTheme="red"
+										color="primary"
+										onClick={() => deleteRoom(rid)}
+									/>
 								</RoomData>
 								{rid == curRoomRID &&
-									myRooms[curRoomRID]?.activeUsers &&
+									myRooms?.[curRoomRID]?.activeUsers &&
 									Object.keys(myRooms[curRoomRID]?.activeUsers)?.map((uid) => {
 										const actUser = myRooms[curRoomRID].activeUsers[uid]
 										return (
@@ -339,7 +371,7 @@ function ChatNav({ myRooms, myDMs, curRoomRID, createRoom, joinRoom, deleteRoom,
 												<User
 													svg={UserSVG}
 													isFocused={actUser.uid == user.uid}
-													onClick={() => sendDM(actUser.uid)}
+													onClick={() => openDM(actUser)}
 												>
 													{actUser.uname}
 												</User>
@@ -360,19 +392,31 @@ function ChatNav({ myRooms, myDMs, curRoomRID, createRoom, joinRoom, deleteRoom,
 			),
 			content: (
 				<DMs>
-					{myDMs &&
-						myDMs?.map((dmSum) => (
-							<LastDM key={dmSum.recip_id} column>
-								<div className="last-dm-row">
-									<UserSVG />
-									<span style={{ fontStyle: "italic" }}>{dmSum.recip_uname}</span>
-								</div>
-								<div className="last-dm-row">
-									<ChatSVG />
-									<DmTextSum>{dmSum.msg}</DmTextSum>
-								</div>
-							</LastDM>
-						))}
+					{myDMS &&
+						sortedDMUIDS.map((recip_id) => {
+							const recipUser = { uid: recip_id, uname: myDMS[recip_id]?.recip_uname }
+							const lastDMID = Object.keys(myDMS[recip_id]?.dms)
+								.filter((dmid) => !isNaN(dmid))
+								.pop()
+							const lastDM = myDMS[recip_id]?.dms?.[lastDMID]?.msg
+							return (
+								<LatestDM
+									key={recip_id}
+									isFocused={recip_id == curDMUID}
+									onClick={() => openDM(recipUser)}
+									column
+								>
+									<div className="latest-dm-row">
+										<UserSVG />
+										<span style={{ fontStyle: "italic" }}>{recipUser.uname}</span>
+									</div>
+									<div className="latest-dm-row">
+										<ChatSVG />
+										<DmTextSum>{lastDM}</DmTextSum>
+									</div>
+								</LatestDM>
+							)
+						})}
 				</DMs>
 			),
 		},

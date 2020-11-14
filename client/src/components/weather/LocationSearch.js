@@ -6,6 +6,7 @@ import styled, { css } from "styled-components/macro"
 import { useUpdatedValRef } from "../../shared/hooks"
 import { ReactComponent as LocationSVG } from "../../shared/assets/icons/location.svg"
 import Button from "../ui/Button"
+import { opac } from "../../shared/shared"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -16,30 +17,58 @@ const Root = styled.div`
 	display: flex;
 	position: relative;
 	${({ theme }) => css`
-		border-bottom: 1px solid ${theme.contrast};
+		border-bottom: 1px solid ${theme.bgContrast};
 		box-shadow: inset 0 -1px 0 0 ${theme.altBackground};
-		color: ${theme.contrast};
-		/* Fixing Bing elements; search results and children */
-		& .MicrosoftMap .as_container_search {
-			position: absolute;
-			width: 100%;
-			top: 100%;
-			left: 0;
-			background-color: ${theme.altBackground};
-			border-top: 1px solid ${theme.accent};
-			border-bottom: 1px solid ${theme.accent};
+		color: ${theme.bgContrast};
+		/* Fixing Bing elements; search results and children... */
+		.MicrosoftMap {
+			--ls-length: 0.8em;
 			a {
-				color: ${theme.contrast} !important;
+				color: ${theme.bgContrast} !important;
+				&:hover,
+				&:active,
+				&::selection {
+					background: ${opac(0.5, theme.highlight)};
+					color: ${theme.primaryContrast};
+				}
 			}
-			a:hover {
-				background: ${theme.background};
+			.as_container {
+				.suggestLink {
+					padding: calc(var(--ls-length) * 0.8) var(--ls-length);
+				}
+				.bingLogoLight {
+					mix-blend-mode: luminosity;
+				}
+				.line1 {
+					font-weight: bold;
+				}
+				.line2 {
+					opacity: 0.85;
+					transform: scale(0.9);
+				}
 			}
-		}
-		& .MicrosoftMap .as_container_search .asOuterContainer {
-			border: none;
-			box-shadow: none;
-			> div:first-child {
-				display: none;
+			.as_container_search {
+				position: absolute;
+				width: 100%;
+				top: 100%;
+				left: 0;
+				background-color: ${theme.altBackground};
+				border-top: 1px solid ${theme.accent};
+				border-bottom: 1px solid ${theme.accent};
+				.asOuterContainer {
+					border: none;
+					box-shadow: none;
+					> div:first-child {
+						display: none;
+					}
+				}
+			}
+			.as_lines_root {
+				margin-left: var(--ls-length);
+			}
+			.suggestLink.selected {
+				background: ${opac(0.75, theme.highlight)};
+				color: ${theme.primaryContrast};
 			}
 		}
 	`}
@@ -50,16 +79,16 @@ const AutocompleteInput = styled.input`
 	outline: none;
 	flex: 1 1 auto;
 	transition: ${animDuration}s;
-	/* Fixing Bing elements; location search input */
+	/* Fixing Bing elements; location search input... */
 	&[style] {
 		background-color: #0000 !important;
 	}
 	${({ theme }) => css`
-		color: ${theme.contrast};
+		color: ${theme.bgContrast};
 		&:not(:placeholder-shown),
 		&:hover,
 		&:active {
-			box-shadow: inset 0 -2px 0 0 ${theme.contrast};
+			box-shadow: inset 0 -2px 0 0 ${theme.bgContrast};
 		}
 	`}
 `
@@ -94,7 +123,7 @@ function LocationSearch({ map, modulesLoaded, onLocationFound }) {
 				managersLoadedRef.current = true
 			} catch (error) {
 				managersLoadedRef.current = false
-				console.error(error)
+				console.error("<LocationSearch /> Microsoft.Maps error: ", error)
 			}
 		}
 

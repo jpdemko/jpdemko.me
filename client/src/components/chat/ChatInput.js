@@ -15,14 +15,15 @@ const ChatIO = styled(MsgBox)`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function ChatInput({ socketSendRoomMsg, roomsShown, ...props }) {
+function ChatInput({ socketSendRoomMsg, roomsShown, socketSendDM, ...props }) {
 	const [text, setText] = useState("")
 
-	function submitMsg(e) {
+	function submit(e) {
 		e.preventDefault()
-		socketSendRoomMsg(text)
+		const send = roomsShown ? socketSendRoomMsg : socketSendDM
+		send(text)
 			.then(() => setText(""))
-			.catch((err) => console.error("ChatInput send room message error: ", err))
+			.catch((err) => console.error("<ChatInput /> send() error: ", err))
 	}
 
 	function handleTextChange(e) {
@@ -30,11 +31,11 @@ function ChatInput({ socketSendRoomMsg, roomsShown, ...props }) {
 	}
 
 	function checkKeys(e) {
-		if (e.keyCode === 13 && !e.shiftKey) submitMsg(e)
+		if (e.keyCode === 13 && !e.shiftKey) submit(e)
 	}
 
 	return (
-		<form onSubmit={submitMsg} {...props}>
+		<form onSubmit={submit} {...props}>
 			<ChatIO
 				minLength="1"
 				required

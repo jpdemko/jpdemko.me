@@ -28,16 +28,13 @@ const TaskbarBtn = styled(Button)`
 const DrawerDescrip = styled.div`
 	padding: var(--drawer-padding);
 	${({ theme }) => css`
-		background: ${theme.highlight};
-		color: ${theme.contrast};
+		background: ${theme.primary};
+		color: ${theme.primaryContrast};
 	`}
 `
 
 const DrawerRow = styled.div`
 	display: flex;
-	/* > button:nth-child(2) {
-		margin: 1px;
-	} */
 `
 
 const DrawerBtn = styled(Button)`
@@ -96,7 +93,13 @@ function Nav({ openedApps, isMobileSite, handleHomeButton, openApp, closeApp, ma
 			</ContextMenuTrigger>
 			<ContextMenu id={`nav-tb-button-${app.title}`}>
 				<MenuItem>
-					<Button onClick={() => handleClose(app.title)} svg={CloseSVG} variant="fancy" color="red" />
+					<Button
+						onClick={() => handleClose(app.title)}
+						svg={CloseSVG}
+						variant="fancy"
+						setTheme="red"
+						color="primary"
+					/>
 				</MenuItem>
 			</ContextMenu>
 		</OpenedApp>
@@ -111,7 +114,9 @@ function Nav({ openedApps, isMobileSite, handleHomeButton, openApp, closeApp, ma
 				<DrawerBtn onClick={() => handleOpen(title)} svg={mApp.shared.logo} isFocused={oApp?.isFocused}>
 					{title}
 				</DrawerBtn>
-				{oApp && <Button onClick={() => handleClose(title)} svg={CloseSVG} color="red" />}
+				{oApp && (
+					<Button onClick={() => handleClose(title)} svg={CloseSVG} setTheme="red" color="primary" />
+				)}
 			</DrawerRow>
 		)
 	})

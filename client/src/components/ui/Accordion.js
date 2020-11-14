@@ -2,6 +2,8 @@ import { useState } from "react"
 import styled, { css } from "styled-components/macro"
 
 import Button from "./Button"
+import { ReactComponent as UnfoldLessSVG } from "../../shared/assets/icons/unfold-less.svg"
+import { ReactComponent as UnfoldMoreSVG } from "../../shared/assets/icons/unfold-more.svg"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -14,16 +16,16 @@ const AccordRoot = styled.div`
 const MenuRoot = styled.div`
 	display: flex;
 	flex-direction: column;
-	overflow-y: auto;
+	overflow: hidden;
 	${({ opened, theme }) => css`
 		border-top: 1px solid ${theme.background};
-		flex: ${opened ? "1 1" : "0 1 auto"};
+		flex: ${opened ? "1 1 auto" : "0 1 auto"};
 	`}
 `
 
 const MenuTitle = styled(Button)`
 	padding: 0;
-	display: block;
+	justify-content: space-between;
 `
 
 const MenuContent = styled.div`
@@ -41,7 +43,13 @@ function Menu({ data }) {
 	const { title, content } = data
 	return !data ? null : (
 		<MenuRoot opened={opened}>
-			<MenuTitle tag="div" variant="fancy" onClick={() => setOpened((prev) => !prev)}>
+			<MenuTitle
+				tag="div"
+				variant="fancy"
+				onClick={() => setOpened((prev) => !prev)}
+				svg={opened ? UnfoldLessSVG : UnfoldMoreSVG}
+				reverse
+			>
 				{title}
 			</MenuTitle>
 			<MenuContent opened={opened}>{content}</MenuContent>

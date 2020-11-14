@@ -2,7 +2,6 @@ import { memo } from "react"
 import styled, { css } from "styled-components/macro"
 
 import WeatherIcon from "./WeatherIcon"
-import { themes } from "../../shared/shared"
 import TempHue from "./TempHue"
 
 /* --------------------------------- STYLES --------------------------------- */
@@ -18,8 +17,8 @@ const Root = styled.div`
 	justify-content: center;
 	text-align: center;
 	${({ theme, curWeatherBG, isLandscape }) => css`
-		background-image: ${curWeatherBG ? curWeatherBG : theme.color};
-		color: ${themes.dark.contrast};
+		background-image: ${curWeatherBG ? curWeatherBG : theme.background};
+		color: ${theme.primaryContrast};
 		border-${isLandscape ? "right" : "bottom"}: 1px solid ${theme.accent};
 	`}
 	> * {
@@ -56,13 +55,12 @@ const Temps = styled.div`
 		flex: 0 0 auto;
 	}
 	${({ theme }) => css`
-		border-left: 1px solid ${theme.contrast};
+		border-left: 1px solid ${theme.primaryContrast};
 	`}
 `
 
 const StyledTempHue = styled(TempHue)`
 	font-size: 0.25em;
-	padding: 0.2em 0.4em;
 `
 
 const Icon = styled.div`

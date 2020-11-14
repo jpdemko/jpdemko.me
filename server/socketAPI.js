@@ -202,8 +202,8 @@ module.exports = function (io, sessionMiddleware, db) {
 						},
 					})
 				} catch (error) {
-					console.error(error)
-					return clientCB({ error: `server error - setupUser() - ${error}` })
+					console.error("server error - setupUser(): ", error)
+					clientCB({ error: `server error - setupUser() - ${error}` })
 				}
 			}
 		})
@@ -220,7 +220,7 @@ module.exports = function (io, sessionMiddleware, db) {
 
 				clientCB({ success: "server success - createRoom()", room: room.clientCopy() })
 			} catch (error) {
-				console.error(error)
+				console.error("server error - createRoom(): ", error)
 				clientCB({ error: `server error - createRoom() - ${error}` })
 			}
 		})
@@ -239,7 +239,7 @@ module.exports = function (io, sessionMiddleware, db) {
 					}
 					room = Rooms.create(roomRes.rows[0])
 				} else if (room && user.curRoomRID == rid) {
-					throw Error("currently in room you're trying to join")
+					return clientCB({ success: "server success - joinRoom() - already in that room! :)" })
 				}
 				// Check for and deal with room password. For now not hashing/encrypting.
 				if (room.password && room.password !== password) throw Error("invalid room password")
@@ -250,8 +250,6 @@ module.exports = function (io, sessionMiddleware, db) {
 					msgs = await queries.chat.getRoomMsgs({ uid, rid, lastMsgTS })
 				}
 
-				// If user's curRoomRID is null and rid param is 1 then go ahead and make makeCur = true
-				// makeCur = user.curRoomRID === null && rid == 1 ? true : makeCur
 				user.joinRoom(rid, makeCur)
 
 				clientCB({
@@ -262,8 +260,36 @@ module.exports = function (io, sessionMiddleware, db) {
 					},
 				})
 			} catch (error) {
-				console.error(error)
+				console.error("server error - joinRoom(): ", error)
 				clientCB({ error: `server error - joinRoom() - ${error}` })
+			}
+		})
+
+		socket.on("getLogsDMS", async function ({ uid, recip_id, lastDMTS }, clientCB) {
+			try {
+				const dms = await queries.chat.getLogsDMS({ uid, recip_id, lastDMTS })
+				clientCB({ success: "server success - getLogsDMS()", data: { dms, recip_id } })
+			} catch (error) {
+				console.log("server error - getLogsDMS(): ", error)
+				clientCB({ error: `server error - getLogsDMS() - ${error}` })
+			}
+		})
+
+		socket.on("sendDM", async function ({ uid, recip_id, msg }, clientCB) {
+			const recip = Users.get(recip_id)
+			try {
+				let dmsRes = await queries.chat.sendDM({ uid, recip_id, msg })
+				// Client's state { myDMS } keys are based on the UID of their DM partner. So we
+				// need to be careful and make sure the returned data's key is their partners UID.
+				const senderDMS = shared.dataUnreadTransform(dmsRes.rows, { uid, uniqKey: "dmid" })
+				const receiverDMS = shared.dataUnreadTransform(dmsRes.rows, { uid: recip_id, uniqKey: "dmid" })
+
+				if (recip)
+					socket.to(recip.socketID).emit("receiveData", { data: { dms: receiverDMS, recip_id: uid } })
+				clientCB({ success: "server success - sendDM()", data: { dms: senderDMS, recip_id } })
+			} catch (error) {
+				console.log("server error - sendDM(): ", error)
+				clientCB({ error: `server error - sendDM() - ${error}` })
 			}
 		})
 
@@ -278,7 +304,7 @@ module.exports = function (io, sessionMiddleware, db) {
 
 				clientCB({ success: "server success - deleteRoom()" })
 			} catch (error) {
-				console.error(error)
+				console.error("server error - deleteRoom(): ", error)
 				clientCB({ error: `server error - deleteRoom() - ${error}` })
 			}
 		})
@@ -287,13 +313,15 @@ module.exports = function (io, sessionMiddleware, db) {
 			try {
 				const insertMsgRes = await queries.chat.sendRoomMsg({ uid, rid, msg })
 
-				const emittedMsgs = shared.transformMsgs(insertMsgRes.rows, { uniqKey: "mid" })
-				socket.to(`${rid}`).emit("receiveMsg", { ...Rooms.get(rid).clientCopy(), msgs: emittedMsgs })
+				const emittedMsgs = shared.dataUnreadTransform(insertMsgRes.rows, { uniqKey: "mid" })
+				socket
+					.to(`${rid}`)
+					.emit("receiveData", { data: { ...Rooms.get(rid).clientCopy(), msgs: emittedMsgs } })
 
-				const cbMsgs = shared.transformMsgs(insertMsgRes.rows, { uid, uniqKey: "mid" })
+				const cbMsgs = shared.dataUnreadTransform(insertMsgRes.rows, { uid, uniqKey: "mid" })
 				clientCB({ success: "server success - sendMsg()", msgs: cbMsgs })
 			} catch (error) {
-				console.error(error)
+				console.error("server error - sendMsg(): ", error)
 				clientCB({ error: `server error - sendMsg() - ${error}` })
 			}
 		})

@@ -9,7 +9,7 @@ import { Router } from "react-router-dom"
 import { createBrowserHistory } from "history"
 
 import { useMedia } from "./shared/hooks"
-import { themes, mediaBreakpoints, Contexts } from "./shared/shared"
+import { Themes, mediaBreakpoints, Contexts } from "./shared/shared"
 import Display from "./components/display/Display"
 import AuthProvider from "./components/auth/AuthProvider"
 
@@ -26,6 +26,8 @@ const GlobalStyle = createGlobalStyle`
 	}
 
 	svg:not(:root) {
+		max-width: 100%;
+		max-height: 100%;
 		height: 100%;
 		width: auto;
 		overflow: hidden;
@@ -56,7 +58,7 @@ function FakeOS() {
 	return (
 		<>
 			<GlobalStyle />
-			<ThemeProvider theme={themes.blue}>
+			<ThemeProvider theme={Themes.red}>
 				<Router history={history}>
 					<AuthProvider>
 						<Contexts.TabHidden.Provider value={tabHidden}>

@@ -22,7 +22,7 @@ const Root = styled.div`
 	${({ theme, weatherBG }) => css`
 		background-color: ${theme.background};
 		background-image: ${weatherBG};
-		color: ${theme.contrast};
+		color: ${theme.bgContrast};
 	`}
 `
 
@@ -95,7 +95,7 @@ function Weather({ title, ...props }) {
 				setMap(genMap)
 				return true
 			} catch (error) {
-				console.error(error)
+				console.error("<Weather /> Microsoft.Maps error: ", error)
 				setModulesLoaded(false)
 				return false
 			}
@@ -153,7 +153,7 @@ function Weather({ title, ...props }) {
 					setCurLocation(newLocation)
 					mapLoadLocation(mapData)
 				})
-				.catch(console.error)
+				.catch((error) => console.error("<Weather /> onLocationFound() error: ", error))
 				.finally(() => setAppLoading(false))
 		}
 	}
@@ -191,9 +191,9 @@ function Weather({ title, ...props }) {
 				sunData,
 				weatherData,
 			}
-		} catch (err) {
-			console.error("<Weather /> fetchData() error: ", err)
-			return Promise.reject(err)
+		} catch (error) {
+			console.error("<Weather /> fetchData() error: ", error)
+			return Promise.reject(error)
 		}
 	}
 
@@ -209,7 +209,7 @@ function Weather({ title, ...props }) {
 				setCurLocation(nextCurLocation)
 				setLocations(nextLocations)
 			})
-			.catch(console.error)
+			.catch((error) => console.error("<Weather /> updateLocations() error: ", error))
 			.finally(() => setAppLoading(false))
 	}
 

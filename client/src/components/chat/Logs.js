@@ -55,7 +55,7 @@ const Info = styled.div`
 
 const ContentBG = styled.div`
 	${({ theme }) => css`
-		background: ${theme.color};
+		background: ${theme.background};
 		border: 1px solid ${theme.accent};
 	`}
 `
@@ -63,7 +63,8 @@ const ContentBG = styled.div`
 const Content = styled.div`
 	padding: var(--logs-padding) calc(var(--logs-padding) * 2);
 	${({ theme, authored }) => css`
-		background: ${opac(authored ? 0.25 : 1, theme.background)};
+		color: ${authored ? theme.primaryContrast : theme.bgContrast};
+		background: ${authored ? opac(0.5, theme.highlight) : "none"};
 	`}
 `
 
@@ -100,9 +101,9 @@ const SnapEndBtn = styled(Button)`
 
 /* ------------------------------- COMPONENTS ------------------------------- */
 
-const Msg = memo(({ data, authored, sendDM }) => {
-	const { uid, uname, mid, msg, created_at } = data
-	if (!mid) return null
+const Log = memo(({ data, authored, openDM }) => {
+	const { uid, uname, mid, dmid, msg, created_at } = data
+	if (!mid && !dmid) return null
 
 	const relativeTime = DateTime.fromISO(created_at).toLocal().toRelative()
 	const preciseTime = DateTime.fromISO(created_at).toLocal().toFormat("t")
@@ -112,7 +113,7 @@ const Msg = memo(({ data, authored, sendDM }) => {
 				<Content authored={authored}>{msg}</Content>
 			</ContentBG>
 			<Info authored={authored}>
-				<Button svg={UserSVG} isFocused={authored} onClick={() => sendDM(uid)}>
+				<Button svg={UserSVG} isFocused={authored} onClick={() => openDM({ uid, uname })}>
 					{uname}
 				</Button>
 				<Lessen authored={authored}>
@@ -123,7 +124,7 @@ const Msg = memo(({ data, authored, sendDM }) => {
 	)
 })
 
-function Logs({ data, user, sendDM, ...props }) {
+function Logs({ data, user, openDM, roomsShown, ...props }) {
 	const rootRef = useRef()
 	const [followLast, setFollowLast] = useState(null)
 
@@ -134,14 +135,15 @@ function Logs({ data, user, sendDM, ...props }) {
 		}
 	}, [followLast])
 
-	const msgsLength = data?.msgs ? Object.keys(data.msgs).length : 0
+	const type = roomsShown ? "msgs" : "dms"
+	const logsLength = data?.[type] ? Object.keys(data[type]).length : 0
 	useEffect(() => {
 		if (followLast === null) {
-			const horizLine = document.getElementById("chat-unread-msgs-start")
+			const horizLine = document.getElementById("chat-unread-start")
 			if (horizLine) horizLine.scrollIntoView({ block: "center" })
 			else scroll2end()
 		} else if (followLast) scroll2end()
-	}, [msgsLength, followLast, scroll2end])
+	}, [logsLength, followLast, scroll2end])
 
 	const handleScrolling = useCallback(
 		throttle(() => {
@@ -155,26 +157,26 @@ function Logs({ data, user, sendDM, ...props }) {
 	)
 	useEventListener("scroll", handleScrolling, rootRef)
 
-	function getMsgs() {
-		if (!data?.msgs || data.msgs.length < 1) return null
+	function getData() {
+		if (!data?.[type] || data[type].length < 1) return null
 
 		let foundUnread = false
-		const mids = Object.keys(data.msgs).filter((key) => isNaN(data.msgs[key]))
-		return mids.map((mid, i) => {
-			const msg = data.msgs[mid]
+		const ids = Object.keys(data[type]).filter((key) => isNaN(data[type][key]))
+		return ids.map((id, i) => {
+			const log = data[type][id]
 			let HL = null
-			if (!foundUnread && msg?.unread) {
+			if (!foundUnread && log?.unread) {
 				foundUnread = true
-				HL = <HorizLine id="chat-unread-msgs-start">NEW MESSAGES BELOW</HorizLine>
+				HL = <HorizLine id="chat-unread-start">NEW MESSAGES BELOW</HorizLine>
 			}
 			return (
-				<Fragment key={mid}>
+				<Fragment key={id}>
 					{HL}
-					<Msg
-						data={msg}
-						authored={user.uid == msg.uid}
-						id={i === mids.length - 1 ? "last-msg" : null}
-						sendDM={sendDM}
+					<Log
+						data={log}
+						authored={user.uid == log.uid}
+						id={i === ids.length - 1 ? "logs-end" : null}
+						openDM={openDM}
 					/>
 				</Fragment>
 			)
@@ -184,11 +186,11 @@ function Logs({ data, user, sendDM, ...props }) {
 	return (
 		<>
 			<LogsRoot {...props} ref={rootRef} id="logs-root">
-				{getMsgs()}
+				{getData()}
 			</LogsRoot>
 			{!followLast && (
 				<CenterChildrenDiv>
-					<SnapEndBtn onClick={scroll2end} svg={ArrowDownCircleSVG} />
+					<SnapEndBtn onClick={scroll2end} svg={ArrowDownCircleSVG} color="primary" />
 				</CenterChildrenDiv>
 			)}
 		</>

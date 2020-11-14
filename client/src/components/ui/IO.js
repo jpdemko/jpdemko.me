@@ -6,7 +6,7 @@ import styled, { css } from "styled-components/macro"
 const InputRoot = styled.input`
 	outline: none;
 	${({ theme }) => css`
-		color: ${theme.contrast};
+		color: ${theme.bgContrast};
 		box-shadow: 0 0 0 0 ${theme.accent};
 		border: 1px solid ${theme.accent};
 		&:active,
@@ -30,7 +30,7 @@ export const MsgBox = styled.textarea`
 	overflow: auto;
 	${({ theme }) => css`
 		border-top: 1px solid ${theme.accent};
-		color: ${theme.contrast};
+		color: ${theme.bgContrast};
 		padding: 0.4em 0.8em;
 	`}
 `

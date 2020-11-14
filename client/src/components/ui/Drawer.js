@@ -23,7 +23,7 @@ const Root = styled.div`
 		${side === "left" ? "left: 0;" : "right: 0;"}
 		border-${side === "left" ? "right" : "left"}: 1px solid ${theme.accent};
 		background-color: ${theme.background};
-		color: ${theme.contrast};
+		color: ${theme.bgContrast};
 		transition: transform ${animDuration}s ${isShown ? "ease-out" : "ease-in"};
 		transform: ${isShown ? safeTranslate("0, 0") : safeTranslate(`${side === "left" ? "-" : ""}100%, 0`)};
 	`}

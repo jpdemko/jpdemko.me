@@ -1,13 +1,22 @@
+import { getLuminance } from "polished"
 import styled, { css } from "styled-components/macro"
 
 const Root = styled.div`
 	text-align: start;
-	font-weight: 500;
+	font-weight: bold;
+	padding: 0.2em 0.3em;
+	display: flex;
+	align-items: center;
 	${({ theme, hue }) => {
 		const bg = `hsl(${hue}, 85%, 50%)`
+		const color = theme.readableColor(bg)
+		const filter = getLuminance(color) > 0.5 ? "drop-shadow(0 0 1px rgba(0, 0, 0, 0.65))" : "none"
 		return css`
 			background: ${bg};
-			color: ${theme.readableColor(bg)};
+			span {
+				color: ${color};
+				filter: ${filter};
+			}
 		`
 	}}
 `
@@ -22,7 +31,7 @@ function TempHue({ temp, children, ...props }) {
 
 	return (
 		<Root {...props} hue={getTempHue(temp)}>
-			{children}
+			<span>{children}</span>
 		</Root>
 	)
 }

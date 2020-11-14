@@ -46,19 +46,16 @@ const Root = styled.div`
 
 const TitleBar = styled.div`
 	flex: 0 0 auto;
-	padding: 1px;
+	padding: 0 2px;
 	font-weight: 500;
 	align-items: center;
 	height: var(--nav-height);
-	${({ isMobileSite, theme, isFocused }) => {
-		const bgColor = isFocused ? theme.color : theme.altBackground
-		return css`
-			color: ${theme.contrast};
-			border-bottom: 1px solid ${theme.accent};
-			display: ${isMobileSite ? "none" : "flex"};
-			background: ${rgba(bgColor, 0.9)};
-		`
-	}}
+	${({ isMobileSite, theme, isFocused }) => css`
+		color: ${isFocused ? theme.primaryContrast : theme.bgContrast};
+		border-bottom: 1px solid ${theme.accent};
+		display: ${isMobileSite ? "none" : "flex"};
+		background: ${isFocused ? theme.primary : theme.altBackground};
+	`}
 `
 
 const Content = styled.div`
@@ -75,7 +72,7 @@ const Content = styled.div`
 			height: 100%;
 			width: 100%;
 			background: ${theme.background};
-			color: ${theme.contrast};
+			color: ${theme.bgContrast};
 		}
 	`}
 `
@@ -132,6 +129,15 @@ const CornerSW = styled(Corner)`
 	left: ${cornerOffset};
 	cursor: sw-resize !important;
 `
+
+const TitleBarBtn = styled(Button).attrs((props) => {
+	return { ...props, color: props.winFocused ? "primaryContrast" : "bgContrast" }
+})``
+
+const TitleBarCloseBtn = styled(TitleBarBtn).attrs((props) => {
+	if (props.theme.name == "red") props.color = props.winFocused ? "bgContrast" : "primary"
+	return { ...props }
+})``
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
@@ -550,7 +556,7 @@ export default class Window extends Component {
 	}
 
 	render() {
-		const { in: show, title, isMaximized, ...props } = this.props
+		const { in: show, title, isMaximized, isFocused, ...props } = this.props
 		const {
 			appDrawerContent,
 			appDrawerShown,
@@ -571,14 +577,14 @@ export default class Window extends Component {
 					id={`window-${title}`}
 					ref={this.rootRef}
 					isMaximized={isMaximized}
-					isFocused={this.props.isFocused}
+					isFocused={isFocused}
 					isMobileSite={this.props.isMobileSite}
 					minWindowCSS={this.props.minWindowCSS}
 					zIndex={this.props.zIndex}
 				>
 					<TitleBar
 						id={`title-bar-${title}`}
-						isFocused={this.props.isFocused}
+						isFocused={isFocused}
 						isMobileSite={this.props.isMobileSite}
 						onDoubleClick={() => this.props.toggleMaximize(title)}
 						onTouchEnd={(e) => {
@@ -586,19 +592,29 @@ export default class Window extends Component {
 							if (isDoubleTouch(e)) this.props.toggleMaximize(title)
 						}}
 					>
-						<Button
+						<TitleBarBtn
 							onClick={this.toggleAppDrawerShown}
 							svg={MenuSVG}
 							disabled={appDrawerContent === null || !isMobileWindow}
+							winFocused={isFocused}
 						/>
 						<div style={{ paddingLeft: ".25em " }}>{title}</div>
 						<div style={{ display: "flex", marginLeft: "auto" }}>
-							<Button onClick={() => this.props.toggleMinimize(title)} svg={MinimizeSVG} />
-							<Button
+							<TitleBarBtn
+								onClick={() => this.props.toggleMinimize(title)}
+								svg={MinimizeSVG}
+								winFocused={isFocused}
+							/>
+							<TitleBarBtn
 								onClick={() => this.props.toggleMaximize(title)}
 								svg={isMaximized ? FullscreenExitSVG : FullscreenSVG}
+								winFocused={isFocused}
 							/>
-							<Button color="red" onClick={() => this.props.closeApp(title)} svg={CloseSVG} />
+							<TitleBarCloseBtn
+								onClick={() => this.props.closeApp(title)}
+								svg={CloseSVG}
+								winFocused={isFocused}
+							/>
 						</div>
 					</TitleBar>
 					<Content onClick={() => this.props.focusApp(title)}>

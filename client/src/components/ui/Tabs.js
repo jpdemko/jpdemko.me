@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react"
 import styled, { css } from "styled-components/macro"
 
-import { ButtonBase } from "./Button"
+import Button from "./Button"
 import { usePrevious } from "../../shared/hooks"
+import { opac } from "../../shared/shared"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -16,12 +17,11 @@ const Root = styled.div`
 	`}
 `
 
-const TabButton = styled(ButtonBase)`
-	${({ isFocused, theme }) => css`
-		color: ${theme.contrast};
-		opacity: ${isFocused ? 1 : 0.65};
-		background: ${isFocused ? theme.altBackground : null};
-		border-right: 1px solid ${theme.altBackground};
+const TabButton = styled(Button)`
+	padding: 0.2em 0.6em;
+	${({ theme }) => css`
+		color: ${theme.bgContrast};
+		border-right: 1px solid ${opac(0.6, theme.accent)};
 	`}
 `
 
@@ -30,12 +30,9 @@ const TabsHeader = styled.div`
 	flex: 0 0 auto;
 	display: flex;
 	overflow-x: auto;
-	${({ theme }) => css`
-		background: ${theme.background};
-		> * {
-			flex: 0 0 auto;
-		}
-	`}
+	> * {
+		flex: 0 0 auto;
+	}
 `
 
 const SelectedContent = styled.div`
@@ -47,8 +44,7 @@ const SelectedContent = styled.div`
 const TabContents = styled.div`
 	height: 100%;
 	${({ isFocused, theme }) => css`
-		background: ${theme.background};
-		color: ${theme.contrast};
+		color: ${theme.bgContrast};
 		position: ${isFocused ? "initial" : "absolute"};
 		display: ${isFocused ? "initial" : "none"};
 	`}
@@ -79,6 +75,7 @@ function Tabs({ content = defaultContent, ...props }) {
 						key={`tab-header-${id}`}
 						isFocused={id === focusedID}
 						onClick={() => setFocusedID(id)}
+						color="primary"
 						column
 					>
 						{tabHeader}

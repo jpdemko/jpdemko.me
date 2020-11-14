@@ -1,13 +1,14 @@
 import { useState, useEffect, useContext } from "react"
-import styled, { css, ThemeProvider } from "styled-components/macro"
+import styled, { css } from "styled-components/macro"
 import { DateTime } from "luxon"
 
 import { ReactComponent as CloseSVG } from "../../shared/assets/icons/close.svg"
 import { useInterval } from "../../shared/hooks"
-import { themes, Contexts } from "../../shared/shared"
+import { Contexts } from "../../shared/shared"
 import Button from "../ui/Button"
 import LocationSearch from "./LocationSearch"
 import WeatherIcon from "./WeatherIcon"
+import TempHue from "./TempHue"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -64,6 +65,9 @@ const LocationAddress = styled.div`
 const LocationSummary = styled.div`
 	display: flex;
 	align-items: center;
+	> * {
+		margin-right: 0.3em;
+	}
 	&& svg {
 		height: 2em;
 	}
@@ -79,6 +83,10 @@ const Footer = styled.div`
 		flex: 1 1 auto;
 		margin: 0.2em;
 	}
+`
+
+const StyledTempHue = styled(TempHue)`
+	padding: 0 0.2em;
 `
 
 /* -------------------------------- COMPONENT ------------------------------- */
@@ -109,21 +117,23 @@ function WeatherNav({
 			<LocationsList>
 				{locations.map(({ id, curWeatherBG, mapData, weatherData }) => {
 					if (!mapData?.address?.formattedAddress) return null
+					const temp = getTemp(weatherData.currently.apparentTemperature)
 					return (
 						<Row key={id} curWeatherBG={curWeatherBG}>
-							<ThemeProvider theme={themes.dark}>
-								<Location tag="div" onClick={() => onLocationFound(mapData)}>
-									<LocationAddress>{mapData.address.formattedAddress}</LocationAddress>
-									<LocationSummary>
-										<span>{getTemp(weatherData.currently.apparentTemperature)}&deg;</span>
-										<WeatherIcon iconName={weatherData.currently.icon} />
-										<span style={{ marginLeft: ".1em" }}>
-											{date.setZone(weatherData.timezone).toFormat("t")}
-										</span>
-									</LocationSummary>
-								</Location>
-							</ThemeProvider>
-							<Button svg={CloseSVG} color="red" onClick={() => removeLocation(id)} />
+							<Location tag="div" color="primaryContrast" onClick={() => onLocationFound(mapData)}>
+								<LocationAddress>{mapData.address.formattedAddress}</LocationAddress>
+								<LocationSummary>
+									<StyledTempHue temp={temp}>{temp}&deg;</StyledTempHue>
+									<WeatherIcon iconName={weatherData.currently.icon} />
+									<div>{date.setZone(weatherData.timezone).toFormat("t")}</div>
+								</LocationSummary>
+							</Location>
+							<Button
+								svg={CloseSVG}
+								setTheme="red"
+								color="primary"
+								onClick={() => removeLocation(id)}
+							/>
 						</Row>
 					)
 				})}

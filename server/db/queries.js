@@ -9,23 +9,43 @@ async function setUserByUname(uname) {
 }
 
 const chat = {
-	getMyDMs: function (uid) {
+	sendDM: function ({ uid, recip_id, msg }) {
+		const sendDMSQL = `WITH d AS (
+				INSERT INTO dms(uid, recip, msg) VALUES ($1, $2, $3) RETURNING *
+			)
+			SELECT d.dmid, d.uid, d.msg, d.created_at, u.uname FROM d
+			INNER JOIN users u ON d.uid = u.uid`
+		return db.query(sendDMSQL, [uid, recip_id, msg])
+	},
+	getLogsDMS: async function ({ uid, recip_id, lastDMTS }) {
+		const getLogsDMSSQL = `SELECT dms.dmid, dms.uid, dms.msg, dms.created_at, u.uname FROM dms
+			INNER JOIN users u ON dms.uid = u.uid
+			WHERE ((dms.uid = $1 AND dms.recip = $2) OR (dms.uid = $2 AND dms.recip = $1))
+				AND dms.created_at > ${lastDMTS ? "$3" : "NOW() - INTERVAL '90 DAYS'"}
+			ORDER BY dms.created_at ASC;`
+		const dmsRes = await db.query(getLogsDMSSQL, [uid, recip_id, ...(lastDMTS ? [lastDMTS] : [])])
+		return shared.dataUnreadTransform(dmsRes.rows, { uid, uniqKey: "dmid" })
+	},
+	getMyDMS: function (uid) {
 		const getAllDMsSQL = `
 			WITH chats AS (SELECT * FROM dms_history h WHERE h.user1 = $1 OR h.user2 = $1)
 			SELECT
-				chats2.user1 AS recip_id,
-				u.uname AS recip_uname,
-				chats2.last_dm_between AS dmid,
+				chats2.recip_id,
+				r.uname AS recip_uname,
+				u.uname,
+				dms.dmid,
+				dms.uid,
 				dms.msg,
 				dms.created_at
 			FROM (
-				SELECT chats.user1, chats.last_dm_between FROM chats
+				SELECT chats.user1 AS recip_id, chats.last_dm_between FROM chats
 				UNION
-				SELECT chats.user2, chats.last_dm_between FROM chats
+				SELECT chats.user2 AS recip_id, chats.last_dm_between FROM chats
 			) AS chats2
-			INNER JOIN users u ON chats2.user1 = u.uid
 			INNER JOIN dms ON chats2.last_dm_between = dms.dmid
-			WHERE chats2.user1 != $1 ORDER BY dms.created_at DESC`
+			INNER JOIN users r ON chats2.recip_id = r.uid
+			INNER JOIN users u ON dms.uid = u.uid
+			WHERE chats2.recip_id != $1 ORDER BY dms.created_at DESC`
 		return db.query(getAllDMsSQL, [uid])
 	},
 	createRoom: async function ({ uid, rname, password }) {
@@ -51,7 +71,6 @@ const chat = {
 		return db.query(leaveRoomSQL, [uid, rid])
 	},
 	getMyRooms: function (uid) {
-		console.log("queries getMyRooms() uid: ", uid)
 		const getMyRoomsSQL = `SELECT ur.rid, r.rname, r.password, m.created_at AS users_last_msg_ts
 			FROM users_rooms ur
 			LEFT JOIN rooms r ON ur.rid = r.rid
@@ -65,24 +84,35 @@ const chat = {
 			AND m.created_at > ${lastMsgTS ? "$2" : "NOW() - INTERVAL '60 DAYS'"}
 			ORDER BY m.created_at ASC`
 		const msgsRes = await db.query(getRoomMsgsSQL, [rid, ...(lastMsgTS ? [lastMsgTS] : [])])
-		return shared.transformMsgs(msgsRes.rows, { uid, uniqKey: "mid" })
+		return shared.dataUnreadTransform(msgsRes.rows, { uid, uniqKey: "mid" })
 	},
 	sendRoomMsg: function ({ uid, rid, msg }) {
-		const sendMsgQuery = `WITH m AS (
+		const sendMsgSQL = `WITH m AS (
 				INSERT INTO msgs(uid, rid, msg) VALUES ($1, $2, $3) RETURNING *
 			)
 			SELECT m.mid, m.uid, m.msg, m.created_at, u.uname FROM m
 			INNER JOIN users u ON m.uid = u.uid`
-		return db.query(sendMsgQuery, [uid, rid, msg])
+		return db.query(sendMsgSQL, [uid, rid, msg])
 	},
 	setup: async function (uname) {
 		const user = await setUserByUname(uname)
-		const data = await Promise.all([this.getMyRooms(user.uid), this.getMyDMs(user.uid)])
-		console.log("setup:", data)
+		const [roomsRes, dmsRes] = await Promise.all([this.getMyRooms(user.uid), this.getMyDMS(user.uid)])
+
+		const myDMS = dmsRes.rows.reduce((acc, cur) => {
+			const { recip_id, recip_uname, ...dmData } = cur
+			const unread = dmData.uid != user.uid
+			acc[recip_id] = {
+				recip_id,
+				recip_uname,
+				dms: { [dmData.dmid]: { ...dmData, unread }, unread: unread ? 1 : 0 },
+			}
+			return acc
+		}, {})
+
 		return {
 			user,
-			myRooms: shared.arr2obj(data[0].rows, "rid"),
-			myDMs: shared.arr2obj(data[1].rows, "dmid"),
+			myRooms: shared.arr2obj(roomsRes.rows, "rid"),
+			myDMS,
 		}
 	},
 }

@@ -8,6 +8,7 @@ import Backdrop from "../ui/Backdrop"
 /* --------------------------------- STYLES --------------------------------- */
 
 const Center = styled.div`
+	pointer-events: none;
 	position: absolute;
 	width: 100%;
 	height: 100%;
@@ -18,6 +19,7 @@ const Center = styled.div`
 `
 
 const Root = styled.div`
+	pointer-events: auto;
 	transform: "scale(0)";
 	${({ animDuration }) => css`
 		transition: ${animDuration}s;

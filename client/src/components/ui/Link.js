@@ -7,7 +7,7 @@ const Anchor = styled.a`
 		transition: all ${animDuration}s;
 		box-shadow: 0 0.05em 0 0 ${theme.highlight}, 0 -0.05em 0 0 ${theme.highlight} inset;
 		&:hover {
-			color: ${theme.contrast};
+			color: ${theme.primaryContrast};
 			box-shadow: 0 0.05em 0 0 ${theme.highlight}, 0 calc(-0.05em + -1.1em) 0 0 ${theme.highlight} inset;
 		}
 	`}

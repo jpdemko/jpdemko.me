@@ -1,8 +1,34 @@
 import { createContext, FunctionComponent, SVGProps } from "react"
-import { transparentize, readableColor } from "polished"
+import { transparentize, readableColor, getLuminance } from "polished"
 import { parse, stringify } from "flatted"
 
 import { ReactComponent as WrenchSVG } from "../shared/assets/icons/wrench.svg"
+
+/* -------------------------------------------------------------------------- */
+
+export const ls = {
+	get: function (key, skipParse = false) {
+		try {
+			if (typeof key !== "string") key = stringify(key)
+			let item = localStorage.getItem(key)
+			if (item && !skipParse) item = parse(item)
+			return item
+		} catch (error) {
+			console.error("ls.get() error: ", error)
+			return null
+		}
+	},
+	set: function (key, value) {
+		try {
+			if (typeof key !== "string") key = stringify(key)
+			if (typeof value !== "string") value = stringify(value)
+			localStorage.setItem(key, value)
+		} catch (error) {
+			console.error("ls.set() error: ", error)
+			return null
+		}
+	},
+}
 
 /* -------------------------------------------------------------------------- */
 
@@ -25,83 +51,107 @@ export const Contexts = {
 
 /* -------------------------------------------------------------------------- */
 
-export let themes = localStorage.getItem("allThemes")
-themes = themes
-	? JSON.parse(themes)
-	: {
-			light: {
-				name: "light",
-				background: "#F5F8FA",
-				altBackground: "#DFE2E4",
-				contrast: "#15202B",
-				readableColor: (bgColor) => readableColor(bgColor, "#15202B", "#F5F8FA"),
-				highlight: "#DB1A4A",
-				color: "#F5F8FA",
-				accent: "#2A343E",
-			},
-			dark: {
-				name: "dark",
-				background: "#15202B",
-				altBackground: "#2A343E",
-				contrast: "#F5F8FA",
-				readableColor: (bgColor) => readableColor(bgColor, "#15202B", "#F5F8FA"),
-				highlight: "#1DA1F2",
-				color: "#15202B",
-				accent: "#DFE2E4",
-			},
-			blue: {
-				name: "blue",
-				background: "#061E2C",
-				altBackground: "#082C42",
-				contrast: "#F5F8FA",
-				readableColor: (bgColor) => readableColor(bgColor, "#061E2C", "#F5F8FA"),
-				highlight: "#1DA1F2",
-				color: "#1DA1F2",
-				accent: "#1884C7",
-			},
-			red: {
-				name: "red",
-				altBackground: "#E2DEDF",
-				background: "#F9F4F6",
-				contrast: "#3C0815",
-				readableColor: (bgColor) => readableColor(bgColor, "#F9F4F6", "#3C0815"),
-				highlight: "#DB1A4A",
-				color: "#DB1A4A",
-				accent: "#B4163D",
-			},
-	  }
-
-/* -------------------------------------------------------------------------- */
-
-export const mediaBreakpoints = { desktop: 813 }
-
-/* -------------------------------------------------------------------------- */
-
-export const ls = {
-	get: function (key, skipParse = false) {
-		try {
-			if (typeof key !== "string") key = stringify(key)
-			let item = localStorage.getItem(key)
-			if (item && !skipParse) item = parse(item)
-			return item
-		} catch (error) {
-			console.error(error)
-			return null
-		}
+const baseThemes = {
+	light: {
+		name: "light",
+		primary: "#F5F8FA",
+		primaryContrast: "#15202B",
+		background: "#F5F8FA",
+		bgContrast: "#15202B",
+		altBackground: "#DFE2E4",
+		highlight: "#DB1A4A",
+		accent: "#2A343E",
 	},
-	set: function (key, value) {
-		try {
-			if (typeof key !== "string") key = stringify(key)
-			if (typeof value !== "string") value = stringify(value)
-			localStorage.setItem(key, value)
-		} catch (error) {
-			console.error(error)
-			return null
-		}
+	dark: {
+		name: "dark",
+		primary: "#15202B",
+		primaryContrast: "#F5F8FA",
+		background: "#15202B",
+		bgContrast: "#F5F8FA",
+		altBackground: "#2A343E",
+		highlight: "#1DA1F2",
+		accent: "#DFE2E4",
+	},
+	blue: {
+		name: "blue",
+		primary: "#1DA1F2",
+		primaryContrast: "#F5F8FA",
+		background: "#061E2C",
+		bgContrast: "#F5F8FA",
+		altBackground: "#082C42",
+		highlight: "#1DA1F2",
+		accent: "#1884C7",
+	},
+	red: {
+		name: "red",
+		primary: "#DB1A4A",
+		primaryContrast: "#F9F4F6",
+		altBackground: "#F1E5E9",
+		bgContrast: "#3C0815",
+		background: "#F9F4F6",
+		highlight: "#DB1A4A",
+		accent: "#B4163D",
 	},
 }
 
-/* -------------------------------------------------------------------------- */
+/**
+ * Returns either the darkest/lightest color from the theme this is called from with respect to
+ * the passed background color. A passed dark color will return the theme's lightest color.
+ * @callback ThemeReadableColor
+ * @param {string} bgColor Color of the background you're trying to get a readable color from.
+ * @returns {string}
+ */
+
+/**
+ * @typedef {Object} Theme
+ * @property {string} name
+ * @property {string} background Should be very light or dark.
+ * @property {string} altBackground Slight offset of the regular background.
+ * @property {string} bgContrast Text color readable on both backgrounds.
+ * @property {string} highlight Color used to highlight/emphasis text.
+ * @property {string} primary The primary color of the theme.
+ * @property {string} primaryContrast Text color readable on the main theme's color.
+ * @property {string} accent Slight offset of primary theme color.
+ * @property {ThemeReadableColor} [readableColor]
+ */
+
+/**
+ * @param {Theme} theme
+ * @returns {Theme}
+ */
+function createTheme(theme) {
+	let sortedLumin = Object.entries(theme)
+		.map(([name, hex]) => (typeof hex === "string" && hex.includes("#") ? [name, getLuminance(hex)] : null))
+		.filter((arr) => arr !== null)
+		.sort(([, lumi1], [, lumi2]) => (lumi1 > lumi2 ? 1 : lumi1 < lumi2 ? -1 : 0))
+	const darkKV = sortedLumin.shift()
+	const lightKV = sortedLumin.pop()
+	// console.log(`createTheme(${theme.name}) dark: `, darkKV, "lightKV: ", lightKV)
+	return {
+		...theme,
+		readableColor: (bgColor) => readableColor(bgColor, theme?.[darkKV?.[0]], theme?.[lightKV?.[0]], false),
+	}
+}
+
+/**
+ * @typedef {Object.<string, Theme} Themes
+ */
+export var Themes =
+	ls.get("allThemes") ??
+	Object.keys(baseThemes).reduce((acc, tName) => {
+		acc[tName] = createTheme(baseThemes[tName])
+		return acc
+	}, {})
+
+/**
+ * @param {Theme} theme
+ */
+function addTheme(theme) {
+	if (theme && Object.keys(theme)?.length > 0 && theme?.name) {
+		Themes[theme.name] = createTheme(theme)
+		return Themes[theme.name]
+	}
+}
 
 /**
  * Mainly for getting intellisense on what options there when setting up each app's shared field.
@@ -109,42 +159,24 @@ export const ls = {
  * @param {Object} options
  * @param {string} options.title
  * @param {FunctionComponent<SVGProps<SVGSVGElement>>} options.logo
- * @param {Object} options.theme
+ * @param {Theme} options.theme
  * @param {boolean} options.authRequired
  * @return {Object}
  */
 export function setupAppSharedOptions(options = {}) {
-	return {
+	const appDefaults = {
 		title: `Gen. Title#${Math.round(new Date().getTime() / 1000000 + Math.random() * 100)}`,
 		logo: WrenchSVG,
-		theme: themes.blue,
+		theme: Themes.blue,
 		authRequired: false,
-		...options,
 	}
+	if (options?.theme) options.theme = addTheme(options.theme) ?? Themes.blue
+	return { ...appDefaults, ...options }
 }
 
 /* -------------------------------------------------------------------------- */
 
-/**
- * @param {string} name
- * @param {Object} theme
- * @param {string} theme.background Should be very light/dark.
- * @param {string} theme.altBackground Slight offset of regular background.
- * @param {string} theme.contrast Text color readable on both backgrounds.
- * @param {Array<string>} theme.contrastColors [dark color for light bg, light color for dark bg].
- * @param {string} theme.highlight Color used to highlight/emphasis text (contrast).
- * @param {string} theme.color The primary color of the theme.
- * @param {string} theme.accent Slight offset of primary theme color.
- */
-export function createTheme(name, theme) {
-	const [lightRet, darkRet] = theme.contrastColors
-	themes[name] = {
-		name,
-		readableColor: (bgColor) => readableColor(bgColor, lightRet, darkRet),
-		...theme,
-	}
-	return themes[name]
-}
+export const mediaBreakpoints = { desktop: 813 }
 
 /* -------------------------------------------------------------------------- */
 
@@ -171,8 +203,8 @@ export class Styles {
 				style = style.map(parseFloat)
 			}
 			return Array.isArray(style) ? style : [style]
-		} catch (err) {
-			console.error(err)
+		} catch (error) {
+			console.error("Styles.get() error: ", error)
 			return null
 		}
 	}

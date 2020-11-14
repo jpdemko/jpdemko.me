@@ -21,7 +21,7 @@ function AuthProvider({ children }) {
 					setUser(res.data)
 				}
 			})
-			.catch(console.error)
+			.catch((error) => console.error("<AuthProvider /> getuser() error: ", error))
 	}
 
 	return (

@@ -15,37 +15,37 @@ function arr2obj(arr, uniqKey) {
 }
 
 /**
- * 1. Every msg will be made unread unless optional UID is passed, which will change the default
- * behavior to make every message after the user's last message unread instead.
+ * 1. Every msg/DM will be made unread unless optional UID is passed, which will change the default
+ * behavior to make every msg/DM after the user's last msg/DM unread instead.
  *
- * 2. Deep copied msgs array will then be transformed into an object of objects.
- * @param {Array<Object>} msgsRow
+ * 2. Deep copied msg/DM array will then be transformed into an object of objects.
+ * @param {Array<Object>} row
  * @param {Object} [options={}]
  * @param {string|number} [options.uid]
  * @param {string} [options.uniqKey]
  * @returns {Object}
  */
-function transformMsgs(msgsRow, options = {}) {
-	const msgs = msgsRow.slice()
+function dataUnreadTransform(row, options = {}) {
+	const data = row.slice()
 	let startIdx = 0
 	if (options.uid) {
-		for (let i = msgs.length - 1; i > 0; i--) {
-			if (msgs[i].uid == options.uid) {
+		for (let i = data.length - 1; i > 0; i--) {
+			if (data[i].uid == options.uid) {
 				startIdx = i
 				break
 			}
 		}
 	}
-	for (let i = 0; i < msgs.length; i++) {
-		msgs[i] = {
-			...msgs[i],
-			unread: msgs[i].uid != options.uid && i >= startIdx,
+	for (let i = 0; i < data.length; i++) {
+		data[i] = {
+			...data[i],
+			unread: data[i].uid != options.uid && i >= startIdx,
 		}
 	}
-	return arr2obj(msgs, options.uniqKey)
+	return arr2obj(data, options.uniqKey)
 }
 
 module.exports = {
 	arr2obj,
-	transformMsgs,
+	dataUnreadTransform,
 }

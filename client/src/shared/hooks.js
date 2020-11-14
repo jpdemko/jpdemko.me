@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef, useContext, useCallback } from "react"
+import { useState, useEffect, useRef, useContext, useCallback, useMemo, useLayoutEffect } from "react"
 import { ThemeContext } from "styled-components/macro"
 import throttle from "lodash/throttle"
 
-import { themes, ls } from "./shared"
+import { Themes, ls } from "./shared"
 
 /* -------------------------------------------------------------------------- */
 
@@ -195,15 +195,18 @@ export function useResizeObserver(callback, throttleMS = 200) {
 
 /* -------------------------------------------------------------------------- */
 
-export function useCorrectTheme(color) {
+export function useCorrectTheme({ setTheme, color, log }) {
 	const curTheme = useContext(ThemeContext)
-	const output = {}
-	if (color && Object.keys(themes).find((name) => name === color)) {
-		if (curTheme.name === color) color = "dark"
-		output.color = color
-		output.theme = themes[color]
-	}
-	return output
+	const nextTheme = useMemo(() => Themes?.[setTheme] ?? null, [setTheme])
+	const nextColor = useMemo(() => (nextTheme ?? curTheme)?.[color] ?? null, [nextTheme, curTheme, color])
+	const themeProps = useMemo(() => {
+		return {
+			...(nextTheme && { theme: nextTheme }),
+			...(nextColor && { color: nextColor }),
+		}
+	}, [nextTheme, nextColor])
+	if (log) console.log("useCorrectTheme()")
+	return themeProps
 }
 
 /* -------------------------------------------------------------------------- */
