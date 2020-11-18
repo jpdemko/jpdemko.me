@@ -30,7 +30,7 @@ function TempHue({ temp, children, ...props }) {
 	}
 
 	return (
-		<Root {...props} hue={getTempHue(temp)}>
+		<Root {...props} hue={getTempHue(temp ?? 70)}>
 			<span>{children}</span>
 		</Root>
 	)

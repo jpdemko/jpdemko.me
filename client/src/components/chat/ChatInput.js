@@ -5,10 +5,16 @@ import { MsgBox } from "../ui/IO"
 
 /* --------------------------------- STYLES --------------------------------- */
 
-const ChatIO = styled(MsgBox)`
+const InputForm = styled.form`
+	display: block;
+	flex: 0 0 auto;
+`
+
+const InputArea = styled(MsgBox)`
+	transition: all 0.3s;
 	max-height: 40vmin;
-	transition: all 0.4s;
-	&:focus {
+	&:focus,
+	&:active {
 		min-height: calc(var(--nav-height) * 3);
 	}
 `
@@ -35,8 +41,8 @@ function ChatInput({ socketSendRoomMsg, roomsShown, socketSendDM, ...props }) {
 	}
 
 	return (
-		<form onSubmit={submit} {...props}>
-			<ChatIO
+		<InputForm onSubmit={submit}>
+			<InputArea
 				minLength="1"
 				required
 				value={text}
@@ -44,7 +50,7 @@ function ChatInput({ socketSendRoomMsg, roomsShown, socketSendDM, ...props }) {
 				onKeyDown={checkKeys}
 				placeholder="Send a message."
 			/>
-		</form>
+		</InputForm>
 	)
 }
 

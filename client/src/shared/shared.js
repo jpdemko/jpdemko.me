@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-unused-vars
 import { createContext, FunctionComponent, SVGProps } from "react"
 import { transparentize, readableColor, getLuminance } from "polished"
 import { parse, stringify } from "flatted"

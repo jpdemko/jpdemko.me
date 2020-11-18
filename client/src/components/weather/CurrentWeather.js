@@ -7,6 +7,7 @@ import TempHue from "./TempHue"
 /* --------------------------------- STYLES --------------------------------- */
 
 const Root = styled.div`
+	font-size: 1.2em;
 	padding: 0.5em;
 	font-weight: 500;
 	flex: 1 0 12ch;
@@ -37,7 +38,9 @@ const Address = styled.div`
 	overflow: hidden;
 `
 
-const TextSummary = styled.div``
+const TextSummary = styled.div`
+	font-weight: bold;
+`
 
 const LayoutSwitch = styled.div`
 	display: flex;

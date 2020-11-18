@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useContext, useCallback, useMemo, useLayoutEffect } from "react"
+import { useState, useEffect, useRef, useContext, useCallback, useMemo } from "react"
 import { ThemeContext } from "styled-components/macro"
 import throttle from "lodash/throttle"
 
@@ -162,6 +162,7 @@ export function useResizeObserver(callback, throttleMS = 200) {
 	const [callbackOutput, setCallbackOutput] = useState()
 	const callbackOutputRef = useUpdatedValRef(callbackOutput)
 
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	const throttledCallback = useCallback(
 		throttle((rect) => {
 			const prevOutput = callbackOutputRef.current
@@ -195,17 +196,25 @@ export function useResizeObserver(callback, throttleMS = 200) {
 
 /* -------------------------------------------------------------------------- */
 
-export function useCorrectTheme({ setTheme, color, log }) {
+export function useCorrectTheme({ setTheme, color }) {
 	const curTheme = useContext(ThemeContext)
+
 	const nextTheme = useMemo(() => Themes?.[setTheme] ?? null, [setTheme])
-	const nextColor = useMemo(() => (nextTheme ?? curTheme)?.[color] ?? null, [nextTheme, curTheme, color])
+
+	// Might be a bad idea to auto determine base color because each UI component might want
+	// the base color to be something specific to the theme.
+	const nextColor = useMemo(() => {
+		const theme = nextTheme ?? curTheme
+		return theme?.[color] ?? theme.bgContrast
+	}, [nextTheme, curTheme, color])
+
 	const themeProps = useMemo(() => {
 		return {
 			...(nextTheme && { theme: nextTheme }),
 			...(nextColor && { color: nextColor }),
 		}
 	}, [nextTheme, nextColor])
-	if (log) console.log("useCorrectTheme()")
+
 	return themeProps
 }
 

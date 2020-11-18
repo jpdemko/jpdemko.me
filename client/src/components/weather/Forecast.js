@@ -12,24 +12,29 @@ import TempHue from "./TempHue"
 
 const CustomTabs = styled(Tabs)`
 	flex: 3 0;
-	font-size: 0.8em;
 	border: none;
+	font-size: 0.8em;
 `
 
 const InfoMessage = styled.div`
 	display: inline-block;
 	position: absolute;
 	z-index: 500;
-	margin: 1em;
-	margin-right: 3em;
-	top: 0;
+	margin: 0.5em;
+	bottom: 0;
 	left: 0;
-	padding: 0.25em 0.5em;
+	max-width: 100%;
+	padding: 0.2em 0.6em;
+	font-size: 0.8em;
 	transition: opacity 0.5s;
 	${({ theme, isValidZone }) => css`
 		background-color: ${opac(0.8, theme.background)};
 		color: ${theme.bgContrast};
 		opacity: ${isValidZone ? 0 : 1};
+		> span {
+			font-weight: bold;
+			color: ${theme.primary};
+		}
 	`}
 `
 
@@ -282,7 +287,8 @@ const Forecast = memo(({ curLocation, getTemp }) => {
 			tabContent: (
 				<MapEntry id="BingMapRadar">
 					<InfoMessage isValidZone={isValidZone}>
-						INFO: Radar loop overlay is only for the USA. I don't have international data.
+						- <span>INFO</span> - Radar loop overlay is only for the USA. I don't have international
+						data.
 					</InfoMessage>
 				</MapEntry>
 			),

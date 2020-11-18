@@ -15,7 +15,7 @@ import App from "./App"
 /* --------------------------------- STYLES --------------------------------- */
 
 const Root = styled.div`
-	--nav-height: 2.25em;
+	--nav-height: 2.25rem;
 	height: 100%;
 	overflow: hidden;
 `

@@ -14,7 +14,6 @@ import Button from "../ui/Button"
 import Modal from "../ui/Modal"
 import { Input } from "../ui/IO"
 import Accordion from "../ui/Accordion"
-import { DateTime } from "luxon"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -99,10 +98,16 @@ const LatestDM = styled(Button)`
 	&:last-child {
 		margin-bottom: 0;
 	}
-	${({ theme }) => css`
+	${({ theme, isFocused }) => css`
+		color: ${theme.bgContrast};
 		border: 1px solid ${theme.accent};
+		outline: ${isFocused ? 1 : 0}px solid ${theme.accent};
 		.latest-dm-row {
 			padding: calc(var(--chatnav-padding) * 0.75);
+			max-width: 45ch;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
 			svg {
 				margin-right: var(--chatnav-padding);
 			}
@@ -161,99 +166,15 @@ function ChatNav({ myRooms, myDMS, curDMUID, curRoomRID, createRoom, joinRoom, d
 	const [createConfig, setCreateConfig] = useState(true)
 
 	const createRoomModalRef = useRef()
-	const createRoomModal = (
-		<ModalRoot>
-			<form onSubmit={submitCreateRoom}>
-				<div>
-					<Empha>Create room config!</Empha>
-				</div>
-				<div>
-					<label>
-						<span>Room name:</span>
-						<br />
-						<Input
-							type="text"
-							placeholder="Room name required..."
-							value={rname}
-							onChange={(e) => setRName(e.target.value)}
-							minLength="1"
-							required
-							ref={createRoomModalRef}
-						/>
-					</label>
-				</div>
-				<div>
-					<label>
-						<span>Room password:</span>
-						<br />
-						<Input
-							type="password"
-							placeholder="Optional room password..."
-							value={password}
-							onChange={(e) => setPassword(e.target.value)}
-							minLength="6"
-						/>
-					</label>
-				</div>
-				<div>
-					<Button type="submit" variant="fancy">
-						Submit
-					</Button>
-				</div>
-			</form>
-		</ModalRoot>
-	)
-
-	const joinRoomModalRef = useRef()
-	const joinRoomModal = (
-		<ModalRoot>
-			<form onSubmit={submitJoinRoom}>
-				<div>
-					<Empha>Join room config!</Empha>
-				</div>
-				<div>
-					<label>
-						<span>Join room ID#:</span>
-						<br />
-						<Input
-							type="text"
-							placeholder="Room ID# required..."
-							value={rid}
-							onChange={(e) => setRID(e.target.value)}
-							minLength="1"
-							required
-							ref={joinRoomModalRef}
-						/>
-					</label>
-				</div>
-				<div>
-					<label>
-						<span>Does target room have password?</span>
-						<br />
-						<Input
-							type="password"
-							value={password}
-							onChange={(e) => setPassword(e.target.value)}
-							minLength="6"
-						/>
-					</label>
-				</div>
-				<div>
-					<Button type="submit" variant="fancy">
-						Submit
-					</Button>
-				</div>
-			</form>
-		</ModalRoot>
-	)
-
 	function togCreateRoomModal(e) {
-		e.stopPropagation()
+		e.stopPropagation() // Click event fired for accordion tab buttons otherwise.
 		setCreateConfig(true)
 		setModalShown(true)
 	}
+
+	const joinRoomModalRef = useRef()
 	function togJoinRoomModal(e) {
-		e.stopPropagation()
+		e.stopPropagation() // Click event fired for accordion tab buttons otherwise.
 		setCreateConfig(false)
 		setModalShown(true)
 	}
@@ -404,6 +325,8 @@ function ChatNav({ myRooms, myDMS, curDMUID, curRoomRID, createRoom, joinRoom, d
 									key={recip_id}
 									isFocused={recip_id == curDMUID}
 									onClick={() => openDM(recipUser)}
+									badge={myDMS[recip_id]?.dms?.unread > 0 ? "!" : null}
+									color="primary"
 									column
 								>
 									<div className="latest-dm-row">
@@ -429,6 +352,90 @@ function ChatNav({ myRooms, myDMS, curDMUID, curRoomRID, createRoom, joinRoom, d
 	)
 	// Can't update during an existing state transition. So defer it.
 	useEffect(() => setAppDrawerContent(drawerContent))
+
+	const createRoomModal = (
+		<ModalRoot>
+			<form onSubmit={submitCreateRoom}>
+				<div>
+					<Empha>Create room config!</Empha>
+				</div>
+				<div>
+					<label>
+						<span>Room name:</span>
+						<br />
+						<Input
+							type="text"
+							placeholder="Room name required..."
+							value={rname}
+							onChange={(e) => setRName(e.target.value)}
+							minLength="1"
+							required
+							ref={createRoomModalRef}
+						/>
+					</label>
+				</div>
+				<div>
+					<label>
+						<span>Room password:</span>
+						<br />
+						<Input
+							type="password"
+							placeholder="Optional room password..."
+							value={password}
+							onChange={(e) => setPassword(e.target.value)}
+							minLength="6"
+						/>
+					</label>
+				</div>
+				<div>
+					<Button type="submit" variant="fancy">
+						Submit
+					</Button>
+				</div>
+			</form>
+		</ModalRoot>
+	)
+	const joinRoomModal = (
+		<ModalRoot>
+			<form onSubmit={submitJoinRoom}>
+				<div>
+					<Empha>Join room config!</Empha>
+				</div>
+				<div>
+					<label>
+						<span>Join room ID#:</span>
+						<br />
+						<Input
+							type="text"
+							placeholder="Room ID# required..."
+							value={rid}
+							onChange={(e) => setRID(e.target.value)}
+							minLength="1"
+							required
+							ref={joinRoomModalRef}
+						/>
+					</label>
+				</div>
+				<div>
+					<label>
+						<span>Does target room have password?</span>
+						<br />
+						<Input
+							type="password"
+							value={password}
+							onChange={(e) => setPassword(e.target.value)}
+							minLength="6"
+						/>
+					</label>
+				</div>
+				<div>
+					<Button type="submit" variant="fancy">
+						Submit
+					</Button>
+				</div>
+			</form>
+		</ModalRoot>
+	)
 
 	return (
 		<>

@@ -1,7 +1,7 @@
 const shared = require("./shared")
 const queries = require("./db/queries")
 
-module.exports = function (io, sessionMiddleware, db) {
+module.exports = function (io, sessionMiddleware) {
 	var User = {
 		setup: function ({ uid, uname, socketID }) {
 			if (!uid || !uname) throw Error("User.create() bad params")
@@ -265,9 +265,9 @@ module.exports = function (io, sessionMiddleware, db) {
 			}
 		})
 
-		socket.on("getLogsDMS", async function ({ uid, recip_id, lastDMTS }, clientCB) {
+		socket.on("getLogsDMS", async function ({ uid, recip_id, tsLogsFetched }, clientCB) {
 			try {
-				const dms = await queries.chat.getLogsDMS({ uid, recip_id, lastDMTS })
+				const dms = await queries.chat.getLogsDMS({ uid, recip_id, tsLogsFetched })
 				clientCB({ success: "server success - getLogsDMS()", data: { dms, recip_id } })
 			} catch (error) {
 				console.log("server error - getLogsDMS(): ", error)

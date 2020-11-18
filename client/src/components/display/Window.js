@@ -4,7 +4,6 @@ import styled, { css } from "styled-components/macro"
 import { Transition } from "react-transition-group"
 import throttle from "lodash/throttle"
 import merge from "lodash/merge"
-import { rgba } from "polished"
 
 import { ReactComponent as CloseSVG } from "../../shared/assets/icons/close.svg"
 import { ReactComponent as MinimizeSVG } from "../../shared/assets/icons/minimize.svg"
@@ -26,8 +25,7 @@ const Root = styled.div`
 	flex-direction: column;
 	max-width: 100vw;
 	max-height: 100vh;
-	opacity: 0;
-	backface-visibility: hidden;
+	visibility: 0;
 	${({ minWindowCSS, zIndex, isFocused, isMobileSite, isMaximized, theme }) => css`
 		z-index: ${zIndex};
 		${!isMobileSite &&
@@ -157,6 +155,7 @@ export default class Window extends Component {
 					scale: 0,
 					ease: "back.in(1.75)",
 					duration: 0.35,
+					autoAlpha: 0,
 				},
 				windowed: {
 					top,
@@ -166,7 +165,7 @@ export default class Window extends Component {
 					scale: 1,
 					x: 0,
 					y: 0,
-					opacity: 1,
+					autoAlpha: 1,
 					ease: "elastic.out(1.1, 0.5)",
 					duration: 1,
 				},
@@ -178,7 +177,7 @@ export default class Window extends Component {
 					scale: 1,
 					x: 0,
 					y: 0,
-					opacity: 1,
+					autoAlpha: 1,
 					ease: "bounce.out",
 					duration: 0.75,
 				},
@@ -325,7 +324,7 @@ export default class Window extends Component {
 		// GSAP quick setters have better performance than the traditional gsap.set()
 		const qsWidth = gsap.quickSetter(wdowEle, "width", "px")
 		const qsHeight = gsap.quickSetter(wdowEle, "height", "px")
-		const qs = gsap.quickSetter(wdowEle, "css")
+		this.gsapQS = gsap.quickSetter(wdowEle, "css")
 
 		this.dragInstances = [
 			this.draggableWindow,
@@ -341,7 +340,7 @@ export default class Window extends Component {
 					wdowCSS.height -= drag.deltaY
 
 					qsHeight(wdowCSS.height)
-					qs({ y: `+=${drag.deltaY}` })
+					this.gsapQS({ y: `+=${drag.deltaY}` })
 				},
 			}),
 			genResizeDraggable({
@@ -384,7 +383,7 @@ export default class Window extends Component {
 					wdowCSS.width -= drag.deltaX
 
 					qsWidth(wdowCSS.width)
-					qs({ x: `+=${drag.deltaX}` })
+					this.gsapQS({ x: `+=${drag.deltaX}` })
 				},
 			}),
 		]
@@ -460,13 +459,13 @@ export default class Window extends Component {
 		const { isMinimized, isMaximized } = this.props
 		if (isMinimized || isMaximized || !this.rootRef.current) return
 
-		const wdowStyles = new Styles(this.rootRef.current)
-		const matrix = wdowStyles.get("transform")
+		this.wdowStyles = this.wdowStyles ?? new Styles(this.rootRef.current)
+		const matrix = this.wdowStyles.get("transform")
 		const transform = { x: Math.round(matrix[matrix.length - 2]), y: Math.round(matrix[matrix.length - 1]) }
-		const top = Math.round(wdowStyles.get("top")?.[0])
-		const left = Math.round(wdowStyles.get("left")?.[0])
-		const width = Math.round(wdowStyles.get("width")?.[0])
-		const height = Math.round(wdowStyles.get("height")?.[0])
+		const top = Math.round(this.wdowStyles.get("top")?.[0])
+		const left = Math.round(this.wdowStyles.get("left")?.[0])
+		const width = Math.round(this.wdowStyles.get("width")?.[0])
+		const height = Math.round(this.wdowStyles.get("height")?.[0])
 
 		const roundedVars = {
 			...transform,
@@ -498,6 +497,7 @@ export default class Window extends Component {
 			onStart: () => {
 				wdow.draggableWindow[0].disable()
 				wdow.dragInstances.forEach((i) => i[0].disable())
+				wdow.gsapQS({ backfaceVisibility: "hidden" })
 			},
 			onComplete: () => {
 				if (!wdow.props.isMinimized) {
@@ -507,6 +507,7 @@ export default class Window extends Component {
 				if (!wdow.props.isMinimized && !wdow.props.isMaximized) {
 					wdow.dragInstances.forEach((i) => i[0].enable())
 				}
+				wdow.gsapQS({ backfaceVisibility: "visible" })
 				wdow.preventSubpixelValues()
 			},
 			onUpdate: function () {
@@ -524,11 +525,12 @@ export default class Window extends Component {
 		if (isMinimized || isMaximized) return
 
 		this.draggableWindow[0].update(true)
-		const wdowStyles = new Styles(this.rootRef.current)
+		this.wdowStyles = this.wdowStyles ?? new Styles(this.rootRef.current)
+
 		this.data.css.windowed = {
 			...this.data.css.windowed,
-			top: wdowStyles.get("top")?.[0],
-			left: wdowStyles.get("left")?.[0],
+			top: this.wdowStyles.get("top")?.[0],
+			left: this.wdowStyles.get("left")?.[0],
 			x: this.draggableWindow[0].x,
 			y: this.draggableWindow[0].y,
 		}

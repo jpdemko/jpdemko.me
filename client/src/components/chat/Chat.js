@@ -11,10 +11,12 @@ import ChatInput from "./ChatInput"
 import { Input } from "../ui/IO"
 import Button from "../ui/Button"
 import { DateTime } from "luxon"
+import ChatInfo from "./ChatInfo"
 
 /* --------------------------------- STYLES --------------------------------- */
 
 const Root = styled.div`
+	--chat-padding: 0.4em;
 	display: flex;
 `
 
@@ -143,17 +145,10 @@ class Chat extends Component {
 	bgSetup = async () => {
 		let nextState = { ...this.state }
 		try {
-			console.log("bgSetup()")
 			const roomsProm = Object.keys(nextState.myRooms).map((rid) =>
 				this.socketJoinRoom({ room: nextState.myRooms[rid], user: nextState.user })
 			)
-			const dmsProm = Object.keys(nextState.myDMS).map((recip_id) =>
-				this.socketGetLogsDMS({ recip_id, user: nextState.user })
-			)
 			const roomsRes = await Promise.all(roomsProm)
-			const dmsRes = await Promise.all(dmsProm)
-			console.log("roomsRes: ", roomsRes)
-			console.log("dmsRes: ", dmsRes)
 			roomsRes.forEach(({ room }) => {
 				if (room) {
 					const { rid, msgs } = room
@@ -168,20 +163,6 @@ class Chat extends Component {
 					}
 				}
 			})
-			// dmsRes.forEach(({ data: convo }) => {
-			// 	if (convo) {
-			// 		const { recip_id, dms } = convo
-			// 		const eleDM = data.myDMS[recip_id]
-			// 		data.myDMS[recip_id] = {
-			// 			...(eleDM ?? {}),
-			// 			...convo,
-			// 			dms: {
-			// 				...(eleDM?.dms ?? {}),
-			// 				...(dms ?? {}),
-			// 			},
-			// 		}
-			// 	}
-			// })
 			this.setState(nextState)
 		} catch (error) {
 			console.error(error)
@@ -388,6 +369,7 @@ class Chat extends Component {
 				if (success && msgs) {
 					const users_last_msg_ts = Object.values(msgs).pop()?.created_at
 					this.updateRoom({ rid: curRoomRID, msgs, users_last_msg_ts })
+					this.unreadHandler()
 					resolve({ success, msgs })
 				} else reject({ error })
 			})
@@ -400,28 +382,27 @@ class Chat extends Component {
 		if (!recip_id) return console.log("openDM() skipped, no recip_id!")
 		else if (recip_id == user?.uid) return console.log("openDM() skipped, can't send DM to yourself!")
 
-		let nextState = {
+		this.setState({
 			roomsShown: false,
 			curDMUID: recip_id,
-			myDMS: {
-				...(myDMS ?? {}),
-			},
-		}
+		})
 
 		if (myDMS[recip_id]) {
 			try {
-				const data = await this.socketGetLogsDMS({ recip_id, user })
-				this.updateDM(data)
-			} catch (error) {}
+				const dmsRes = await this.socketGetLogsDMS({ recip_id, user })
+				if (dmsRes?.success) this.updateDM(dmsRes.data)
+			} catch (error) {
+				console.log(error)
+			}
 		} else {
-			nextState.myDMS[recip_id] = {
+			let nextDMS = { ...myDMS }
+			nextDMS[recip_id] = {
 				temp: true,
 				recip_uname,
 				dms: {},
 			}
+			this.setState({ myDMS: nextDMS })
 		}
-		console.log("openDM() setState -> ", nextState)
-		this.setState(nextState)
 	}
 
 	socketGetLogsDMS = ({ recip_id, user: passedUser }) => {
@@ -442,14 +423,13 @@ class Chat extends Component {
 			let ioVars = {
 				uid: user.uid,
 				recip_id,
+				tsLogsFetched: convo?.tsLogsFetched,
 			}
-			const dms = convo?.dms
-			if (dms) ioVars.lastDMTS = this.getLastTimestamp(dms)
 			socket.emit("getLogsDMS", ioVars, ({ success, error, data }) => {
 				console.log(success ?? error, data)
 				if (error) reject({ error })
 				else if (success) {
-					data.dms = { ...(dms ?? {}), ...(data?.dms ?? {}) }
+					data.dms = { ...(convo?.dms ?? {}), ...(data?.dms ?? {}) }
 					data.tsLogsFetched = DateTime.local().toISO()
 					resolve({ success, data })
 				}
@@ -468,6 +448,7 @@ class Chat extends Component {
 				if (error) reject({ error })
 				else if (success) {
 					this.updateDM(data)
+					this.unreadHandler()
 					resolve({ success, data })
 				}
 			})
@@ -478,20 +459,19 @@ class Chat extends Component {
 		// data { recip_id, dms: { dmid#: { ...dmData } } }
 		if (!data) return
 		console.log("receiveDM() data: ", data)
-		const { recip_id, dms } = data
-		if (!dms) return
+		const { recip_id, dms, tsLogsFetched } = data
+		if (!dms) return console.log("updateDM() failed, no 'dms' property")
 
-		const { myDMS } = this.state
-		let nextMyDMS = { ...myDMS }
-		let convo = nextMyDMS[recip_id]
-		convo = {
-			...(convo ?? {}),
+		let nextMyDMS = { ...this.state.myDMS }
+		nextMyDMS[recip_id] = {
+			...(nextMyDMS[recip_id] ?? {}),
+			tsLogsFetched,
 			dms: {
-				...(convo?.dms ?? {}),
+				...(nextMyDMS[recip_id]?.dms ?? {}),
 				...(dms ?? {}),
 			},
 		}
-		if (convo?.temp) convo.temp = false
+		if (nextMyDMS[recip_id]?.temp) nextMyDMS[recip_id].temp = false
 		this.setState({ myDMS: nextMyDMS })
 	}
 
@@ -560,6 +540,7 @@ class Chat extends Component {
 							user={user}
 						/>
 						<Main>
+							<ChatInfo data={data} roomsShown={roomsShown} />
 							<Logs data={data} user={user} openDM={this.openDM} roomsShown={roomsShown} />
 							<ChatInput
 								socketSendRoomMsg={this.socketSendRoomMsg}

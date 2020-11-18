@@ -20,18 +20,17 @@ const Row = styled.div`
 `
 
 const LogsRoot = styled.div`
-	--logs-padding: 0.4em;
-	flex: 1 1;
+	flex: 30 1;
 	display: flex;
 	flex-direction: column;
-	padding: var(--logs-padding);
+	padding: 0 var(--chat-padding);
 	overflow-y: auto;
 	overflow-x: hidden;
 	> div {
-		margin-bottom: var(--logs-padding);
+		margin-top: var(--chat-padding);
 	}
 	> ${Row}:last-child {
-		margin-bottom: 0;
+		margin-bottom: var(--chat-padding);
 	}
 	${({ theme }) => css`
 		background: ${theme.altBackground};
@@ -46,10 +45,6 @@ const Info = styled.div`
 	align-items: flex-start;
 	${({ authored }) => css`
 		flex-direction: ${authored ? "row-reverse" : "row"};
-		${authored &&
-		css`
-			margin
-		`}
 	`}
 `
 
@@ -61,7 +56,7 @@ const ContentBG = styled.div`
 `
 
 const Content = styled.div`
-	padding: var(--logs-padding) calc(var(--logs-padding) * 2);
+	padding: var(--chat-padding) calc(var(--chat-padding) * 2);
 	${({ theme, authored }) => css`
 		color: ${authored ? theme.primaryContrast : theme.bgContrast};
 		background: ${authored ? opac(0.5, theme.highlight) : "none"};
@@ -72,7 +67,7 @@ const Lessen = styled.span`
 	opacity: 0.75;
 	font-size: 0.8em;
 	${({ authored }) => css`
-		margin-${authored ? "right" : "left"}: var(--logs-padding);
+		margin-${authored ? "right" : "left"}: var(--chat-padding);
 	`}
 `
 
@@ -101,14 +96,14 @@ const SnapEndBtn = styled(Button)`
 
 /* ------------------------------- COMPONENTS ------------------------------- */
 
-const Log = memo(({ data, authored, openDM }) => {
+const Log = memo(({ data, authored, openDM, id }) => {
 	const { uid, uname, mid, dmid, msg, created_at } = data
 	if (!mid && !dmid) return null
 
 	const relativeTime = DateTime.fromISO(created_at).toLocal().toRelative()
 	const preciseTime = DateTime.fromISO(created_at).toLocal().toFormat("t")
 	return (
-		<Row authored={authored}>
+		<Row authored={authored} id={id}>
 			<ContentBG>
 				<Content authored={authored}>{msg}</Content>
 			</ContentBG>
@@ -128,34 +123,43 @@ function Logs({ data, user, openDM, roomsShown, ...props }) {
 	const rootRef = useRef()
 	const [followLast, setFollowLast] = useState(null)
 
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	const handleScrolling = useCallback(
+		throttle(() => {
+			const ele = rootRef.current
+			if (ele) {
+				const { height: rootHeight } = ele.getBoundingClientRect()
+				const atBottom = Math.floor(rootHeight) + ele.scrollTop === Math.round(ele.scrollHeight)
+				setFollowLast(atBottom)
+			}
+		}, 1000),
+		[rootRef.current]
+	)
+	useEventListener("scroll", handleScrolling, rootRef)
+
 	const scroll2end = useCallback(() => {
-		if (rootRef.current) rootRef.current.scrollTop = rootRef.current.scrollHeight
-		if (!followLast) {
-			setFollowLast(true)
+		const ele = rootRef.current
+		if (ele) {
+			ele.scrollTop = ele.scrollHeight
+			handleScrolling()
 		}
-	}, [followLast])
+		if (!followLast) setFollowLast(true)
+	}, [followLast, handleScrolling])
 
 	const type = roomsShown ? "msgs" : "dms"
 	const logsLength = data?.[type] ? Object.keys(data[type]).length : 0
 	useEffect(() => {
 		if (followLast === null) {
 			const horizLine = document.getElementById("chat-unread-start")
-			if (horizLine) horizLine.scrollIntoView({ block: "center" })
-			else scroll2end()
-		} else if (followLast) scroll2end()
+			if (horizLine) {
+				horizLine.scrollIntoView({ block: "center" })
+			} else {
+				scroll2end()
+			}
+		} else if (followLast) {
+			scroll2end()
+		}
 	}, [logsLength, followLast, scroll2end])
-
-	const handleScrolling = useCallback(
-		throttle(() => {
-			const root = rootRef.current
-			const { height: rootHeight } = root.getBoundingClientRect()
-			const atBottom = Math.round(rootHeight + root.scrollTop) === Math.round(root.scrollHeight)
-			// console.log(`Logs handlecrolling() atBottom: ${atBottom}`)
-			setFollowLast(atBottom)
-		}, 1000),
-		[rootRef.current]
-	)
-	useEventListener("scroll", handleScrolling, rootRef)
 
 	function getData() {
 		if (!data?.[type] || data[type].length < 1) return null

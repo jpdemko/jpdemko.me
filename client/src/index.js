@@ -58,7 +58,7 @@ function FakeOS() {
 	return (
 		<>
 			<GlobalStyle />
-			<ThemeProvider theme={Themes.red}>
+			<ThemeProvider theme={Themes.blue}>
 				<Router history={history}>
 					<AuthProvider>
 						<Contexts.TabHidden.Provider value={tabHidden}>

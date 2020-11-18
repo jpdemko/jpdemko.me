@@ -95,11 +95,8 @@ const AutocompleteInput = styled.input`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-let uniqueID = 0
-
 function LocationSearch({ map, modulesLoaded, onLocationFound }) {
 	const onLocationFoundRef = useUpdatedValRef(onLocationFound)
-	const idRef = useRef(uniqueID++)
 	const [input, setInput] = useState("")
 
 	const mapManagersRef = useRef()
@@ -114,16 +111,16 @@ function LocationSearch({ map, modulesLoaded, onLocationFound }) {
 					}),
 					search: new Microsoft.Maps.Search.SearchManager(map),
 				}
-				const id = idRef.current
-				mapManagersRef.current.autoSuggest.attachAutosuggest(
-					`#searchInput${id}`,
-					`#searchRoot${id}`,
-					(mapData) => onLocationFoundRef.current(mapData)
+				mapManagersRef.current.autoSuggest.attachAutosuggest("#searchInput", "#searchRoot", (mapData) =>
+					onLocationFoundRef.current(mapData)
 				)
-				managersLoadedRef.current = true
+				if (mapManagersRef.current) {
+					// console.log("<LocationSearch /> map managers loaded", mapManagersRef.current)
+					managersLoadedRef.current = true
+				}
 			} catch (error) {
 				managersLoadedRef.current = false
-				console.error("<LocationSearch /> Microsoft.Maps error: ", error)
+				console.error("<LocationSearch /> map managers load error: ", error)
 			}
 		}
 
@@ -135,11 +132,14 @@ function LocationSearch({ map, modulesLoaded, onLocationFound }) {
 	}, [map, modulesLoaded, onLocationFoundRef])
 
 	function onGeolocateCurrentPosition() {
-		if (!managersLoadedRef.current) return
+		if (!managersLoadedRef.current || !navigator) {
+			// console.log("<LocationSearch /> onGeolocateCurrentPosition() skipped, bad params")
+			return
+		}
 		navigator.geolocation.getCurrentPosition(
 			({ coords }) => {
 				const location = new Microsoft.Maps.Location(coords.latitude, coords.longitude)
-				mapManagersRef.current.search.reverseGeocode({
+				mapManagersRef.current?.search.reverseGeocode({
 					location,
 					callback: (mapData) => onLocationFoundRef.current(mapData),
 				})
@@ -155,9 +155,9 @@ function LocationSearch({ map, modulesLoaded, onLocationFound }) {
 	}
 
 	return (
-		<Root id={`searchRoot${idRef.current}`}>
+		<Root id="searchRoot">
 			<AutocompleteInput
-				id={`searchInput${idRef.current}`}
+				id="searchInput"
 				placeholder="Add locations..."
 				value={input}
 				onClick={() => setInput("")}

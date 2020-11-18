@@ -17,13 +17,13 @@ const chat = {
 			INNER JOIN users u ON d.uid = u.uid`
 		return db.query(sendDMSQL, [uid, recip_id, msg])
 	},
-	getLogsDMS: async function ({ uid, recip_id, lastDMTS }) {
+	getLogsDMS: async function ({ uid, recip_id, tsLogsFetched }) {
 		const getLogsDMSSQL = `SELECT dms.dmid, dms.uid, dms.msg, dms.created_at, u.uname FROM dms
 			INNER JOIN users u ON dms.uid = u.uid
 			WHERE ((dms.uid = $1 AND dms.recip = $2) OR (dms.uid = $2 AND dms.recip = $1))
-				AND dms.created_at > ${lastDMTS ? "$3" : "NOW() - INTERVAL '90 DAYS'"}
+				AND dms.created_at > ${tsLogsFetched ? "$3" : "NOW() - INTERVAL '90 DAYS'"}
 			ORDER BY dms.created_at ASC;`
-		const dmsRes = await db.query(getLogsDMSSQL, [uid, recip_id, ...(lastDMTS ? [lastDMTS] : [])])
+		const dmsRes = await db.query(getLogsDMSSQL, [uid, recip_id, ...(tsLogsFetched ? [tsLogsFetched] : [])])
 		return shared.dataUnreadTransform(dmsRes.rows, { uid, uniqKey: "dmid" })
 	},
 	getMyDMS: function (uid) {

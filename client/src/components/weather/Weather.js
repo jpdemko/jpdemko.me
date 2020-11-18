@@ -1,6 +1,6 @@
 /* global Microsoft */
 
-import { useState, useEffect, useCallback, useContext } from "react"
+import { useState, useEffect, useCallback, useContext, useRef } from "react"
 import styled, { css } from "styled-components/macro"
 import { DateTime, Interval } from "luxon"
 import { gsap } from "gsap/all"
@@ -16,7 +16,7 @@ import Forecast from "./Forecast"
 /* --------------------------------- STYLES --------------------------------- */
 
 const Root = styled.div`
-	font-size: 1.1em;
+	font-size: 1.1rem;
 	height: 100%;
 	display: flex;
 	${({ theme, weatherBG }) => css`
@@ -27,7 +27,6 @@ const Root = styled.div`
 `
 
 const Data = styled.div`
-	font-size: 1.2rem;
 	height: 100%;
 	flex: 1 1;
 	display: flex;
@@ -65,71 +64,96 @@ function Weather({ title, ...props }) {
 
 	// Setup map and add radar data.
 	const [map, setMap] = useState()
-	const [modulesLoaded, setModulesLoaded] = useState(false)
-	useEffect(() => {
-		function initMap() {
-			try {
-				const genMap = new Microsoft.Maps.Map("#BingMapRadar", {
-					navigationBarMode: Microsoft.Maps.NavigationBarMode.minified,
-					supportedMapTypes: [
-						Microsoft.Maps.MapTypeId.road,
-						Microsoft.Maps.MapTypeId.aerial,
-						Microsoft.Maps.MapTypeId.canvasLight,
-					],
-					zoom: 5,
-					...(curLocation && {
-						center: curLocation.mapData.location,
-						zoom: 8,
-					}),
-				})
-				Microsoft.Maps.loadModule(["Microsoft.Maps.AutoSuggest", "Microsoft.Maps.Search"], {
-					callback: () => setModulesLoaded(true),
-					errorCallback: (error) => {
-						console.error(error)
-						setModulesLoaded(false)
-					},
-				})
-
+	function loadMap() {
+		if (gsap.isTweening(`#window-${title}`))
+			return console.log("<Weather /> loadMap() skipped because of GSAP anim.")
+		try {
+			const genMap = new Microsoft.Maps.Map("#BingMapRadar", {
+				navigationBarMode: Microsoft.Maps.NavigationBarMode.minified,
+				supportedMapTypes: [
+					Microsoft.Maps.MapTypeId.road,
+					Microsoft.Maps.MapTypeId.aerial,
+					Microsoft.Maps.MapTypeId.canvasLight,
+				],
+				zoom: 5,
+				...(curLocation && {
+					center: curLocation.mapData.location,
+					zoom: 8,
+				}),
+				enableClickableLogo: false,
+				showLogo: false,
+				showTermsLink: false,
+			})
+			if (genMap) {
 				if (curLocation) genMap.entities.push(new Microsoft.Maps.Pushpin(genMap.getCenter()))
 				updateRadar(genMap)
 				setMap(genMap)
-				return true
-			} catch (error) {
-				console.error("<Weather /> Microsoft.Maps error: ", error)
-				setModulesLoaded(false)
-				return false
 			}
+			// console.log("<Weather /> loadMap() success")
+		} catch (error) {
+			console.error("<Weather /> loadMap() error: ", error)
 		}
-		let doneLoading = false
-		const interval = setInterval(() => {
-			if (!doneLoading && !gsap.isTweening(`#window-${title}`) && initMap()) doneLoading = true
-		}, 1000)
+	}
+	useEffect(() => {
+		const localMap = map
+		let interval = null
+		if (!localMap) interval = setInterval(() => loadMap(), 1000)
 
 		return () => {
-			if (map) map.dispose()
+			if (localMap) localMap.dispose()
 			if (interval) clearInterval(interval)
 		}
-	}, [])
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [map])
+
+	const [modulesLoaded, setModulesLoaded] = useState(false)
+	function loadMapModules() {
+		if (map && !modulesLoaded) {
+			try {
+				Microsoft.Maps.loadModule(["Microsoft.Maps.AutoSuggest", "Microsoft.Maps.Search"], {
+					callback: () => {
+						// console.log("<Weather /> loadMapModules() success")
+						setModulesLoaded(true)
+					},
+					errorCallback: (error) => {
+						setModulesLoaded(false)
+						throw Error(error)
+					},
+				})
+			} catch (error) {
+				console.error("<Weather /> loadMapModules() error: ", error)
+			}
+		}
+	}
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	useEffect(() => loadMapModules(), [map, modulesLoaded])
 
 	function updateRadar(mapParam) {
 		const localMap = mapParam ?? map
 		if (!localMap) return
-		localMap.layers.clear()
-		const tileSources = radar.timestamps.map(
-			(ts) =>
-				new Microsoft.Maps.TileSource({
-					uriConstructor: radar.api.replace("{timestamp}", ts),
-				})
-		)
-		const animatedLayer = new Microsoft.Maps.AnimatedTileLayer({ mercator: tileSources, frameRate: 500 })
-		localMap.layers.insert(animatedLayer)
-	}
 
-	useInterval(() => {
-		updateRadar()
-	}, 1000 * 60 * updateInterval)
+		try {
+			localMap.layers.clear()
+			const tileSources = radar.timestamps.map(
+				(ts) =>
+					new Microsoft.Maps.TileSource({
+						uriConstructor: radar.api.replace("{timestamp}", ts),
+					})
+			)
+			const animatedLayer = new Microsoft.Maps.AnimatedTileLayer({ mercator: tileSources, frameRate: 500 })
+			localMap.layers.insert(animatedLayer)
+			// console.log("<Weather /> updateRadar() success")
+		} catch (error) {
+			console.error("<Weather /> updateRadar() error: ", error)
+		}
+	}
+	useInterval(() => updateRadar(), 1000 * 60 * updateInterval)
 
 	function mapLoadLocation(mapData) {
+		if (!map) {
+			// console.log("<Weather /> mapLoadLocation() skipped, no 'map' found")
+			return
+		}
 		map.entities.clear()
 		if (mapData) {
 			map.setView({ center: mapData.location, zoom: 8 })
@@ -138,7 +162,10 @@ function Weather({ title, ...props }) {
 	}
 
 	function onLocationFound(mapData) {
-		if (!map || !mapData) return
+		if (!map || !mapData) {
+			// console.log("<Weather /> onLocationFound() skipped, bad params")
+			return
+		}
 
 		const locationsCopy = [...locations]
 		const { latitude: lat, longitude: lng } = mapData.location
