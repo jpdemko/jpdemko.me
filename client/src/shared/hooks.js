@@ -196,26 +196,17 @@ export function useResizeObserver(callback, throttleMS = 200) {
 
 /* -------------------------------------------------------------------------- */
 
-export function useCorrectTheme({ setTheme, color }) {
+export function useCorrectTheme({ setTheme, color, defaultColor = "bgContrast" }) {
 	const curTheme = useContext(ThemeContext)
-
-	const nextTheme = useMemo(() => Themes?.[setTheme] ?? null, [setTheme])
-
+	const nextTheme = Themes?.[setTheme] ?? curTheme
 	// Might be a bad idea to auto determine base color because each UI component might want
 	// the base color to be something specific to the theme.
-	const nextColor = useMemo(() => {
-		const theme = nextTheme ?? curTheme
-		return theme?.[color] ?? theme.bgContrast
-	}, [nextTheme, curTheme, color])
+	const nextColor = nextTheme?.[color] ?? nextTheme[defaultColor]
 
-	const themeProps = useMemo(() => {
-		return {
-			...(nextTheme && { theme: nextTheme }),
-			...(nextColor && { color: nextColor }),
-		}
-	}, [nextTheme, nextColor])
-
-	return themeProps
+	return {
+		theme: nextTheme,
+		...(nextColor && { color: nextColor }),
+	}
 }
 
 /* -------------------------------------------------------------------------- */

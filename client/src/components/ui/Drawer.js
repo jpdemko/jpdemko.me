@@ -12,7 +12,7 @@ const Root = styled.div`
 	z-index: 260000;
 	top: 0;
 	bottom: 0;
-	max-width: 90%;
+	max-width: 85%;
 	height: 100%;
 	> div {
 		height: 100%;

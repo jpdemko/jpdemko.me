@@ -35,6 +35,12 @@ const GlobalStyle = createGlobalStyle`
 
 	#root {
 		height: 100%;
+		.chLimit {
+			max-width: 35ch;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
 	}
 `
 

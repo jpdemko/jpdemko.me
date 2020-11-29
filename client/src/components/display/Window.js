@@ -132,7 +132,7 @@ const TitleBarBtn = styled(Button).attrs((props) => {
 	return { ...props, color: props.winFocused ? "primaryContrast" : "bgContrast" }
 })``
 
-const TitleBarCloseBtn = styled(TitleBarBtn).attrs((props) => {
+const TitleBarCloseBtn = styled(Button).attrs((props) => {
 	if (props.theme.name == "red") props.color = props.winFocused ? "bgContrast" : "primary"
 	return { ...props }
 })``
@@ -340,7 +340,7 @@ export default class Window extends Component {
 					wdowCSS.height -= drag.deltaY
 
 					qsHeight(wdowCSS.height)
-					this.gsapQS({ y: `+=${drag.deltaY}` })
+					wdow.gsapQS({ y: `+=${drag.deltaY}` })
 				},
 			}),
 			genResizeDraggable({
@@ -383,7 +383,7 @@ export default class Window extends Component {
 					wdowCSS.width -= drag.deltaX
 
 					qsWidth(wdowCSS.width)
-					this.gsapQS({ x: `+=${drag.deltaX}` })
+					wdow.gsapQS({ x: `+=${drag.deltaX}` })
 				},
 			}),
 		]
@@ -494,10 +494,12 @@ export default class Window extends Component {
 		if (this.curAnim?.isActive()) this.curAnim.kill()
 		this.curAnim = gsap.to(wdow.rootRef.current, {
 			...tweenVars,
+			startAt: {
+				backfaceVisibility: "hidden",
+			},
 			onStart: () => {
 				wdow.draggableWindow[0].disable()
 				wdow.dragInstances.forEach((i) => i[0].disable())
-				wdow.gsapQS({ backfaceVisibility: "hidden" })
 			},
 			onComplete: () => {
 				if (!wdow.props.isMinimized) {
@@ -616,6 +618,8 @@ export default class Window extends Component {
 								onClick={() => this.props.closeApp(title)}
 								svg={CloseSVG}
 								winFocused={isFocused}
+								setTheme="red"
+								color="primary"
 							/>
 						</div>
 					</TitleBar>

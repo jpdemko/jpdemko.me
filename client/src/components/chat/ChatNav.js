@@ -22,6 +22,7 @@ const DrawerRoot = styled.div`
 	flex: 0 0 auto;
 	display: flex;
 	flex-direction: column;
+
 	${({ theme, isMobileWindow }) => css`
 		border-right: ${isMobileWindow ? "none" : `1px solid ${theme.accent}`};
 	`}
@@ -104,10 +105,6 @@ const LatestDM = styled(Button)`
 		outline: ${isFocused ? 1 : 0}px solid ${theme.accent};
 		.latest-dm-row {
 			padding: calc(var(--chatnav-padding) * 0.75);
-			max-width: 45ch;
-			white-space: nowrap;
-			overflow: hidden;
-			text-overflow: ellipsis;
 			svg {
 				margin-right: var(--chatnav-padding);
 			}
@@ -155,7 +152,18 @@ const DmTextSum = styled.span`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function ChatNav({ myRooms, myDMS, curDMUID, curRoomRID, createRoom, joinRoom, deleteRoom, openDM, user }) {
+function ChatNav({
+	myRooms,
+	myDMS,
+	curDMUID,
+	curRoomRID,
+	createRoom,
+	joinRoom,
+	deleteRoom,
+	openDM,
+	user,
+	...props
+}) {
 	const { setAppDrawerContent, isMobileWindow } = useContext(Contexts.Window)
 
 	const [rname, setRName] = useState("")
@@ -271,7 +279,7 @@ function ChatNav({ myRooms, myDMS, curDMUID, curRoomRID, createRoom, joinRoom, d
 										onClick={() => joinPrevRoom(myRooms?.[rid])}
 										badge={myRooms?.[rid]?.msgs?.unread > 0 ? "!" : null}
 									>
-										<Data>
+										<Data className="chLimit">
 											<span>{myRooms?.[rid]?.rname}</span>
 											<Lessen>RID#{rid}</Lessen>
 										</Data>
@@ -293,6 +301,7 @@ function ChatNav({ myRooms, myDMS, curDMUID, curRoomRID, createRoom, joinRoom, d
 													svg={UserSVG}
 													isFocused={actUser.uid == user.uid}
 													onClick={() => openDM(actUser)}
+													className="chLimit"
 												>
 													{actUser.uname}
 												</User>
@@ -329,11 +338,11 @@ function ChatNav({ myRooms, myDMS, curDMUID, curRoomRID, createRoom, joinRoom, d
 									color="primary"
 									column
 								>
-									<div className="latest-dm-row">
+									<div className="latest-dm-row chLimit">
 										<UserSVG />
 										<span style={{ fontStyle: "italic" }}>{recipUser.uname}</span>
 									</div>
-									<div className="latest-dm-row">
+									<div className="latest-dm-row chLimit">
 										<ChatSVG />
 										<DmTextSum>{lastDM}</DmTextSum>
 									</div>

@@ -301,7 +301,7 @@ class Display extends Component {
 									variant="fancy"
 									svg={logo}
 									column
-									theme={theme}
+									setTheme={theme.name}
 								>
 									{title}
 								</ShortcutButton>

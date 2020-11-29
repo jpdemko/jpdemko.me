@@ -5,31 +5,36 @@ import { MsgBox } from "../ui/IO"
 
 /* --------------------------------- STYLES --------------------------------- */
 
-const InputForm = styled.form`
-	display: block;
-	flex: 0 0 auto;
+const InputArea = styled(MsgBox)`
+	border-left: none;
+	border-right: none;
+	border-bottom: none;
 `
 
-const InputArea = styled(MsgBox)`
+const InputForm = styled.form`
 	transition: all 0.3s;
-	max-height: 40vmin;
-	&:focus,
-	&:active {
-		min-height: calc(var(--nav-height) * 3);
+	display: block;
+	flex: 0 0;
+	max-height: 40%;
+	&:focus-within {
+		flex: 0 0 calc(var(--nav-height) * 3);
 	}
 `
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function ChatInput({ socketSendRoomMsg, roomsShown, socketSendDM, ...props }) {
+function ChatInput({ send, ...props }) {
 	const [text, setText] = useState("")
+
+	function log() {
+		console.log("<ChatInput /> ", arguments)
+	}
 
 	function submit(e) {
 		e.preventDefault()
-		const send = roomsShown ? socketSendRoomMsg : socketSendDM
 		send(text)
 			.then(() => setText(""))
-			.catch((err) => console.error("<ChatInput /> send() error: ", err))
+			.catch((err) => log("send() error: ", err))
 	}
 
 	function handleTextChange(e) {
@@ -41,7 +46,7 @@ function ChatInput({ socketSendRoomMsg, roomsShown, socketSendDM, ...props }) {
 	}
 
 	return (
-		<InputForm onSubmit={submit}>
+		<InputForm onSubmit={submit} {...props}>
 			<InputArea
 				minLength="1"
 				required

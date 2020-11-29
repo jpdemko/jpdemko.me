@@ -169,6 +169,24 @@ module.exports = function (io, sessionMiddleware) {
 		},
 	}
 
+	// Precaution to trim any rooms/users that shouldn't be there due to my coding or weird network issues.
+	const trimIntervalHours = 12
+	setInterval(() => {
+		console.log(`socketAPI.js trim ${trimIntervalHours}hr interval called.`)
+		Object.keys(Rooms.active).forEach((rid) => {
+			const room = Rooms.get(rid)
+			if (room.activeUsers.length < 1) Rooms.destroy(rid)
+		})
+		Object.keys(Users.active).forEach((uid) => {
+			const user = Users.get(uid)
+			const socket = io.of("/").connected[user.socketID]
+			if (!socket.connected) {
+				socket.disconnect(true)
+				Users.disconnect(user.socketID)
+			}
+		})
+	}, 1000 * 60 * 60 * trimIntervalHours)
+
 	io.use(function (socket, next) {
 		sessionMiddleware(socket.request, {}, next)
 	})
@@ -297,7 +315,7 @@ module.exports = function (io, sessionMiddleware) {
 			try {
 				const user = Users.get(uid)
 				if (!user || !rid) throw Error("bad params")
-				if (rid === 1) throw Error("can't leave or delete room 'General'")
+				if (rid == 1) throw Error("can't leave or delete room 'General'")
 
 				await queries.chat.deleteRoom({ uid, rid })
 				user.leaveRoom(rid)

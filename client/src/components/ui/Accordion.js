@@ -18,14 +18,21 @@ const MenuRoot = styled.div`
 	flex-direction: column;
 	overflow: hidden;
 	${({ opened, theme }) => css`
-		border-top: 1px solid ${theme.background};
-		flex: ${opened ? "1 1 auto" : "0 1 auto"};
+		border-top: 1px solid ${theme.altBackground};
+		flex: ${opened ? "1 0" : "0 0 auto"};
 	`}
 `
 
 const MenuTitle = styled(Button)`
 	padding: 0;
 	justify-content: space-between;
+	> .svg-container {
+		transition: transform 0.2s;
+		transform: scale(1);
+	}
+	&:hover > .svg-container {
+		transform: scale(1.2);
+	}
 `
 
 const MenuContent = styled.div`
@@ -41,6 +48,7 @@ const MenuContent = styled.div`
 function Menu({ data }) {
 	const [opened, setOpened] = useState(true)
 	const { title, content } = data
+
 	return !data ? null : (
 		<MenuRoot opened={opened}>
 			<MenuTitle
@@ -57,9 +65,9 @@ function Menu({ data }) {
 	)
 }
 
-export default function Accordion({ data }) {
+export default function Accordion({ data, ...props }) {
 	return !data ? null : (
-		<AccordRoot>
+		<AccordRoot {...props}>
 			{data.map((ele) => {
 				return <Menu key={ele.id} data={ele} />
 			})}

@@ -120,7 +120,7 @@ class Chat extends Component {
 			return this.context.setAppLoading(false)
 		}
 		let {
-			data: { user, myRooms, curRoomRID, roomsShown },
+			data: { user, myRooms, curRoomRID, roomsShown, curDMUID },
 		} = setupRes
 		this.setState(setupRes.data, async () => {
 			// Fast load initial room or DM (based on roomsShown).
@@ -130,8 +130,8 @@ class Chat extends Component {
 						room: myRooms[curRoomRID],
 						user,
 					})
-				} else {
-					// await this.openDM(curDMUID)
+				} else if (curDMUID) {
+					await this.openDM(curDMUID)
 				}
 			} catch (error) {
 				console.error("<Chat /> loadUser() joinRoom() error: ", error)
@@ -165,7 +165,7 @@ class Chat extends Component {
 			})
 			this.setState(nextState)
 		} catch (error) {
-			console.error(error)
+			console.error("<Chat /> bgSetup() error: ", error)
 		}
 	}
 
@@ -188,10 +188,7 @@ class Chat extends Component {
 		if (nextUser) user = nextUser
 
 		return new Promise((resolve, reject) => {
-			if (!socket || !user) {
-				reject({ error: "client error - socketSetupUser() - bad vars" })
-				return
-			}
+			if (!socket || !user) return reject("<Chat /> socketSetupUser() error: bad params")
 			socket.emit("setupUser", { uname: user.uname }, ({ success, error, data }) => {
 				console.log(success ?? error, data)
 				if (error) reject(error)
@@ -255,7 +252,7 @@ class Chat extends Component {
 	updateRoom = (room, makeCur = false) => {
 		let myRooms = { ...this.state.myRooms }
 		const { rid, msgs } = room
-		if (!rid) return console.error("updateRoom() error: no rid#, printing room param", room)
+		if (!rid) return console.log("<Chat /> updateRoom() error: bad params")
 
 		myRooms[rid] = {
 			...(myRooms[rid] ?? {}),
@@ -277,12 +274,8 @@ class Chat extends Component {
 		room = this.state.myRooms?.[room?.rid] ?? room
 		let { rid, password, msgs } = room
 
-		if (!this.state.socket || !user || !rid) {
-			console.log("client error - socketJoinRoom() - bad params", { user, rid })
-			return Promise.reject({ error: "client error - socketJoinRoom() - bad params" })
-		}
-
 		return new Promise((resolve, reject) => {
+			if (!this.state.socket || !user || !rid) return reject("<Chat /> socketJoinRoom() error: bad params")
 			const ioVars = {
 				uid: user.uid,
 				rid,
@@ -292,7 +285,7 @@ class Chat extends Component {
 			if (msgs) ioVars.lastMsgTS = this.getLastTimestamp(msgs)
 			this.state.socket.emit("joinRoom", ioVars, ({ success, error, room: roomRes }) => {
 				console.log(success ?? error, roomRes)
-				if (error) reject({ error })
+				if (error) reject(error)
 				else if (success) {
 					if (roomRes) roomRes.msgs = { ...(msgs ?? {}), ...roomRes.msgs }
 					resolve({ success, room: roomRes })
@@ -302,7 +295,7 @@ class Chat extends Component {
 	}
 
 	joinRoom = ({ room, user }) => {
-		if (!room?.rid) return Promise.reject({ error: "client error - joinRoom() - no rid# provided" })
+		if (!room?.rid) return Promise.reject("<Chat /> joinRoom() error: bad params")
 
 		this.setState({ roomsShown: true })
 		return this.socketJoinRoom({ room, user, makeCur: true }).then((res) => {
@@ -313,14 +306,15 @@ class Chat extends Component {
 
 	deleteRoom = (selectedRID) => {
 		const { curRoomRID, socket, user, myRooms } = this.state
-		if (selectedRID === 1) return console.log("deleteRoom() - can't delete 'General'")
 
 		new Promise((resolve, reject) => {
-			socket.emit("deleteRoom", { uid: user.uid, rid: selectedRID }, ({ success, error }) => {
-				console.log(success ?? error)
-				if (error) reject({ error })
-				else if (success) resolve({ success })
-			})
+			if (selectedRID == 1) return reject("can't delete default room 'General'.")
+			else
+				socket.emit("deleteRoom", { uid: user.uid, rid: selectedRID }, ({ success, error }) => {
+					console.log(success ?? error)
+					if (error) reject(error)
+					else if (success) resolve({ success })
+				})
 		})
 			.then(async () => {
 				if (curRoomRID == selectedRID) {
@@ -348,7 +342,7 @@ class Chat extends Component {
 		return new Promise((resolve, reject) => {
 			socket.emit("createRoom", ioVars, ({ error, success, room: roomRes }) => {
 				console.log(error ?? success, roomRes)
-				if (error) return reject({ error })
+				if (error) return reject(error)
 				return resolve({ success, room: roomRes })
 			})
 		})
@@ -371,7 +365,7 @@ class Chat extends Component {
 					this.updateRoom({ rid: curRoomRID, msgs, users_last_msg_ts })
 					this.unreadHandler()
 					resolve({ success, msgs })
-				} else reject({ error })
+				} else reject(error)
 			})
 		})
 	}
@@ -379,8 +373,9 @@ class Chat extends Component {
 	openDM = async (passedUser) => {
 		const { user, myDMS } = this.state
 		const { uid: recip_id, uname: recip_uname } = passedUser
-		if (!recip_id) return console.log("openDM() skipped, no recip_id!")
-		else if (recip_id == user?.uid) return console.log("openDM() skipped, can't send DM to yourself!")
+		if (!recip_id) return console.log("<Chat /> openDM() error: bad params")
+		else if (recip_id == user?.uid)
+			return console.log("<Chat /> openDM() skipped, can't send DM to yourself!")
 
 		this.setState({
 			roomsShown: false,
@@ -392,7 +387,7 @@ class Chat extends Component {
 				const dmsRes = await this.socketGetLogsDMS({ recip_id, user })
 				if (dmsRes?.success) this.updateDM(dmsRes.data)
 			} catch (error) {
-				console.log(error)
+				console.error(error)
 			}
 		} else {
 			let nextDMS = { ...myDMS }
@@ -408,26 +403,26 @@ class Chat extends Component {
 	socketGetLogsDMS = ({ recip_id, user: passedUser }) => {
 		let { socket, myDMS, user } = this.state
 		if (passedUser) user = passedUser
-		if (!recip_id && !user?.uid) return Promise.reject("socketGetLogsDMS() bad params")
 
-		const convo = myDMS?.[recip_id]
-		// To prevent redundant calls to the DB. We could set this up for rooms as well, but
-		// rooms are kept track of on the server actively. DMS are not, so there is no way to know on the
-		// server if the user doesn't need logs or not.
-		if (convo?.tsLogsFetched) {
-			const dtFetched = DateTime.fromISO(convo.tsLogsFetched).toLocal()
-			if (this.tsChatOpened < dtFetched)
-				return Promise.reject("socketGetLogsDMS() no need to retrieve DMS again")
-		}
 		return new Promise((resolve, reject) => {
-			let ioVars = {
+			if (!recip_id && !user?.uid) return reject("<Chat /> socketGetLogsDMS() error: bad params")
+			// To prevent redundant calls to the DB. We could set this up for rooms as well, but
+			// rooms are kept track of on the server actively. DMS are not, so there is no way to know on the
+			// server if the user doesn't need logs or not.
+			const convo = myDMS?.[recip_id]
+			if (convo?.tsLogsFetched) {
+				const dtFetched = DateTime.fromISO(convo.tsLogsFetched).toLocal()
+				if (this.tsChatOpened < dtFetched)
+					return reject("<Chat /> socketGetLogsDMS() skipped, already retrieved DMS!")
+			}
+			const ioVars = {
 				uid: user.uid,
 				recip_id,
 				tsLogsFetched: convo?.tsLogsFetched,
 			}
 			socket.emit("getLogsDMS", ioVars, ({ success, error, data }) => {
 				console.log(success ?? error, data)
-				if (error) reject({ error })
+				if (error) reject(error)
 				else if (success) {
 					data.dms = { ...(convo?.dms ?? {}), ...(data?.dms ?? {}) }
 					data.tsLogsFetched = DateTime.local().toISO()
@@ -440,12 +435,11 @@ class Chat extends Component {
 	socketSendDM = (text) => {
 		const { socket, curDMUID, user } = this.state
 		return new Promise((resolve, reject) => {
-			if (!user?.uid || !curDMUID || !text)
-				return reject({ error: "client - socketSendDM() - bad params" })
+			if (!user?.uid || !curDMUID || !text) return reject("<Chat /> socketSendDM() error: bad params")
 			const ioVars = { uid: user.uid, recip_id: curDMUID, msg: text }
 			socket.emit("sendDM", ioVars, ({ success, error, data }) => {
 				console.log(success ?? error, data)
-				if (error) reject({ error })
+				if (error) reject(error)
 				else if (success) {
 					this.updateDM(data)
 					this.unreadHandler()
@@ -457,10 +451,9 @@ class Chat extends Component {
 
 	updateDM = (data) => {
 		// data { recip_id, dms: { dmid#: { ...dmData } } }
-		if (!data) return
-		console.log("receiveDM() data: ", data)
+		if (!data?.dms) return console.log("<Chat /> updateDM() error: bad params")
 		const { recip_id, dms, tsLogsFetched } = data
-		if (!dms) return console.log("updateDM() failed, no 'dms' property")
+		if (!dms) return
 
 		let nextMyDMS = { ...this.state.myDMS }
 		nextMyDMS[recip_id] = {
@@ -503,6 +496,17 @@ class Chat extends Component {
 		}
 	}
 
+	send = (data) => {
+		if (!data) return Promise.reject("<Chat /> send() error: bad params")
+
+		const { inputSent, roomsShown } = this.state
+		const fn = roomsShown ? this.socketSendRoomMsg : this.socketSendDM
+		return fn(data).then((res) => {
+			this.setState({ inputSent: !inputSent })
+			return res
+		})
+	}
+
 	submitName = (e) => {
 		e.preventDefault()
 		const { initUsername } = this.state
@@ -514,13 +518,13 @@ class Chat extends Component {
 	}
 
 	// TODO Remove after Chat is finished.
-	log = () => {
+	logServer = () => {
 		const { socket } = this.state
 		if (socket) socket.emit("log")
 	}
 
 	render() {
-		const { user, initUsername, curRoomRID, curDMUID, myRooms, myDMS, roomsShown } = this.state
+		const { user, initUsername, curRoomRID, curDMUID, myRooms, myDMS, roomsShown, inputSent } = this.state
 		let data = null
 		if (!roomsShown && curDMUID) data = myDMS[curDMUID]
 		else if (roomsShown && myRooms) data = myRooms[curRoomRID]
@@ -541,36 +545,37 @@ class Chat extends Component {
 						/>
 						<Main>
 							<ChatInfo data={data} roomsShown={roomsShown} />
-							<Logs data={data} user={user} openDM={this.openDM} roomsShown={roomsShown} />
-							<ChatInput
-								socketSendRoomMsg={this.socketSendRoomMsg}
+							<Logs
+								data={data}
+								user={user}
+								openDM={this.openDM}
 								roomsShown={roomsShown}
-								socketSendDM={this.socketSendDM}
+								inputSent={inputSent}
 							/>
+							<ChatInput send={this.send} />
 						</Main>
 					</>
 				) : (
-					<form onSubmit={this.submitName}>
-						<label>
-							Enter name:{" "}
-							<Input
-								type="text"
-								value={initUsername}
-								onChange={this.changeName}
-								minLength="1"
-								required
-								ref={this.initUsernameRef}
-							/>
-						</label>
+					<form onSubmit={this.submitName} style={{ background: "inherit" }}>
+						<Input
+							ref={this.initUsernameRef}
+							label="Name"
+							placeholder="Min. 1 char, max 40!"
+							type="text"
+							value={initUsername}
+							onChange={this.changeName}
+							minLength="1"
+							required
+						/>
 						<Button type="submit" variant="fancy">
 							Submit
 						</Button>
 					</form>
 				)}
 				{/* TODO Remove after Chat is finished. */}
-				<div style={{ position: "absolute", left: "50%", top: "8px" }}>
-					<Button variant="outline" onClick={this.log}>
-						log
+				<div style={{ position: "absolute", left: "50%", top: "8px", transform: "scale(.5)" }}>
+					<Button variant="outline" onClick={this.logServer}>
+						LOG SERVER
 					</Button>
 				</div>
 			</Root>

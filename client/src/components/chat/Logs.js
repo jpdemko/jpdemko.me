@@ -8,7 +8,7 @@ import HorizLine from "../ui/HorizLine"
 import { ReactComponent as UserSVG } from "../../shared/assets/icons/user.svg"
 import { ReactComponent as ArrowDownCircleSVG } from "../../shared/assets/icons/arrow-down-circle.svg"
 import { opac } from "../../shared/shared"
-import { useEventListener } from "../../shared/hooks"
+import { useEventListener, usePrevious } from "../../shared/hooks"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -52,6 +52,7 @@ const ContentBG = styled.div`
 	${({ theme }) => css`
 		background: ${theme.background};
 		border: 1px solid ${theme.accent};
+		filter: drop-shadow(0 0 5px ${opac(0.5, theme.accent)});
 	`}
 `
 
@@ -119,7 +120,7 @@ const Log = memo(({ data, authored, openDM, id }) => {
 	)
 })
 
-function Logs({ data, user, openDM, roomsShown, ...props }) {
+function Logs({ data, user, openDM, roomsShown, inputSent, ...props }) {
 	const rootRef = useRef()
 	const [followLast, setFollowLast] = useState(null)
 
@@ -129,8 +130,8 @@ function Logs({ data, user, openDM, roomsShown, ...props }) {
 			const ele = rootRef.current
 			if (ele) {
 				const { height: rootHeight } = ele.getBoundingClientRect()
-				const atBottom = Math.floor(rootHeight) + ele.scrollTop === Math.round(ele.scrollHeight)
-				setFollowLast(atBottom)
+				const pxFromBot = ele.scrollHeight % (Math.round(rootHeight) + ele.scrollTop)
+				setFollowLast(pxFromBot < 32)
 			}
 		}, 1000),
 		[rootRef.current]
@@ -147,19 +148,22 @@ function Logs({ data, user, openDM, roomsShown, ...props }) {
 	}, [followLast, handleScrolling])
 
 	const type = roomsShown ? "msgs" : "dms"
+	// Determine where to scroll on fresh start or following updates.
 	const logsLength = data?.[type] ? Object.keys(data[type]).length : 0
 	useEffect(() => {
 		if (followLast === null) {
 			const horizLine = document.getElementById("chat-unread-start")
-			if (horizLine) {
-				horizLine.scrollIntoView({ block: "center" })
-			} else {
-				scroll2end()
-			}
-		} else if (followLast) {
-			scroll2end()
-		}
+			if (horizLine) horizLine.scrollIntoView({ block: "center" })
+			else scroll2end()
+		} else if (followLast) scroll2end()
 	}, [logsLength, followLast, scroll2end])
+
+	// We want to scroll to the end if the user sends a message. Have to implement this w/ parent
+	// state change since <ChatInput /> is sibling.
+	const prevInputSent = usePrevious(inputSent)
+	useEffect(() => {
+		if (prevInputSent !== inputSent) scroll2end()
+	}, [inputSent, prevInputSent, scroll2end])
 
 	function getData() {
 		if (!data?.[type] || data[type].length < 1) return null

@@ -7,18 +7,16 @@ import { useUpdatedValRef } from "../../shared/hooks"
 import { ReactComponent as LocationSVG } from "../../shared/assets/icons/location.svg"
 import Button from "../ui/Button"
 import { opac } from "../../shared/shared"
+import { Input } from "../ui/IO"
 
 /* --------------------------------- STYLES --------------------------------- */
-
-const animDuration = 0.15
 
 const Root = styled.div`
 	flex: 0 0 auto;
 	display: flex;
 	position: relative;
+	background: inherit;
 	${({ theme }) => css`
-		border-bottom: 1px solid ${theme.bgContrast};
-		box-shadow: inset 0 -1px 0 0 ${theme.altBackground};
 		color: ${theme.bgContrast};
 		/* Fixing Bing elements; search results and children... */
 		.MicrosoftMap {
@@ -49,7 +47,7 @@ const Root = styled.div`
 			}
 			.as_container_search {
 				position: absolute;
-				width: 100%;
+				width: -webkit-fill;
 				top: 100%;
 				left: 0;
 				background-color: ${theme.altBackground};
@@ -74,23 +72,23 @@ const Root = styled.div`
 	`}
 `
 
-const AutocompleteInput = styled.input`
-	border: none;
+const LocSearchInput = styled(Input)`
 	outline: none;
-	flex: 1 1 auto;
-	transition: ${animDuration}s;
+	flex: 1 0 auto;
+	margin: var(--wnav-padding);
 	/* Fixing Bing elements; location search input... */
-	&[style] {
-		background-color: #0000 !important;
+	> input[style] {
+		background-color: inherit !important;
+		width: -webkit-fill-available;
+		width: stretch;
 	}
-	${({ theme }) => css`
-		color: ${theme.bgContrast};
-		&:not(:placeholder-shown),
-		&:hover,
-		&:active {
-			box-shadow: inset 0 -2px 0 0 ${theme.bgContrast};
-		}
-	`}
+`
+
+const GeolocateBtn = styled(Button)`
+	align-self: center;
+	margin: var(--wnav-padding);
+	margin-left: 0;
+	flex: 0 0 auto;
 `
 
 /* -------------------------------- COMPONENT ------------------------------- */
@@ -98,6 +96,7 @@ const AutocompleteInput = styled.input`
 function LocationSearch({ map, modulesLoaded, onLocationFound }) {
 	const onLocationFoundRef = useUpdatedValRef(onLocationFound)
 	const [input, setInput] = useState("")
+	const [error, setError] = useState(null)
 
 	const mapManagersRef = useRef()
 	const managersLoadedRef = useRef(false)
@@ -111,9 +110,11 @@ function LocationSearch({ map, modulesLoaded, onLocationFound }) {
 					}),
 					search: new Microsoft.Maps.Search.SearchManager(map),
 				}
-				mapManagersRef.current.autoSuggest.attachAutosuggest("#searchInput", "#searchRoot", (mapData) =>
+				// AutoSuggest callback when user clicks/activates current selection.
+				mapManagersRef.current.autoSuggest.attachAutosuggest("#searchInput", "#searchRoot", (mapData) => {
 					onLocationFoundRef.current(mapData)
-				)
+					setInput("")
+				})
 				if (mapManagersRef.current) {
 					// console.log("<LocationSearch /> map managers loaded", mapManagersRef.current)
 					managersLoadedRef.current = true
@@ -131,39 +132,49 @@ function LocationSearch({ map, modulesLoaded, onLocationFound }) {
 		}
 	}, [map, modulesLoaded, onLocationFoundRef])
 
+	// Function for when user clicks on LocationSVG button to find their current location.
 	function onGeolocateCurrentPosition() {
 		if (!managersLoadedRef.current || !navigator) {
 			// console.log("<LocationSearch /> onGeolocateCurrentPosition() skipped, bad params")
 			return
 		}
+
 		navigator.geolocation.getCurrentPosition(
 			({ coords }) => {
 				const location = new Microsoft.Maps.Location(coords.latitude, coords.longitude)
 				mapManagersRef.current?.search.reverseGeocode({
 					location,
-					callback: (mapData) => onLocationFoundRef.current(mapData),
+					callback: (mapData) => {
+						onLocationFoundRef.current(mapData)
+						setInput("")
+					},
 				})
-				setInput("")
 			},
 			({ code, message }) => {
 				const output = `Geolocation error #${code}: ${message}`
 				console.error(output)
-				alert(output)
+				setError(output)
 			},
 			{ enableHighAccuracy: true }
 		)
 	}
 
+	function handleChange(e) {
+		setInput(e.target.value)
+		if (error) setError(null)
+	}
+
 	return (
 		<Root id="searchRoot">
-			<AutocompleteInput
+			<LocSearchInput
 				id="searchInput"
-				placeholder="Add locations..."
+				label="Search"
+				placeholder="Search cities/addresses/etc..."
 				value={input}
-				onClick={() => setInput("")}
-				onChange={(e) => setInput(e.target.value)}
+				onChange={handleChange}
+				error={error}
 			/>
-			<Button svg={LocationSVG} onClick={onGeolocateCurrentPosition} />
+			<GeolocateBtn svg={LocationSVG} onClick={onGeolocateCurrentPosition} />
 		</Root>
 	)
 }

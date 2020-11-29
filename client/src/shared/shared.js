@@ -46,7 +46,6 @@ export const Contexts = {
 	TabHidden: createContext(),
 	Window: createContext(),
 	Auth: createContext(),
-	IsMobileWindow: createContext(),
 	Themes: createContext(),
 }
 

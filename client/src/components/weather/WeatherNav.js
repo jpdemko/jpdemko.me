@@ -20,6 +20,7 @@ const DesktopNav = styled.div`
 `
 
 const Root = styled.div`
+	--wnav-padding: 0.5em;
 	display: flex;
 	flex-direction: column;
 	position: relative;
@@ -74,7 +75,7 @@ const LocationSummary = styled.div`
 `
 
 const Footer = styled.div`
-	padding: 0.2em;
+	padding: calc(var(--wnav-padding) * 0.75);
 	flex: 0 0 auto;
 	justify-self: flex-end;
 	display: flex;
