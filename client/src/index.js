@@ -5,8 +5,6 @@ import "sanitize.css/forms.css"
 import { useState, useEffect } from "react"
 import ReactDOM from "react-dom"
 import { createGlobalStyle, ThemeProvider } from "styled-components/macro"
-import { Router } from "react-router-dom"
-import { createBrowserHistory } from "history"
 
 import { useMedia } from "./shared/hooks"
 import { Themes, mediaBreakpoints, Contexts } from "./shared/shared"
@@ -46,8 +44,6 @@ const GlobalStyle = createGlobalStyle`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-const history = createBrowserHistory()
-
 function FakeOS() {
 	const isMobileSite = useMedia([`(min-width: ${mediaBreakpoints.desktop}px)`], [false], true)
 	const [tabHidden, setTabHidden] = useState(document.hidden)
@@ -65,13 +61,11 @@ function FakeOS() {
 		<>
 			<GlobalStyle />
 			<ThemeProvider theme={Themes.blue}>
-				<Router history={history}>
-					<AuthProvider>
-						<Contexts.TabHidden.Provider value={tabHidden}>
-							<Display isMobileSite={isMobileSite} tabHidden={tabHidden} />
-						</Contexts.TabHidden.Provider>
-					</AuthProvider>
-				</Router>
+				<AuthProvider>
+					<Contexts.TabHidden.Provider value={tabHidden}>
+						<Display isMobileSite={isMobileSite} tabHidden={tabHidden} />
+					</Contexts.TabHidden.Provider>
+				</AuthProvider>
 			</ThemeProvider>
 		</>
 	)

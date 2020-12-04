@@ -2,6 +2,7 @@ import { useContext } from "react"
 import styled, { css } from "styled-components/macro"
 
 import { Contexts } from "../../shared/shared"
+import Link from "../ui/Link"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -19,7 +20,9 @@ function SocialLogin() {
 
 	return (
 		<Root>
-			<a href="/auth/google">normal anchor link login</a>
+			<Link openNewTab={false} trustedLink={true} href="/auth/google">
+				Login w/ Google
+			</Link>
 		</Root>
 	)
 }

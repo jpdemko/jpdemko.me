@@ -21,8 +21,8 @@ END $$;
 
 CREATE TABLE users (
 	uid SERIAL PRIMARY KEY,
-	pid VARCHAR(40),
-	uname VARCHAR(50) NOT NULL UNIQUE,
+	pid VARCHAR(40) UNIQUE,
+	uname VARCHAR(50) NOT NULL,
 	email valid_email,
 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -56,7 +56,7 @@ CREATE INDEX msgs_rid_index ON msgs(rid);
 CREATE TABLE users_rooms (
 	uid INT REFERENCES users(uid),
 	rid INT REFERENCES rooms(rid),
-	users_last_msg REFERENCES msgs(mid),
+	users_last_msg INT REFERENCES msgs(mid),
 	joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 	PRIMARY KEY(uid, rid)
 );

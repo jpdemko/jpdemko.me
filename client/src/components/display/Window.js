@@ -37,7 +37,7 @@ const Root = styled.div`
 			? "none"
 			: isFocused
 			? `1px solid ${theme.accent}`
-			: `1px solid ${opac(0.5, theme.accent)}`};
+			: `1px solid ${opac(0.7, theme.accent)}`};
 		filter: ${isFocused && `drop-shadow(0 1px 12px ${opac(0.2, theme.accent)})`} blur(0);
 	`}
 `
@@ -50,7 +50,7 @@ const TitleBar = styled.div`
 	height: var(--nav-height);
 	${({ isMobileSite, theme, isFocused }) => css`
 		color: ${isFocused ? theme.primaryContrast : theme.bgContrast};
-		border-bottom: 1px solid ${theme.accent};
+		border-bottom: 1px solid ${isFocused ? theme.accent : opac(0.7, theme.accent)};
 		display: ${isMobileSite ? "none" : "flex"};
 		background: ${isFocused ? theme.primary : theme.altBackground};
 	`}
@@ -146,7 +146,7 @@ export default class Window extends Component {
 		this.handleViewportResizeThrottled = throttle(this.handleViewportResize, 200)
 
 		const { top, left, width, height } = getRect("window-wireframe")
-		const prevData = ls.get(props.title) ?? {}
+		const prevData = ls.get(`Window-${props.title}`) ?? {}
 		const { window: loadedWdow } = prevData
 		this.data = loadedWdow?.data ?? {
 			closedProperly: true,
@@ -395,7 +395,7 @@ export default class Window extends Component {
 		const { title } = this.props
 		const { appDrawerContent, context, ...otherState } = this.state
 		const { isMobileWindow } = context
-		const prevData = ls.get(title) ?? {}
+		const prevData = ls.get(`Window-${title}`) ?? {}
 		const nextData = {
 			title,
 			...prevData,
@@ -409,7 +409,7 @@ export default class Window extends Component {
 				data: { ...this.data },
 			},
 		}
-		ls.set(title, nextData)
+		ls.set(`Window-${title}`, nextData)
 	}
 
 	handleExit = () => {
@@ -523,8 +523,7 @@ export default class Window extends Component {
 
 	setLastWindowedCSS = () => {
 		const { isMinimized, isMaximized } = this.props
-		if (!this.rootRef.current || gsap.isTweening(this.rootRef.current)) return
-		if (isMinimized || isMaximized) return
+		if (!this.rootRef.current || gsap.isTweening(this.rootRef.current) || isMinimized || isMaximized) return // console.log(`wdow-${this.props.title} setLastWindowedCSS() skipped, no root OR isTweening`)
 
 		this.draggableWindow[0].update(true)
 		this.wdowStyles = this.wdowStyles ?? new Styles(this.rootRef.current)

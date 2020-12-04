@@ -47,9 +47,12 @@ const Root = styled.div`
 			}
 			.as_container_search {
 				position: absolute;
-				width: -webkit-fill;
 				top: 100%;
 				left: 0;
+				width: 100%;
+				max-height: 80vh;
+				overflow-x: hidden;
+				overflow-y: auto;
 				background-color: ${theme.altBackground};
 				border-top: 1px solid ${theme.accent};
 				border-bottom: 1px solid ${theme.accent};

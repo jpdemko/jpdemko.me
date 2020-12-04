@@ -1,7 +1,7 @@
 const shared = require("./shared")
 const queries = require("./db/queries")
 
-module.exports = function (io, sessionMiddleware) {
+module.exports = function (io) {
 	var User = {
 		setup: function ({ uid, uname, socketID }) {
 			if (!uid || !uname) throw Error("User.create() bad params")
@@ -25,7 +25,7 @@ module.exports = function (io, sessionMiddleware) {
 		},
 		leaveRoom: function (rid) {
 			if (this.myRooms.find((r) => r == rid)) {
-				const socket = io.of("/").connected[this.socketID]
+				const socket = io.of("/").sockets.get(this.socketID)
 				socket.leave(`${rid}`)
 				this.myRooms = this.myRooms.filter((r) => r != rid)
 				const room = Rooms.get(rid)
@@ -37,7 +37,7 @@ module.exports = function (io, sessionMiddleware) {
 				console.log(`error - bad joinRoom param: ${rid}`)
 				return false
 			}
-			const socket = io.of("/").connected[this.socketID]
+			const socket = io.of("/").sockets.get(this.socketID)
 			const curRoom = Rooms.get(this.curRoomRID)
 			const nextRoom = Rooms.get(rid)
 			if (nextRoom) {
@@ -64,7 +64,10 @@ module.exports = function (io, sessionMiddleware) {
 	var Users = {
 		active: {},
 		setup: function (userData) {
-			if (!userData || (userData && !userData.uid)) throw Error("Users.add() bad params")
+			if (!userData || (userData && !userData.uid)) {
+				console.log("Users.setup() error, param: ", userData)
+				throw Error("Users.setup() bad params")
+			}
 			this.active[userData.uid] = User.setup(userData)
 			return this.active[userData.uid]
 		},
@@ -179,7 +182,7 @@ module.exports = function (io, sessionMiddleware) {
 		})
 		Object.keys(Users.active).forEach((uid) => {
 			const user = Users.get(uid)
-			const socket = io.of("/").connected[user.socketID]
+			const socket = io.of("/").sockets.get(user.socketID)
 			if (!socket.connected) {
 				socket.disconnect(true)
 				Users.disconnect(user.socketID)
@@ -187,29 +190,24 @@ module.exports = function (io, sessionMiddleware) {
 		})
 	}, 1000 * 60 * 60 * trimIntervalHours)
 
-	io.use(function (socket, next) {
-		sessionMiddleware(socket.request, {}, next)
-	})
-
 	io.on("connection", function (socket) {
 		console.log(`socket#${socket.id} connected`)
 
-		socket.on("setupUser", async function ({ uid, uname }, clientCB) {
-			if (!uname && !uid) {
-				return clientCB({ error: "server error - setupUser() - bad params" })
-			}
+		socket.on("setupUser", async function (passedUser, clientCB) {
+			if (!passedUser) return clientCB({ error: "server error - setupUser() - bad params" })
 
 			// Check if user is already active.
-			let user = Users.get(uid || uname)
+			let user = Users.get(passedUser.uid || passedUser.uname)
+			console.log("socketSetup init passedUser: ", passedUser, "\nuser: ", user)
 			if (user) {
 				if (user.socketID === socket.id) {
 					return clientCB({ success: "server success - setupUser() - you're already setup", user })
 				} else if (user.socketID !== socket.id) {
-					return clientCB({ error: "server error - setupUser() - username taken" })
+					return clientCB({ error: "server error - setupUser() - socket taken" })
 				}
 			} else {
 				try {
-					const dbData = await queries.chat.setup(uname)
+					const dbData = await queries.chat.setup(user || passedUser)
 					user = Users.setup({ ...dbData.user, socketID: socket.id })
 
 					clientCB({

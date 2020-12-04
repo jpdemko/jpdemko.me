@@ -225,19 +225,23 @@ function ChatNav({
 	}
 
 	const sortedRIDS = useMemo(() => {
-		return Object.keys(myRooms).sort((rid1, rid2) => {
-			const ts1 = myRooms?.[rid1]?.users_last_msg_ts
-			const ts2 = myRooms?.[rid2]?.users_last_msg_ts
-			return ts1 < ts2 ? 1 : ts1 > ts2 ? -1 : 0
-		})
+		return myRooms
+			? Object.keys(myRooms).sort((rid1, rid2) => {
+					const ts1 = myRooms?.[rid1]?.users_last_msg_ts
+					const ts2 = myRooms?.[rid2]?.users_last_msg_ts
+					return ts1 < ts2 ? 1 : ts1 > ts2 ? -1 : 0
+			  })
+			: []
 	}, [myRooms])
 
 	const sortedDMUIDS = useMemo(() => {
-		return Object.keys(myDMS).sort((uid1, uid2) => {
-			const t1 = Object.values(myDMS[uid1]?.dms).filter(isNaN).pop()?.created_at
-			const t2 = Object.values(myDMS[uid2]?.dms).filter(isNaN).pop()?.created_at
-			return t1 < t2 ? 1 : t1 > t2 ? -1 : 0
-		})
+		return myDMS
+			? Object.keys(myDMS).sort((uid1, uid2) => {
+					const t1 = Object.values(myDMS[uid1]?.dms).filter(isNaN).pop()?.created_at
+					const t2 = Object.values(myDMS[uid2]?.dms).filter(isNaN).pop()?.created_at
+					return t1 < t2 ? 1 : t1 > t2 ? -1 : 0
+			  })
+			: []
 	}, [myDMS])
 
 	const accordionData = [

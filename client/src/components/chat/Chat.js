@@ -8,7 +8,6 @@ import { ReactComponent as ChatSVG } from "../../shared/assets/icons/chat.svg"
 import ChatNav from "./ChatNav"
 import Logs from "./Logs"
 import ChatInput from "./ChatInput"
-import { Input } from "../ui/IO"
 import Button from "../ui/Button"
 import { DateTime } from "luxon"
 import ChatInfo from "./ChatInfo"
@@ -37,7 +36,6 @@ class Chat extends Component {
 			curDMUID: null,
 			myRooms: null,
 			myDMS: null,
-			user: null,
 			initUsername: "",
 			roomsShown: true,
 			...prevData,
@@ -49,7 +47,8 @@ class Chat extends Component {
 	}
 
 	componentDidMount() {
-		const { socket, user } = this.state
+		const { socket } = this.state
+		const { user } = this.props
 
 		// Setup socket event listeners.
 		socket.on("updateRoom", this.updateRoom)
@@ -88,40 +87,45 @@ class Chat extends Component {
 	componentWillUnmount() {
 		const { socket } = this.state
 		// All of these are precautions if they fail to occur in other places.
-		if (socket) console.log("cWU() socket.disconnect(): ", socket.disconnect())
+		if (socket) socket.disconnect()
 		this.saveUserData()
 		// Remove events & unread handler interval.
 		window.removeEventListener("beforeunload", this.saveUserData)
 		clearInterval(this.intervalHandleUnread)
 	}
 
-	getUserData = (passedUser) => {
-		let prevData = sessionStorage.getItem("Chat")
-		if (!prevData) return {}
-		let { user, ...others } = JSON.parse(prevData)
-		if (passedUser) user = passedUser
-		const output = {
-			user,
-			...others,
-		}
-		return output
+	saveUserData = () => {
+		if (!this.props.user || !this.state.myRooms) return
+
+		const { socket, ...otherState } = this.state
+		let prevData = ls.get(this.props.title) ?? {}
+		// console.log("<Chat /> saveUserData()")
+		ls.set("Chat", { ...prevData, ...otherState })
+	}
+
+	getUserData = () => {
+		// console.log("<Chat /> getUserData()")
+		return ls.get(this.props.title) ?? {}
 	}
 
 	loadUser = async (passedUser) => {
-		const { user: prevUser } = this.state
-		if (!passedUser && !prevUser) return
+		let { user } = this.props
+		if (!user && passedUser) user = passedUser
+		if (!user) return console.log("<Chat /> loadUser() skipped, no user found.")
 
 		this.context.setAppLoading(true)
 		let setupRes = null
 		try {
-			setupRes = await this.socketSetupUser(passedUser ?? prevUser)
+			setupRes = await this.socketSetupUser(user)
 		} catch (error) {
 			console.error("<Chat /> loadUser() socketSetupUser() error: ", error)
 			return this.context.setAppLoading(false)
 		}
+
 		let {
-			data: { user, myRooms, curRoomRID, roomsShown, curDMUID },
+			data: { myRooms, curRoomRID, roomsShown, curDMUID },
 		} = setupRes
+
 		this.setState(setupRes.data, async () => {
 			// Fast load initial room or DM (based on roomsShown).
 			try {
@@ -146,7 +150,7 @@ class Chat extends Component {
 		let nextState = { ...this.state }
 		try {
 			const roomsProm = Object.keys(nextState.myRooms).map((rid) =>
-				this.socketJoinRoom({ room: nextState.myRooms[rid], user: nextState.user })
+				this.socketJoinRoom({ room: nextState.myRooms[rid], user: this.props.user })
 			)
 			const roomsRes = await Promise.all(roomsProm)
 			roomsRes.forEach(({ room }) => {
@@ -169,27 +173,14 @@ class Chat extends Component {
 		}
 	}
 
-	// CHECKUP Recheck/redo after Chat app is finished.
-	saveUserData = () => {
-		if (!this.state.user || !this.state.myRooms) return
-		// let prevData = sessionStorage.getItem("Chat")
-		// prevData = prevData ? JSON.parse(prevData) : {}
-		// sessionStorage.setItem(
-		// 	"Chat",
-		// 	JSON.stringify({
-		// 		...prevData,
-		// 		...this.state,
-		// 	})
-		// )
-	}
-
 	socketSetupUser = (nextUser) => {
-		let { socket, user, myDMS, myRooms, curRoomRID, curDMUID, roomsShown } = this.state
+		const { socket, myDMS, myRooms, curRoomRID, curDMUID, roomsShown } = this.state
+		let { user } = this.props
 		if (nextUser) user = nextUser
 
 		return new Promise((resolve, reject) => {
 			if (!socket || !user) return reject("<Chat /> socketSetupUser() error: bad params")
-			socket.emit("setupUser", { uname: user.uname }, ({ success, error, data }) => {
+			socket.emit("setupUser", user, ({ success, error, data }) => {
 				console.log(success ?? error, data)
 				if (error) reject(error)
 				else if (success) {
@@ -270,7 +261,7 @@ class Chat extends Component {
 	}
 
 	socketJoinRoom = ({ room, user, makeCur }) => {
-		user = user ?? this.state.user
+		user = user ?? this.props.user
 		room = this.state.myRooms?.[room?.rid] ?? room
 		let { rid, password, msgs } = room
 
@@ -305,7 +296,8 @@ class Chat extends Component {
 	}
 
 	deleteRoom = (selectedRID) => {
-		const { curRoomRID, socket, user, myRooms } = this.state
+		const { curRoomRID, socket, myRooms } = this.state
+		const { user } = this.props
 
 		new Promise((resolve, reject) => {
 			if (selectedRID == 1) return reject("can't delete default room 'General'.")
@@ -332,7 +324,9 @@ class Chat extends Component {
 	}
 
 	socketCreateRoom = (room) => {
-		const { socket, user } = this.state
+		const { socket } = this.state
+		const { user } = this.props
+
 		const { rname, password } = room
 		const ioVars = {
 			uid: user.uid,
@@ -356,7 +350,9 @@ class Chat extends Component {
 	}
 
 	socketSendRoomMsg = (msg) => {
-		const { socket, curRoomRID, user } = this.state
+		const { socket, curRoomRID } = this.state
+		const { user } = this.props
+
 		return new Promise((resolve, reject) => {
 			socket.emit("sendRoomMsg", { msg, rid: curRoomRID, uid: user.uid }, ({ error, success, msgs }) => {
 				console.log(success ?? error, msgs)
@@ -371,7 +367,8 @@ class Chat extends Component {
 	}
 
 	openDM = async (passedUser) => {
-		const { user, myDMS } = this.state
+		const { myDMS } = this.state
+		const { user } = this.props
 		const { uid: recip_id, uname: recip_uname } = passedUser
 		if (!recip_id) return console.log("<Chat /> openDM() error: bad params")
 		else if (recip_id == user?.uid)
@@ -401,7 +398,8 @@ class Chat extends Component {
 	}
 
 	socketGetLogsDMS = ({ recip_id, user: passedUser }) => {
-		let { socket, myDMS, user } = this.state
+		const { socket, myDMS } = this.state
+		let { user } = this.props
 		if (passedUser) user = passedUser
 
 		return new Promise((resolve, reject) => {
@@ -433,7 +431,9 @@ class Chat extends Component {
 	}
 
 	socketSendDM = (text) => {
-		const { socket, curDMUID, user } = this.state
+		const { socket, curDMUID } = this.state
+		const { user } = this.props
+
 		return new Promise((resolve, reject) => {
 			if (!user?.uid || !curDMUID || !text) return reject("<Chat /> socketSendDM() error: bad params")
 			const ioVars = { uid: user.uid, recip_id: curDMUID, msg: text }
@@ -507,16 +507,6 @@ class Chat extends Component {
 		})
 	}
 
-	submitName = (e) => {
-		e.preventDefault()
-		const { initUsername } = this.state
-		this.loadUser({ uname: initUsername })
-	}
-
-	changeName = (e) => {
-		this.setState({ initUsername: e.target.value })
-	}
-
 	// TODO Remove after Chat is finished.
 	logServer = () => {
 		const { socket } = this.state
@@ -524,54 +514,37 @@ class Chat extends Component {
 	}
 
 	render() {
-		const { user, initUsername, curRoomRID, curDMUID, myRooms, myDMS, roomsShown, inputSent } = this.state
+		const { curRoomRID, curDMUID, myRooms, myDMS, roomsShown, inputSent } = this.state
+		const { user } = this.props
+
 		let data = null
 		if (!roomsShown && curDMUID) data = myDMS[curDMUID]
 		else if (roomsShown && myRooms) data = myRooms[curRoomRID]
+
 		return (
 			<Root>
-				{user?.uname ? (
-					<>
-						<ChatNav
-							myDMS={myDMS}
-							myRooms={myRooms}
-							curDMUID={curDMUID}
-							curRoomRID={curRoomRID}
-							createRoom={this.createRoom}
-							joinRoom={this.joinRoom}
-							deleteRoom={this.deleteRoom}
-							openDM={this.openDM}
-							user={user}
-						/>
-						<Main>
-							<ChatInfo data={data} roomsShown={roomsShown} />
-							<Logs
-								data={data}
-								user={user}
-								openDM={this.openDM}
-								roomsShown={roomsShown}
-								inputSent={inputSent}
-							/>
-							<ChatInput send={this.send} />
-						</Main>
-					</>
-				) : (
-					<form onSubmit={this.submitName} style={{ background: "inherit" }}>
-						<Input
-							ref={this.initUsernameRef}
-							label="Name"
-							placeholder="Min. 1 char, max 40!"
-							type="text"
-							value={initUsername}
-							onChange={this.changeName}
-							minLength="1"
-							required
-						/>
-						<Button type="submit" variant="fancy">
-							Submit
-						</Button>
-					</form>
-				)}
+				<ChatNav
+					myDMS={myDMS}
+					myRooms={myRooms}
+					curDMUID={curDMUID}
+					curRoomRID={curRoomRID}
+					createRoom={this.createRoom}
+					joinRoom={this.joinRoom}
+					deleteRoom={this.deleteRoom}
+					openDM={this.openDM}
+					user={user}
+				/>
+				<Main>
+					<ChatInfo data={data} roomsShown={roomsShown} />
+					<Logs
+						data={data}
+						user={user}
+						openDM={this.openDM}
+						roomsShown={roomsShown}
+						inputSent={inputSent}
+					/>
+					<ChatInput send={this.send} />
+				</Main>
 				{/* TODO Remove after Chat is finished. */}
 				<div style={{ position: "absolute", left: "50%", top: "8px", transform: "scale(.5)" }}>
 					<Button variant="outline" onClick={this.logServer}>
@@ -588,7 +561,7 @@ Chat.shared = setupAppSharedOptions({
 	title: "Chat",
 	logo: ChatSVG,
 	theme: Themes.red,
-	authRequired: false,
+	authRequired: true,
 })
 
 export default Chat

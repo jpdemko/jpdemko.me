@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useContext, useCallback, useMemo } from "react"
+import { useState, useEffect, useRef, useContext, useCallback } from "react"
 import { ThemeContext } from "styled-components/macro"
 import throttle from "lodash/throttle"
 

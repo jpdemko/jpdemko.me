@@ -1,22 +1,21 @@
 const passport = require("passport")
 const GoogleStrat = require("passport-google-oauth20").Strategy
 
-const db = require("./db/db")
+const queries = require("./db/queries")
 
 passport.serializeUser(function (user, done) {
-	done(null, user.provider_id)
+	console.log("passport serializeUser() user: ", user)
+	done(null, user.pid)
 })
 
-passport.deserializeUser(function (provider_id, done) {
-	db.query(`SELECT * FROM users WHERE pid = $1`, [provider_id], function (selectErr, selectRes) {
-		if (selectErr) {
-			done(selectErr)
-		} else {
-			const user = selectRes.rows[0]
-			delete user.id
-			done(null, user)
-		}
-	})
+passport.deserializeUser(async function (pid, done) {
+	try {
+		const res = await queries.users.getUserByPID(pid)
+		done(null, res.rows[0])
+	} catch (error) {
+		console.log("passport deserialize() error: ", error)
+		done(error)
+	}
 })
 
 passport.use(
@@ -26,31 +25,20 @@ passport.use(
 			clientSecret: process.env.GOOGLE_CLIENT_SECRET,
 			callbackURL: "/auth/google/callback",
 		},
-		function (accessToken, refreshToken, profile, done) {
-			const user = {
-				provider_id: profile.id,
+		async function (accessToken, refreshToken, profile, done) {
+			let user = {
+				pid: profile.id,
 				email: profile.emails.find((e) => e.verified).value,
-				name: profile.displayName,
+				uname: profile.displayName,
 			}
-			db.query("SELECT * FROM users WHERE pid = $1", [user.provider_id], function (selectErr, selectRes) {
-				if (selectErr) {
-					return done(selectErr, user)
-				}
-				if (selectRes.rows.length < 1) {
-					db.query(
-						"INSERT INTO users(pid, email, uname) VALUES ($1, $2, $3)",
-						[user.provider_id, user.email, user.name],
-						function (insertErr, insertRes) {
-							if (insertErr) {
-								return done(insertErr, user)
-							}
-							done(null, user)
-						}
-					)
-				} else {
-					done(null, user)
-				}
-			})
+			try {
+				const res = await queries.users.upsertAll(user)
+				console.log("GoogleStrat init res: ", res.rows)
+				done(null, res.rows[0])
+			} catch (error) {
+				console.log("GoogleStrat error: ", error)
+				done(error, user)
+			}
 		}
 	)
 )

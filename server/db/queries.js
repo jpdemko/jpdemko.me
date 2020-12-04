@@ -1,11 +1,24 @@
 const db = require("./db")
 const shared = require("../shared")
 
-async function setUserByUname(uname) {
-	const insertUserSQL = `INSERT INTO users(uname) VALUES ($1) ON CONFLICT (uname)
-		DO UPDATE SET uname = EXCLUDED.uname RETURNING uid, uname`
-	const res = await db.query(insertUserSQL, [uname])
-	return res.rows[0]
+const users = {
+	getUserByUname: async function (uname) {
+		const selectSQL = `SELECT * FROM users WHERE uname = $1`
+		let res = await db.query(selectSQL, [uname])
+		if (res.rows.length < 1) {
+			const insertSQL = `INSERT INTO users(uname) VALUES ($1) RETURNING *`
+			res = await db.query(insertSQL, [uname])
+		}
+		return res.rows[0]
+	},
+	upsertAll: async function ({ pid, email, uname }) {
+		const insertUserSQL = `INSERT INTO users(pid, email, uname) VALUES ($1, $2, $3)
+			ON CONFLICT (pid) DO UPDATE SET pid = EXCLUDED.pid RETURNING *`
+		return db.query(insertUserSQL, [pid, email, uname])
+	},
+	getUserByPID: async function (pid) {
+		return db.query(`SELECT * FROM users WHERE pid = $1`, [pid])
+	},
 }
 
 const chat = {
@@ -94,8 +107,7 @@ const chat = {
 			INNER JOIN users u ON m.uid = u.uid`
 		return db.query(sendMsgSQL, [uid, rid, msg])
 	},
-	setup: async function (uname) {
-		const user = await setUserByUname(uname)
+	setup: async function (user) {
 		const [roomsRes, dmsRes] = await Promise.all([this.getMyRooms(user.uid), this.getMyDMS(user.uid)])
 
 		const myDMS = dmsRes.rows.reduce((acc, cur) => {
@@ -118,6 +130,6 @@ const chat = {
 }
 
 module.exports = {
-	setUserByUname,
+	users,
 	chat,
 }

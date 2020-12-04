@@ -1,6 +1,6 @@
 /* global Microsoft */
 
-import { useState, useEffect, useCallback, useContext, useRef } from "react"
+import { useState, useEffect, useCallback, useContext } from "react"
 import styled, { css } from "styled-components/macro"
 import { DateTime, Interval } from "luxon"
 import { gsap } from "gsap/all"

@@ -2,13 +2,16 @@ import styled, { css } from "styled-components/macro"
 
 const Anchor = styled.a`
 	text-decoration: none;
-	${({ theme, animDuration = 0.175 }) => css`
+	${({ theme }) => css`
 		color: ${theme.highlight};
-		transition: all ${animDuration}s;
-		box-shadow: 0 0.05em 0 0 ${theme.highlight}, 0 -0.05em 0 0 ${theme.highlight} inset;
+		transition: all 0.175s;
+		background-image: linear-gradient(${theme.highlight}, ${theme.highlight});
+		background-position: 0% 100%;
+		background-repeat: no-repeat;
+		background-size: 100% 2px;
 		&:hover {
 			color: ${theme.primaryContrast};
-			box-shadow: 0 0.05em 0 0 ${theme.highlight}, 0 calc(-0.05em + -1.1em) 0 0 ${theme.highlight} inset;
+			background-size: 100% 100%;
 		}
 	`}
 `

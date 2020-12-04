@@ -11,14 +11,18 @@ function App({ title, isFocused, tabHidden }) {
 	// to make sure the user is actively participating.
 	const appActive = !tabHidden && isFocused
 
+	// Some apps require the user to be logged in. We check this per 'app' config and the Auth context.
+	const { isAuthed, user } = useContext(Contexts.Auth)
+
 	// Prevent renders for apps from frequent Display and Window component updates.
 	const App = mountableApps[title]
-	const memoApp = useMemo(() => <App appActive={appActive} title={title} />, [appActive, title])
+	const memoApp = useMemo(() => <App appActive={appActive} title={title} user={user} />, [
+		appActive,
+		title,
+		user,
+	])
 
-	// Some apps require the user to be logged in. We check this per 'app' config and the Auth context.
-	const authContext = useContext(Contexts.Auth)
-
-	if (App && (!App.shared.authRequired || (App.shared.authRequired && authContext.isAuthed))) {
+	if (App && (!App.shared.authRequired || (App.shared.authRequired && isAuthed && user))) {
 		return memoApp
 	} else {
 		return <SocialLogin />

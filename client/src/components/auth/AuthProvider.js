@@ -1,40 +1,33 @@
-import { useState, useEffect } from "react"
-import { useLocation } from "react-router-dom"
+import { useState, useEffect, useMemo } from "react"
 
 import { Contexts } from "../../shared/shared"
 
 function AuthProvider({ children }) {
 	const [isAuthed, setIsAuthed] = useState(false)
 	const [user, setUser] = useState(null)
-	const location = useLocation()
-
-	useEffect(() => {
-		// getUser()
-	}, [])
 
 	function getUser() {
 		fetch("/auth/user", { withCredentials: true })
-			.then((res) => {
-				if (res.data?.error && isAuthed) setIsAuthed(false)
-				else if (res.data?.provider_id && !isAuthed) {
+			.then((res) => res?.json?.())
+			.then((data) => {
+				// console.log("<AuthProvider /> getUser() data: ", data)
+				if (data?.error && isAuthed) setIsAuthed(false)
+				else if (data?.pid && !isAuthed) {
 					setIsAuthed(true)
-					setUser(res.data)
+					setUser(data)
 				}
 			})
 			.catch((error) => console.error("<AuthProvider /> getuser() error: ", error))
 	}
 
-	return (
-		<Contexts.Auth.Provider
-			value={{
-				isAuthed,
-				user,
-				getUser,
-			}}
-		>
-			{children}
-		</Contexts.Auth.Provider>
-	)
+	useEffect(() => {
+		getUser()
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [])
+
+	const authContext = useMemo(() => ({ isAuthed, user }), [isAuthed, user])
+
+	return <Contexts.Auth.Provider value={authContext}>{children}</Contexts.Auth.Provider>
 }
 
 export default AuthProvider
