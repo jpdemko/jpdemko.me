@@ -43,10 +43,7 @@ export const ButtonBase = styled.button.attrs(({ svg, column, reverse, ...props 
 		box-shadow: 0 0 0 0 ${props.theme.accent};
 		opacity: ${props.disabled ? 0.33 : 1};
 		cursor: ${props.disabled ? "default" : "pointer"};
-		${props.isFocused &&
-		css`
-			background: ${opac(0.2, props.color)};
-		`}
+		background: ${opac(props.isFocused ? 0.15 : 0, props.color)};
 		.svg-container {
 			flex: ${props.column ? 1 : 0} 1 auto;
 			display: flex;
@@ -66,10 +63,10 @@ const BasicButton = styled(ButtonBase)`
 		}
 		&:hover {
 			box-shadow: 0 0 0 1px ${props.color};
-			background: ${opac(0.3, props.color)};
+			background: ${opac(0.2, props.color)};
 		}
 		&:active {
-			background: ${opac(0.4, props.color)};
+			background: ${opac(0.25, props.color)};
 		}
 	`}
 `

@@ -118,9 +118,14 @@ const LatestDM = styled(Button)`
 const ModalRoot = styled.div`
 	--modal-padding: 0.5em;
 	min-width: max-content;
-	padding: var(--modal-padding) calc(var(--modal-padding) * 2);
-	form > div {
-		padding: var(--modal-padding);
+	padding: var(--modal-padding);
+	form {
+		background: inherit;
+		display: flex;
+		flex-direction: column;
+		> * {
+			margin: var(--modal-padding);
+		}
 	}
 	${({ theme }) => css`
 		background: ${theme.altBackground};
@@ -219,9 +224,7 @@ function ChatNav({
 	}
 
 	function joinPrevRoom(room) {
-		joinRoom({ room })
-			.then(console.log)
-			.catch((error) => console.error("<ChatNav /> joinPrevRoom() error: ", error))
+		joinRoom({ room }).catch((error) => console.error("<ChatNav /> joinPrevRoom() error: ", error))
 	}
 
 	const sortedRIDS = useMemo(() => {
@@ -372,34 +375,24 @@ function ChatNav({
 				<div>
 					<Empha>Create room config!</Empha>
 				</div>
-				<div>
-					<label>
-						<span>Room name:</span>
-						<br />
-						<Input
-							type="text"
-							placeholder="Room name required..."
-							value={rname}
-							onChange={(e) => setRName(e.target.value)}
-							minLength="1"
-							required
-							ref={createRoomModalRef}
-						/>
-					</label>
-				</div>
-				<div>
-					<label>
-						<span>Room password:</span>
-						<br />
-						<Input
-							type="password"
-							placeholder="Optional room password..."
-							value={password}
-							onChange={(e) => setPassword(e.target.value)}
-							minLength="6"
-						/>
-					</label>
-				</div>
+				<Input
+					type="text"
+					label="Room name"
+					placeholder="Room name required"
+					value={rname}
+					onChange={(e) => setRName(e.target.value)}
+					minLength="1"
+					required
+					ref={createRoomModalRef}
+				/>
+				<Input
+					type="password"
+					label="Password"
+					placeholder="Optional password (min. 6ch)"
+					value={password}
+					onChange={(e) => setPassword(e.target.value)}
+					minLength="6"
+				/>
 				<div>
 					<Button type="submit" variant="fancy">
 						Submit
@@ -414,33 +407,24 @@ function ChatNav({
 				<div>
 					<Empha>Join room config!</Empha>
 				</div>
-				<div>
-					<label>
-						<span>Join room ID#:</span>
-						<br />
-						<Input
-							type="text"
-							placeholder="Room ID# required..."
-							value={rid}
-							onChange={(e) => setRID(e.target.value)}
-							minLength="1"
-							required
-							ref={joinRoomModalRef}
-						/>
-					</label>
-				</div>
-				<div>
-					<label>
-						<span>Does target room have password?</span>
-						<br />
-						<Input
-							type="password"
-							value={password}
-							onChange={(e) => setPassword(e.target.value)}
-							minLength="6"
-						/>
-					</label>
-				</div>
+				<Input
+					type="text"
+					label="Room ID#"
+					placeholder="Room ID# required"
+					value={rid}
+					onChange={(e) => setRID(e.target.value)}
+					minLength="1"
+					required
+					ref={joinRoomModalRef}
+				/>
+				<Input
+					type="password"
+					label="Password"
+					placeholder="Optional password (min. 6ch)"
+					value={password}
+					onChange={(e) => setPassword(e.target.value)}
+					minLength="6"
+				/>
 				<div>
 					<Button type="submit" variant="fancy">
 						Submit

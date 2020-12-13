@@ -126,7 +126,6 @@ function createTheme(theme) {
 		.sort(([, lumi1], [, lumi2]) => (lumi1 > lumi2 ? 1 : lumi1 < lumi2 ? -1 : 0))
 	const darkKV = sortedLumin.shift()
 	const lightKV = sortedLumin.pop()
-	// console.log(`createTheme(${theme.name}) dark: `, darkKV, "lightKV: ", lightKV)
 	return {
 		...theme,
 		readableColor: (bgColor) => readableColor(bgColor, theme?.[darkKV?.[0]], theme?.[lightKV?.[0]], false),

@@ -17,7 +17,7 @@ const Root = styled.div`
 	> div {
 		height: 100%;
 		overflow-x: hidden;
-		overflow-y: auto;
+		overflow-y: hidden;
 	}
 	${({ isShown, animDuration, side, theme }) => css`
 		${side === "left" ? "left: 0;" : "right: 0;"}

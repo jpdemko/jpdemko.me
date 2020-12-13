@@ -198,7 +198,6 @@ module.exports = function (io) {
 
 			// Check if user is already active.
 			let user = Users.get(passedUser.uid || passedUser.uname)
-			console.log("socketSetup init passedUser: ", passedUser, "\nuser: ", user)
 			if (user) {
 				if (user.socketID === socket.id) {
 					return clientCB({ success: "server success - setupUser() - you're already setup", user })

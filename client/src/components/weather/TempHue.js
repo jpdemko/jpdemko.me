@@ -8,7 +8,7 @@ const Root = styled.div`
 	display: flex;
 	align-items: center;
 	${({ theme, hue }) => {
-		const bg = `hsl(${hue}, 85%, 50%)`
+		const bg = `hsl(${hue ?? 70}, 85%, 50%)`
 		const color = theme.readableColor(bg)
 		const filter = getLuminance(color) > 0.5 ? "drop-shadow(0 0 1px rgba(0, 0, 0, 0.65))" : "none"
 		return css`
@@ -30,7 +30,7 @@ function TempHue({ temp, children, ...props }) {
 	}
 
 	return (
-		<Root {...props} hue={getTempHue(temp ?? 70)}>
+		<Root {...props} hue={getTempHue(temp)}>
 			<span>{children}</span>
 		</Root>
 	)

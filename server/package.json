@@ -19,10 +19,10 @@
 		"passport": "^0.4.1",
 		"passport-google-oauth20": "^2.0.0",
 		"pg": "^8.5.1",
-		"socket.io": "^3.0.3"
+		"socket.io": "^3.0.4"
 	},
 	"devDependencies": {
 		"cross-env": "^7.0.3",
-		"eslint": "^7.14.0"
+		"eslint": "^7.15.0"
 	}
 }

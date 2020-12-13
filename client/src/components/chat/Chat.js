@@ -53,11 +53,8 @@ class Chat extends Component {
 		// Setup socket event listeners.
 		socket.on("updateRoom", this.updateRoom)
 		socket.on("receiveData", this.receiveData)
-		socket.on("reconnect", () => {
-			console.log("socket reconnect event - loadUser() called")
-			this.loadUser()
-		})
-		socket.on("disconnect", (reason) => console.log("socket disconnect event - reason: ", reason))
+		socket.on("reconnect", this.loadUser)
+		// socket.on("disconnect", (reason) => console.log("socket disconnect event - reason: ", reason))
 		// Setup data save on exit.
 		window.addEventListener("beforeunload", this.saveUserData)
 		// Attempt to load prev. save data if any.
@@ -99,19 +96,17 @@ class Chat extends Component {
 
 		const { socket, ...otherState } = this.state
 		let prevData = ls.get(this.props.title) ?? {}
-		// console.log("<Chat /> saveUserData()")
 		ls.set("Chat", { ...prevData, ...otherState })
 	}
 
 	getUserData = () => {
-		// console.log("<Chat /> getUserData()")
 		return ls.get(this.props.title) ?? {}
 	}
 
 	loadUser = async (passedUser) => {
 		let { user } = this.props
 		if (!user && passedUser) user = passedUser
-		if (!user) return console.log("<Chat /> loadUser() skipped, no user found.")
+		if (!user) return
 
 		this.context.setAppLoading(true)
 		let setupRes = null
@@ -181,7 +176,6 @@ class Chat extends Component {
 		return new Promise((resolve, reject) => {
 			if (!socket || !user) return reject("<Chat /> socketSetupUser() error: bad params")
 			socket.emit("setupUser", user, ({ success, error, data }) => {
-				console.log(success ?? error, data)
 				if (error) reject(error)
 				else if (success) {
 					const unreadCustomizer = (objVal, srcVal, key) => {
@@ -243,7 +237,7 @@ class Chat extends Component {
 	updateRoom = (room, makeCur = false) => {
 		let myRooms = { ...this.state.myRooms }
 		const { rid, msgs } = room
-		if (!rid) return console.log("<Chat /> updateRoom() error: bad params")
+		if (!rid) return
 
 		myRooms[rid] = {
 			...(myRooms[rid] ?? {}),
@@ -275,7 +269,6 @@ class Chat extends Component {
 			}
 			if (msgs) ioVars.lastMsgTS = this.getLastTimestamp(msgs)
 			this.state.socket.emit("joinRoom", ioVars, ({ success, error, room: roomRes }) => {
-				console.log(success ?? error, roomRes)
 				if (error) reject(error)
 				else if (success) {
 					if (roomRes) roomRes.msgs = { ...(msgs ?? {}), ...roomRes.msgs }
@@ -303,7 +296,6 @@ class Chat extends Component {
 			if (selectedRID == 1) return reject("can't delete default room 'General'.")
 			else
 				socket.emit("deleteRoom", { uid: user.uid, rid: selectedRID }, ({ success, error }) => {
-					console.log(success ?? error)
 					if (error) reject(error)
 					else if (success) resolve({ success })
 				})
@@ -335,7 +327,6 @@ class Chat extends Component {
 		}
 		return new Promise((resolve, reject) => {
 			socket.emit("createRoom", ioVars, ({ error, success, room: roomRes }) => {
-				console.log(error ?? success, roomRes)
 				if (error) return reject(error)
 				return resolve({ success, room: roomRes })
 			})
@@ -355,7 +346,6 @@ class Chat extends Component {
 
 		return new Promise((resolve, reject) => {
 			socket.emit("sendRoomMsg", { msg, rid: curRoomRID, uid: user.uid }, ({ error, success, msgs }) => {
-				console.log(success ?? error, msgs)
 				if (success && msgs) {
 					const users_last_msg_ts = Object.values(msgs).pop()?.created_at
 					this.updateRoom({ rid: curRoomRID, msgs, users_last_msg_ts })
@@ -370,9 +360,8 @@ class Chat extends Component {
 		const { myDMS } = this.state
 		const { user } = this.props
 		const { uid: recip_id, uname: recip_uname } = passedUser
-		if (!recip_id) return console.log("<Chat /> openDM() error: bad params")
-		else if (recip_id == user?.uid)
-			return console.log("<Chat /> openDM() skipped, can't send DM to yourself!")
+		if (!recip_id) return
+		else if (recip_id == user?.uid) return
 
 		this.setState({
 			roomsShown: false,
@@ -419,7 +408,6 @@ class Chat extends Component {
 				tsLogsFetched: convo?.tsLogsFetched,
 			}
 			socket.emit("getLogsDMS", ioVars, ({ success, error, data }) => {
-				console.log(success ?? error, data)
 				if (error) reject(error)
 				else if (success) {
 					data.dms = { ...(convo?.dms ?? {}), ...(data?.dms ?? {}) }
@@ -438,7 +426,6 @@ class Chat extends Component {
 			if (!user?.uid || !curDMUID || !text) return reject("<Chat /> socketSendDM() error: bad params")
 			const ioVars = { uid: user.uid, recip_id: curDMUID, msg: text }
 			socket.emit("sendDM", ioVars, ({ success, error, data }) => {
-				console.log(success ?? error, data)
 				if (error) reject(error)
 				else if (success) {
 					this.updateDM(data)
@@ -451,7 +438,7 @@ class Chat extends Component {
 
 	updateDM = (data) => {
 		// data { recip_id, dms: { dmid#: { ...dmData } } }
-		if (!data?.dms) return console.log("<Chat /> updateDM() error: bad params")
+		if (!data?.dms) return
 		const { recip_id, dms, tsLogsFetched } = data
 		if (!dms) return
 
@@ -507,12 +494,6 @@ class Chat extends Component {
 		})
 	}
 
-	// TODO Remove after Chat is finished.
-	logServer = () => {
-		const { socket } = this.state
-		if (socket) socket.emit("log")
-	}
-
 	render() {
 		const { curRoomRID, curDMUID, myRooms, myDMS, roomsShown, inputSent } = this.state
 		const { user } = this.props
@@ -545,12 +526,6 @@ class Chat extends Component {
 					/>
 					<ChatInput send={this.send} />
 				</Main>
-				{/* TODO Remove after Chat is finished. */}
-				<div style={{ position: "absolute", left: "50%", top: "8px", transform: "scale(.5)" }}>
-					<Button variant="outline" onClick={this.logServer}>
-						LOG SERVER
-					</Button>
-				</div>
 			</Root>
 		)
 	}

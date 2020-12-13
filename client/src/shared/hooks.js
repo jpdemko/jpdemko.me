@@ -15,7 +15,7 @@ import { Themes, ls } from "./shared"
 export function useLocalStorage(key, initValue) {
 	const [value, setValue] = useState(() => {
 		let item = ls.get(key)
-		if (initValue) {
+		if (!item && initValue) {
 			item = initValue
 			ls.set(key, item)
 		}

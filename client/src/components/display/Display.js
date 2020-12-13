@@ -89,21 +89,19 @@ const ShortcutButton = styled(Button)`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-export const mountableApps = {}
-const appClasses = [About, Weather, Chat]
-appClasses.forEach((app) => (mountableApps[app.shared.title] = app))
+export const mountableApps = { About, Weather, Chat }
 
 const apps = {}
 
 class Display extends Component {
 	constructor(props) {
 		super(props)
-		const { appNames, zIndexLeader } = ls.get("Display") ?? {}
-		const prevOpenedApps = (appNames ?? []).map(this.genApp)
+		const { openedApps = [], zIndexLeader, grid } = ls.get("Display") ?? {}
+		openedApps.forEach((app) => (apps[app.title] = app))
 		this.state = {
-			openedApps: prevOpenedApps,
+			openedApps,
 			mainNavBurgerCB: null,
-			grid: {
+			grid: grid ?? {
 				rows: 1,
 				cols: 1,
 			},
@@ -115,14 +113,14 @@ class Display extends Component {
 
 	componentDidMount() {
 		this.setGridDims()
-		window.addEventListener("resize", this.setGridDimsThrottled)
 		window.addEventListener("beforeunload", this.save)
+		window.addEventListener("resize", this.setGridDimsThrottled)
 	}
 
 	componentWillUnmount() {
-		this.setGridDimsThrottled.cancel()
 		window.removeEventListener("beforeunload", this.save)
 		window.removeEventListener("resize", this.setGridDimsThrottled)
+		this.setGridDimsThrottled.cancel()
 	}
 
 	componentDidUpdate(prevProps, prevState) {
@@ -136,23 +134,10 @@ class Display extends Component {
 		}
 	}
 
-	saveApp = (title, extraData = {}) => {
-		if (!title) return
-
-		const prevData = ls.get(title) ?? {}
-		ls.set(title, {
-			title,
-			...prevData,
-			...apps[title],
-			...extraData,
-		})
-	}
-
 	save = () => {
-		const appNames = Object.keys(apps)
-		appNames.forEach(this.saveApp)
+		const { mainNavBurgerCB, ...savableData } = this.state
 		ls.set("Display", {
-			appNames,
+			...savableData,
 			zIndexLeader: this.zIndexLeader,
 		})
 	}
@@ -169,29 +154,30 @@ class Display extends Component {
 	}
 
 	genApp = (title) => {
-		if (!title) return
+		if (!title || apps[title]) return
 
 		const { isMobileSite } = this.props
-		const prevData = ls.get(title) ?? {}
-		const { window, ...desiredData } = prevData
 		const newData = {
 			title,
 			isFocused: false,
 			zIndex: ++this.zIndexLeader,
-			isMinimized: false,
-			isMaximized: isMobileSite, // End of defaults.
-			...desiredData, // Loaded previous data.
-			...(isMobileSite && { isMaximized: true }), // If site is mobile, overwrite all data.
+			isMinimized: true,
+			isMaximized: isMobileSite,
+			isClosed: true,
 		}
 		apps[title] = newData
 		return newData
 	}
 
 	openApp = (title) => {
-		if (apps[title]) return this.toggleMinimize(title)
+		if (!title) return
+		else if (!apps[title]) this.genApp(title)
+		else if (!apps[title]?.isClosed) return this.toggleMinimize(title)
 
-		this.genApp(title)
-		this.focusApp(title, { isMinimized: false }, true)
+		this.focusApp(title, {
+			isClosed: false,
+			isMinimized: false,
+		})
 	}
 
 	toggleMinimize = (title) => {
@@ -225,13 +211,8 @@ class Display extends Component {
 	closeApp = (title) => {
 		if (!apps[title]) return
 
-		apps[title].isMinimized = true
-		this.saveApp(title)
-		if (apps[title].isFocused) this.focusApp(this.getBelowApp(title))
-		delete apps[title]
-		this.setState({
-			openedApps: Object.keys(apps).map((t) => apps[t]),
-		})
+		apps[title].isClosed = true
+		this.focusApp(this.getBelowApp(title))
 	}
 
 	handleHomeButton = () => {
@@ -244,24 +225,25 @@ class Display extends Component {
 	}
 
 	getBelowApp = (title) => {
-		const { zIndex } = apps[title]
-		if (!zIndex) return
+		const { zIndex: maxZ } = apps[title]
+		if (!maxZ) return
 
 		let belowAppTitle = null
-		if (zIndex && Object.keys(apps).length > 1) {
+		if (maxZ && Object.keys(apps).length > 1) {
 			Object.keys(apps).forEach((t) => {
 				if (t === title || apps[t].isMinimized) return
 				const curZ = apps[t].zIndex
-				if (!belowAppTitle && curZ < zIndex) belowAppTitle = t
-				else if (belowAppTitle && curZ < zIndex && curZ > apps[belowAppTitle].zIndex) belowAppTitle = t
+				const firstPick = !belowAppTitle && curZ < maxZ
+				const zIsBetween = belowAppTitle && curZ < maxZ && curZ > apps[belowAppTitle].zIndex
+				if (firstPick || zIsBetween) belowAppTitle = t
 			})
 		}
 		return belowAppTitle
 	}
 
-	focusApp = (title, changes = {}, force = false) => {
+	focusApp = (title, changes = {}) => {
 		const app = apps[title]
-		if (!force && app?.isFocused && Object.keys(changes) < 1) return
+		if (app?.isFocused && Object.keys(changes) < 1) return
 
 		let noMatches = true
 		const nextApps = Object.keys(apps).map((t) => {
@@ -311,25 +293,31 @@ class Display extends Component {
 					{this.props.children}
 					<WindowWireframe id="window-wireframe" isMobileSite={this.props.isMobileSite} />
 					<TransitionGroup component={null}>
-						{this.state.openedApps.map((app, i) => (
-							<Window
-								key={app.title}
-								isMobileSite={this.props.isMobileSite}
-								isFocused={app.isFocused}
-								title={app.title}
-								minWindowCSS={minWindowCSS}
-								closeApp={this.closeApp}
-								focusApp={this.focusApp}
-								zIndex={app.zIndex}
-								isMinimized={app.isMinimized}
-								isMaximized={app.isMaximized}
-								toggleMaximize={this.toggleMaximize}
-								toggleMinimize={this.toggleMinimize}
-								setMainNavBurgerCB={this.setMainNavBurgerCB}
-							>
-								<App isFocused={app.isFocused} tabHidden={this.props.tabHidden} title={app.title} />
-							</Window>
-						))}
+						{this.state.openedApps.map((app, i) =>
+							app.isClosed ? null : (
+								<Window
+									key={app.title}
+									isMobileSite={this.props.isMobileSite}
+									isFocused={app.isFocused}
+									title={app.title}
+									minWindowCSS={minWindowCSS}
+									closeApp={this.closeApp}
+									focusApp={this.focusApp}
+									zIndex={app.zIndex}
+									isMinimized={app.isMinimized}
+									isMaximized={app.isMaximized}
+									toggleMaximize={this.toggleMaximize}
+									toggleMinimize={this.toggleMinimize}
+									setMainNavBurgerCB={this.setMainNavBurgerCB}
+								>
+									<App
+										isFocused={app.isFocused}
+										tabHidden={this.props.tabHidden}
+										title={app.title}
+									/>
+								</Window>
+							)
+						)}
 					</TransitionGroup>
 				</AllowedDragArea>
 				<Nav

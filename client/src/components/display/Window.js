@@ -143,7 +143,7 @@ export default class Window extends Component {
 	constructor(props) {
 		super(props)
 		this.rootRef = createRef()
-		this.handleViewportResizeThrottled = throttle(this.handleViewportResize, 200)
+		this.checkIfMobileWindowThrottled = throttle(this.checkIfMobileWindow, 200)
 
 		const { top, left, width, height } = getRect("window-wireframe")
 		const prevData = ls.get(`Window-${props.title}`) ?? {}
@@ -204,21 +204,19 @@ export default class Window extends Component {
 	}
 
 	componentDidMount() {
-		this.mounted = true
 		this.genDraggables()
 		this.enterAnim()
-		window.addEventListener("resize", this.handleViewportResizeThrottled)
 		window.addEventListener("beforeunload", this.save)
-		this.handleViewportResizeThrottled()
+		window.addEventListener("resize", this.checkIfMobileWindowThrottled)
+		this.checkIfMobileWindowThrottled()
 		this.determineMainNavBurgerCB()
 	}
 
 	componentWillUnmount() {
-		this.mounted = false
 		this.handleExit()
-		window.removeEventListener("resize", this.handleViewportResizeThrottled)
 		window.removeEventListener("beforeunload", this.save)
-		this.handleViewportResizeThrottled.cancel()
+		window.removeEventListener("resize", this.checkIfMobileWindowThrottled)
+		this.checkIfMobileWindowThrottled.cancel()
 		if (this.dragInstances) this.dragInstances.forEach((i) => i[0].kill())
 	}
 
@@ -244,7 +242,7 @@ export default class Window extends Component {
 		}
 
 		// Resize listener isn't sufficient for all cases if window instantly resizes
-		this.handleViewportResizeThrottled()
+		this.checkIfMobileWindowThrottled()
 	}
 
 	determineMainNavBurgerCB = () => {
@@ -294,11 +292,12 @@ export default class Window extends Component {
 			allowContextMenu: true,
 		})
 
+		const dragArea = document.getElementById("allowedDragArea")
+
 		function genResizeDraggable({ handleOnDrag, ...vars }) {
-			const parent = document.getElementById("allowedDragArea")
 			const nextEle = document.createElement("div")
 			nextEle.style.position = "absolute"
-			parent.appendChild(nextEle)
+			dragArea.appendChild(nextEle)
 			return Draggable.create(nextEle, {
 				...vars,
 				type: "x,y",
@@ -315,7 +314,7 @@ export default class Window extends Component {
 					handleOnDrag(this, wdow.data.css.windowed)
 					wdow.data.css.current.width = wdow.data.css.windowed.width
 					wdow.data.css.current.height = wdow.data.css.windowed.height
-					wdow.handleViewportResizeThrottled()
+					wdow.checkIfMobileWindowThrottled()
 				},
 				allowContextMenu: true,
 			})
@@ -333,10 +332,10 @@ export default class Window extends Component {
 				cursor: "n-resize",
 				handleOnDrag: function (drag, wdowCSS) {
 					const nextHeightBelowMin = wdowCSS.height - drag.deltaY < minWindowCSS.height
-					const nextHeightAboveMax = wdowCSS.height - drag.deltaY > drag.maxY
+					const nextHeightAboveMax = wdowCSS.height - drag.deltaY > dragArea.clientHeight
 
 					if (nextHeightBelowMin) drag.deltaY = wdowCSS.height - minWindowCSS.height
-					else if (nextHeightAboveMax) drag.deltaY = drag.maxY - wdowCSS.height
+					else if (nextHeightAboveMax) drag.deltaY = dragArea.clientHeight - wdowCSS.height
 					wdowCSS.height -= drag.deltaY
 
 					qsHeight(wdowCSS.height)
@@ -348,10 +347,10 @@ export default class Window extends Component {
 				cursor: "e-resize",
 				handleOnDrag: function (drag, wdowCSS) {
 					const nextWidthBelowMin = wdowCSS.width + drag.deltaX < minWindowCSS.width
-					const nextWidthAboveMax = wdowCSS.width + drag.deltaX > drag.maxX
+					const nextWidthAboveMax = wdowCSS.width + drag.deltaX > dragArea.clientWidth
 
 					if (nextWidthBelowMin) wdowCSS.width = minWindowCSS.width
-					else if (nextWidthAboveMax) wdowCSS.width = drag.maxX
+					else if (nextWidthAboveMax) wdowCSS.width = dragArea.clientWidth
 					else wdowCSS.width += drag.deltaX
 
 					qsWidth(wdowCSS.width)
@@ -362,10 +361,10 @@ export default class Window extends Component {
 				cursor: "s-resize",
 				handleOnDrag: function (drag, wdowCSS) {
 					const nextHeightBelowMin = wdowCSS.height + drag.deltaY < minWindowCSS.height
-					const nextHeightAboveMax = wdowCSS.height + drag.deltaY > drag.maxY
+					const nextHeightAboveMax = wdowCSS.height + drag.deltaY > dragArea.clientHeight
 
 					if (nextHeightBelowMin) wdowCSS.height = minWindowCSS.height
-					else if (nextHeightAboveMax) wdowCSS.height = drag.maxY
+					else if (nextHeightAboveMax) wdowCSS.height = dragArea.clientHeight
 					else wdowCSS.height += drag.deltaY
 
 					qsHeight(wdowCSS.height)
@@ -376,10 +375,10 @@ export default class Window extends Component {
 				cursor: "w-resize",
 				handleOnDrag: function (drag, wdowCSS) {
 					const nextWidthBelowMin = wdowCSS.width - drag.deltaX < minWindowCSS.width
-					const nextWidthAboveMax = wdowCSS.width - drag.deltaX > drag.maxX
+					const nextWidthAboveMax = wdowCSS.width - drag.deltaX > dragArea.clientWidth
 
 					if (nextWidthBelowMin) drag.deltaX = wdowCSS.width - minWindowCSS.width
-					else if (nextWidthAboveMax) drag.deltaX = wdowCSS.width - drag.maxX
+					else if (nextWidthAboveMax) drag.deltaX = wdowCSS.width - dragArea.clientWidth
 					wdowCSS.width -= drag.deltaX
 
 					qsWidth(wdowCSS.width)
@@ -417,12 +416,12 @@ export default class Window extends Component {
 		this.save()
 	}
 
-	handleViewportResize = () => {
-		if (!this.mounted) return
+	checkIfMobileWindow = () => {
 		const width = this.data.css.current.width
 		const { isMobileWindow } = this.state.context
+		const { isMobileSite } = this.props
 
-		if (!isMobileWindow && width < mediaBreakpoints.desktop) {
+		if ((!isMobileWindow && isMobileSite) || (!isMobileWindow && width < mediaBreakpoints.desktop)) {
 			this.setState((prev) => ({
 				context: {
 					...prev.context,
@@ -515,7 +514,7 @@ export default class Window extends Component {
 			onUpdate: function () {
 				wdow.data.css.current.width = this._targets[0].offsetWidth
 				wdow.data.css.current.height = this._targets[0].offsetHeight
-				if (!wdow.props.isMinimized) wdow.handleViewportResizeThrottled()
+				if (!wdow.props.isMinimized) wdow.checkIfMobileWindowThrottled()
 			},
 		})
 		this.curAnim.play()

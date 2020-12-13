@@ -118,13 +118,15 @@ function WeatherNav({
 			<LocationsList>
 				{locations.map(({ id, curWeatherBG, mapData, weatherData }) => {
 					if (!mapData?.address?.formattedAddress) return null
-					const temp = getTemp(weatherData.currently.apparentTemperature)
+					const temp = weatherData.currently.apparentTemperature
 					return (
 						<Row key={id} curWeatherBG={curWeatherBG}>
 							<Location tag="div" color="primaryContrast" onClick={() => onLocationFound(mapData)}>
-								<LocationAddress>{mapData.address.formattedAddress}</LocationAddress>
+								<LocationAddress className="chLimit">
+									{mapData.address.formattedAddress}
+								</LocationAddress>
 								<LocationSummary>
-									<StyledTempHue temp={temp}>{temp}&deg;</StyledTempHue>
+									<StyledTempHue temp={temp}>{getTemp(temp)}&deg;</StyledTempHue>
 									<WeatherIcon iconName={weatherData.currently.icon} />
 									<div>{date.setZone(weatherData.timezone).toFormat("t")}</div>
 								</LocationSummary>

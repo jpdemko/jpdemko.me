@@ -25,6 +25,27 @@ const TaskbarBtn = styled(Button)`
 	justify-content: flex-start;
 `
 
+const AppTaskbarBtn = styled(TaskbarBtn)`
+	position: relative;
+	${({ theme, isFocused }) => css`
+		&::before {
+			content: "";
+			position: absolute;
+			bottom: 0;
+			left: ${isFocused ? 0 : "7%"};
+			background: ${theme.accent};
+			height: ${isFocused ? 2 : 1}px;
+			transition: all 0.175s;
+			width: ${isFocused ? "100%" : "86%"};
+		}
+		&:hover::before {
+			left: 0;
+			width: 100%;
+			height: 2px;
+		}
+	`}
+`
+
 const DrawerDescrip = styled.div`
 	padding: var(--drawer-padding);
 	${({ theme }) => css`
@@ -52,7 +73,7 @@ const Taskbar = styled.div`
 	${({ theme }) => css`
 		background: ${theme.background};
 		border-top: 1px solid ${theme.accent};
-		border-bottom: 1px solid ${theme.accent};
+		${"" /* border-bottom: 1px solid ${theme.accent}; */}
 	`}
 `
 
@@ -80,35 +101,37 @@ function Nav({ openedApps, isMobileSite, handleHomeButton, openApp, closeApp, ma
 		openApp(title)
 	}
 
-	const taskbarButtons = openedApps.map((app) => (
-		<OpenedApp key={app.title}>
-			<ContextMenuTrigger id={`nav-tb-button-${app.title}`} holdToDisplay={-1}>
-				<TaskbarBtn
-					onClick={() => handleOpen(app.title)}
-					svg={mountableApps[app.title].shared.logo}
-					isFocused={app.isFocused}
-				>
-					{mountableApps[app.title].shared.title}
-				</TaskbarBtn>
-			</ContextMenuTrigger>
-			<ContextMenu id={`nav-tb-button-${app.title}`}>
-				<MenuItem>
-					<Button
-						onClick={() => handleClose(app.title)}
-						svg={CloseSVG}
-						variant="fancy"
-						setTheme="red"
-						color="primary"
-					/>
-				</MenuItem>
-			</ContextMenu>
-		</OpenedApp>
-	))
+	const taskbarButtons = openedApps.map((app) =>
+		app.isClosed ? null : (
+			<OpenedApp key={app.title} isFocused={app.isFocused}>
+				<ContextMenuTrigger id={`nav-tb-button-${app.title}`} holdToDisplay={-1}>
+					<AppTaskbarBtn
+						onClick={() => handleOpen(app.title)}
+						svg={mountableApps[app.title].shared.logo}
+						isFocused={app.isFocused}
+					>
+						{mountableApps[app.title].shared.title}
+					</AppTaskbarBtn>
+				</ContextMenuTrigger>
+				<ContextMenu id={`nav-tb-button-${app.title}`}>
+					<MenuItem>
+						<Button
+							onClick={() => handleClose(app.title)}
+							svg={CloseSVG}
+							variant="fancy"
+							setTheme="red"
+							color="primary"
+						/>
+					</MenuItem>
+				</ContextMenu>
+			</OpenedApp>
+		)
+	)
 
 	const drawerButtons = Object.keys(mountableApps).map((name) => {
 		const mApp = mountableApps[name]
 		const title = mApp.shared.title
-		const oApp = openedApps.find((a) => a.title === title)
+		const oApp = openedApps.find((a) => a.title == title && !a.isClosed)
 		return (
 			<DrawerRow key={title}>
 				<DrawerBtn onClick={() => handleOpen(title)} svg={mApp.shared.logo} isFocused={oApp?.isFocused}>

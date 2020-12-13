@@ -4,7 +4,7 @@ const GoogleStrat = require("passport-google-oauth20").Strategy
 const queries = require("./db/queries")
 
 passport.serializeUser(function (user, done) {
-	console.log("passport serializeUser() user: ", user)
+	// console.log("passport serializeUser() user: ", user)
 	done(null, user.pid)
 })
 
@@ -33,10 +33,10 @@ passport.use(
 			}
 			try {
 				const res = await queries.users.upsertAll(user)
-				console.log("GoogleStrat init res: ", res.rows)
+				// console.log("GoogleStrat init res: ", res.rows)
 				done(null, res.rows[0])
 			} catch (error) {
-				console.log("GoogleStrat error: ", error)
+				console.error("passport GoogleStrat error: ", error)
 				done(error, user)
 			}
 		}

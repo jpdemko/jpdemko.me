@@ -10,9 +10,11 @@ function AuthProvider({ children }) {
 		fetch("/auth/user", { withCredentials: true })
 			.then((res) => res?.json?.())
 			.then((data) => {
-				// console.log("<AuthProvider /> getUser() data: ", data)
-				if (data?.error && isAuthed) setIsAuthed(false)
-				else if (data?.pid && !isAuthed) {
+				if (data?.error && isAuthed) {
+					setIsAuthed(false)
+					console.log("<AuthProvider /> getUser() error, setting isAuthed to false.")
+				} else if (data?.pid && !isAuthed) {
+					console.log("<AuthProvider /> getUser() success, isAuthed is true.")
 					setIsAuthed(true)
 					setUser(data)
 				}

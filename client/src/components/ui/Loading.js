@@ -9,9 +9,9 @@ const StyledSVG = styled.svg`
 	animation: rotate 1s linear infinite;
 	padding: 1em;
 	min-width: 50px;
-	max-width: 50%;
+	max-width: 50% !important;
 	min-height: 50px;
-	max-height: 50%;
+	max-height: 50% !important;
 	${({ theme }) => css`
 		& .path {
 			stroke: ${theme.primary};
