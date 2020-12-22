@@ -1,22 +1,66 @@
 import { useContext } from "react"
-import styled, { css } from "styled-components/macro"
+import styled, { css, ThemeContext } from "styled-components/macro"
 
-import { addTheme, setupAppSharedOptions, Contexts } from "../../shared/shared"
-import { ReactComponent as SmileSVG } from "../../shared/assets/icons/smile.svg"
+import { themes, setupAppSharedOptions, Contexts } from "../../shared/shared"
+import { ReactComponent as PaletteSVG } from "../../shared/assets/icons/palette.svg"
+import Button from "../ui/Button"
 
 /* --------------------------------- STYLES --------------------------------- */
+
+const Root = styled.div``
+
+const BtnGroup = styled.div`
+	display: flex;
+	flex-wrap: wrap;
+`
+
+const ThemeBtn = styled(Button)`
+	text-transform: uppercase;
+	font-size: 1.2em;
+	margin: 0.5em;
+`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
 function Themes({ ...props }) {
-	const setCurTheme = useContext(Contexts.Themes)
+	const curTheme = useContext(ThemeContext)
+	const { setTheme } = useContext(Contexts.PortfolioOS)
+
+	return (
+		<Root>
+			<div>Choose theme: </div>
+			<BtnGroup>
+				{Object.keys(themes).map((title) => {
+					return (
+						<ThemeBtn
+							key={title}
+							variant="fancy"
+							setTheme={title}
+							onClick={() => setTheme(title)}
+							setColor="primary"
+						>
+							{title}
+						</ThemeBtn>
+					)
+				})}
+			</BtnGroup>
+		</Root>
+	)
 }
 
-export default Themes
+Themes.shared = setupAppSharedOptions({
+	title: "Themes",
+	logo: PaletteSVG,
+	theme: {
+		name: "purple",
+		altBackground: "#EDE9F2",
+		background: "#F7F5FA",
+		bgContrast: "#312653",
+		highlight: "#6637D6",
+		primary: "#6637D6",
+		primaryContrast: "#F7F5FA",
+		accent: "#8956FF",
+	},
+})
 
-/* * * SETTINGS * * *
-	1. Themes
-		- Select themes.
-		- Create themes.
-		- Save/load themes from local storage.
-*/
+export default Themes

@@ -8,16 +8,23 @@ const Root = styled.div`
 	display: flex;
 	align-items: center;
 	${({ theme, hue }) => {
-		const bg = `hsl(${hue ?? 70}, 85%, 50%)`
-		const color = theme.readableColor(bg)
-		const filter = getLuminance(color) > 0.5 ? "drop-shadow(0 0 1px rgba(0, 0, 0, 0.65))" : "none"
-		return css`
-			background: ${bg};
-			span {
-				color: ${color};
-				filter: ${filter};
-			}
-		`
+		try {
+			const bg = `hsl(${hue}, 85%, 50%)`
+			const color = theme.readableColor(bg)
+			const filter = getLuminance(color) > 0.5 ? "drop-shadow(0 0 1px rgba(0, 0, 0, 0.65))" : "none"
+			return css`
+				background: ${bg};
+				span {
+					color: ${color};
+					filter: ${filter};
+				}
+			`
+		} catch (error) {
+			console.log(`<TempHue /> error`)
+			return css`
+				background: none;
+			`
+		}
 	}}
 `
 

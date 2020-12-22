@@ -1,7 +1,8 @@
+import { lighten, saturate } from "polished"
 import styled, { css, keyframes } from "styled-components/macro"
-import { useCorrectTheme } from "../../shared/hooks"
 
 import { opac } from "../../shared/shared"
+import ThemeCheck from "./ThemeCheck"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -17,11 +18,8 @@ export const ButtonBase = styled.button.attrs(({ svg, column, reverse, ...props 
 		alignItems: column ? "stretch" : "center",
 	}
 	if (svg) {
-		varCSS = {
-			...varCSS,
-			sidePadding: `calc(${varCSS.sidePadding} * 0.5)`,
-			verticalPadding: `calc(${varCSS.verticalPadding} * 0.5)`,
-		}
+		varCSS.sidePadding = `calc(${varCSS.sidePadding} * 0.5)`
+		varCSS.verticalPadding = `calc(${varCSS.verticalPadding} * 0.5)`
 	}
 	return varCSS
 })`
@@ -29,7 +27,7 @@ export const ButtonBase = styled.button.attrs(({ svg, column, reverse, ...props 
 	justify-content: center;
 	border: none;
 	background: none;
-	transition: 0.175s;
+	transition: 0.2s;
 	outline: none;
 	font-weight: 500;
 	position: relative;
@@ -39,11 +37,9 @@ export const ButtonBase = styled.button.attrs(({ svg, column, reverse, ...props 
 		align-items: ${props.alignItems};
 		font-size: ${props.fontSize};
 		padding: ${props.verticalPadding} ${props.sidePadding};
-		color: ${props.color};
 		box-shadow: 0 0 0 0 ${props.theme.accent};
 		opacity: ${props.disabled ? 0.33 : 1};
 		cursor: ${props.disabled ? "default" : "pointer"};
-		background: ${opac(props.isFocused ? 0.15 : 0, props.color)};
 		.svg-container {
 			flex: ${props.column ? 1 : 0} 1 auto;
 			display: flex;
@@ -56,8 +52,14 @@ export const ButtonBase = styled.button.attrs(({ svg, column, reverse, ...props 
 	`}
 `
 
-const BasicButton = styled(ButtonBase)`
+const BasicButton = styled(ButtonBase).attrs(({ color, theme, ...props }) => ({
+	...props,
+	color: color ?? theme.bgContrast,
+	theme,
+}))`
 	${(props) => css`
+		color: ${props.color};
+		background: ${opac(props.isFocused ? 0.15 : 0, props.color)};
 		&:focus {
 			box-shadow: 0 0 0 1px ${props.color};
 		}
@@ -83,19 +85,22 @@ const OutlinedButton = styled(BasicButton)`
 	`}
 `
 
-const FancyButton = styled(ButtonBase)`
-	${({ theme }) => css`
-		background: ${theme.primary};
+const FancyButton = styled(ButtonBase).attrs(({ color, theme, ...props }) => ({
+	...props,
+	color: color ?? theme.highlight,
+	theme,
+}))`
+	${({ theme, color }) => css`
+		background: ${color ?? "none"};
 		color: ${theme.primaryContrast};
-		box-shadow: 0 1px 10px 1px ${opac(0.2, theme.primaryContrast)}, 0 0 0 1px ${theme.accent};
-		opacity: 1;
+		box-shadow: 0 1px 8px 1px ${opac(0.5, theme.accent)}, 0 0 0 1px ${opac(0.7, theme.accent)};
 		&:focus,
 		&:hover {
-			box-shadow: 0 1px 10px 1px ${opac(0.2, theme.primaryContrast)}, 0 0 0 2px ${theme.accent};
-			opacity: 0.95;
+			box-shadow: 0 1px 8px 3px ${opac(0.5, theme.accent)}, 0 0 0 2px ${theme.accent};
+			background: ${color ? saturate(0.04, lighten(0.04, color)) : "none"};
 		}
 		&:active {
-			box-shadow: 0 1px 10px 1px ${opac(0.2, theme.primaryContrast)}, 0 0 0 4px ${theme.accent};
+			box-shadow: 0 1px 8px 2px ${opac(0.7, theme.accent)}, 0 0 0 3px ${theme.accent};
 			opacity: 1;
 		}
 	`}
@@ -139,18 +144,19 @@ function Button({ tag, variant, badge, children, ...props }) {
 		if (variant.includes("outline")) ButtonVariant = OutlinedButton
 		else if (variant === "fancy") ButtonVariant = FancyButton
 	}
-	const themeProps = useCorrectTheme(props)
 
 	return (
-		<ButtonVariant {...props} {...themeProps} as={tag}>
-			{props.svg && (
-				<div className="svg-container">
-					<props.svg />
-				</div>
-			)}
-			{children && <BtnContent>{children}</BtnContent>}
-			{badge && <Badge {...themeProps}>{badge}</Badge>}
-		</ButtonVariant>
+		<ThemeCheck {...props}>
+			<ButtonVariant {...props} as={tag}>
+				{props.svg && (
+					<div className="svg-container">
+						<props.svg />
+					</div>
+				)}
+				{children && <BtnContent>{children}</BtnContent>}
+				{badge && <Badge>{badge}</Badge>}
+			</ButtonVariant>
+		</ThemeCheck>
 	)
 }
 

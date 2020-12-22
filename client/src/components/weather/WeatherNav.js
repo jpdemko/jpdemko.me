@@ -38,7 +38,7 @@ const LocationsList = styled.div`
 	overflow-y: auto;
 	${({ theme }) => css`
 		> * {
-			border-bottom: 1px solid ${theme.background};
+			border-bottom: 1px solid ${theme.accent};
 		}
 	`}
 `
@@ -46,7 +46,7 @@ const LocationsList = styled.div`
 const Row = styled.div`
 	display: flex;
 	${({ curWeatherBG }) => css`
-		background-image: ${curWeatherBG};
+		background-image: ${curWeatherBG?.gradient};
 	`}
 `
 
@@ -57,6 +57,9 @@ const Location = styled(Button)`
 	flex-direction: column;
 	align-items: flex-start;
 	white-space: nowrap;
+	${({ theme, curWeatherBG }) => css`
+		color: ${curWeatherBG?.base && theme.readableColor(curWeatherBG.base)};
+	`}
 `
 
 const LocationAddress = styled.div`
@@ -121,7 +124,12 @@ function WeatherNav({
 					const temp = weatherData.currently.apparentTemperature
 					return (
 						<Row key={id} curWeatherBG={curWeatherBG}>
-							<Location tag="div" color="primaryContrast" onClick={() => onLocationFound(mapData)}>
+							<Location
+								tag="div"
+								setColor="highlight"
+								onClick={() => onLocationFound(mapData)}
+								curWeatherBG={curWeatherBG}
+							>
 								<LocationAddress className="chLimit">
 									{mapData.address.formattedAddress}
 								</LocationAddress>
@@ -134,7 +142,7 @@ function WeatherNav({
 							<Button
 								svg={CloseSVG}
 								setTheme="red"
-								color="primary"
+								setColor="primary"
 								onClick={() => removeLocation(id)}
 							/>
 						</Row>

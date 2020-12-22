@@ -1,8 +1,7 @@
-import { useState, useEffect, useRef, useContext, useCallback } from "react"
-import { ThemeContext } from "styled-components/macro"
+import { useState, useEffect, useRef, useCallback } from "react"
 import throttle from "lodash/throttle"
 
-import { Themes, ls } from "./shared"
+import { ls } from "./shared"
 
 /* -------------------------------------------------------------------------- */
 
@@ -12,9 +11,9 @@ import { Themes, ls } from "./shared"
  * @param {*} [initValue] - optional value only used on initial creation
  * @return {[*, const():void]}
  */
-export function useLocalStorage(key, initValue) {
+export function useLocalStorage(key, initValue, skipParse = false) {
 	const [value, setValue] = useState(() => {
-		let item = ls.get(key)
+		let item = ls.get(key, skipParse)
 		if (!item && initValue) {
 			item = initValue
 			ls.set(key, item)
@@ -192,21 +191,6 @@ export function useResizeObserver(callback, throttleMS = 200) {
 	}, [throttledCallback])
 
 	return [eleRef, callbackOutput]
-}
-
-/* -------------------------------------------------------------------------- */
-
-export function useCorrectTheme({ setTheme, color, defaultColor = "bgContrast" }) {
-	const curTheme = useContext(ThemeContext)
-	const nextTheme = Themes?.[setTheme] ?? curTheme
-	// Might be a bad idea to auto determine base color because each UI component might want
-	// the base color to be something specific to the theme.
-	const nextColor = nextTheme?.[color] ?? nextTheme[defaultColor]
-
-	return {
-		theme: nextTheme,
-		...(nextColor && { color: nextColor }),
-	}
 }
 
 /* -------------------------------------------------------------------------- */

@@ -3,10 +3,11 @@ import styled, { css } from "styled-components/macro"
 import { TransitionGroup } from "react-transition-group"
 import throttle from "lodash/throttle"
 
-import { getRect, ls, Themes } from "../../shared/shared"
+import { getRect, ls } from "../../shared/shared"
 import About from "../about/About"
 import Weather from "../weather/Weather"
 import Chat from "../chat/Chat"
+import Themes from "../themes/Themes"
 import Button from "../ui/Button"
 import Window from "./Window"
 import Nav from "./Nav"
@@ -82,14 +83,13 @@ const Shortcuts = styled.div`
 `
 
 const ShortcutButton = styled(Button)`
-	color: ${Themes.dark.bgContrast};
 	font-size: 1.25em;
 	font-weight: 500;
 `
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-export const mountableApps = { About, Weather, Chat }
+export const mountableApps = { About, Weather, Chat, Themes }
 
 const apps = {}
 

@@ -194,7 +194,7 @@ const DayDetailed = ({ data: { timezone, hours }, getTemp }) => (
 					{hours.map((hour) => {
 						const time = DateTime.fromSeconds(hour.time).setZone(timezone).toFormat("h a")
 						const [h, period] = time.split(" ")
-						const temp = getTemp(hour.apparentTemperature)
+						const temp = hour.apparentTemperature
 						return (
 							<TRow key={hour.time}>
 								<td>
@@ -210,7 +210,7 @@ const DayDetailed = ({ data: { timezone, hours }, getTemp }) => (
 									</SummaryCell>
 								</td>
 								<td>
-									<TableTempHue temp={temp}>{temp}&deg;</TableTempHue>
+									<TableTempHue temp={temp}>{getTemp(temp)}&deg;</TableTempHue>
 								</td>
 								<td>
 									<div>
@@ -308,7 +308,7 @@ const Forecast = memo(({ curLocation, getTemp }) => {
 			return DateTime.fromSeconds(time).setZone(timezone).toFormat("ccc")
 		}
 
-		const sortedData = daily.data.reduce((obj, day) => {
+		const sortedData = (daily?.data ?? []).reduce((obj, day) => {
 			const ordDay = getOrdinalDay(day.time)
 			return {
 				...obj,

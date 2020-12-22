@@ -1,62 +1,94 @@
 import styled, { css } from "styled-components/macro"
 
-import { setupAppSharedOptions } from "../../shared/shared"
+import { Contexts, setupAppSharedOptions } from "../../shared/shared"
 import { ReactComponent as SmileSVG } from "../../shared/assets/icons/smile.svg"
 import Link from "../ui/Link"
+import { useContext } from "react"
 
 /* --------------------------------- STYLES --------------------------------- */
 
 const Root = styled.div``
 
 const MainSection = styled.section`
-	font-size: 1.35em;
+	--about-spacing: 2rem;
+	font-size: 1.25em;
 	max-width: 1024px;
-	max-width: 70ch;
 	margin: 0 auto;
-	padding: 1em;
-	> * {
-		margin: 0 0 1em 0;
-	}
-	p:last-child {
-		margin: 0;
+	padding: 0 var(--about-spacing);
+	> div {
+		margin: var(--about-spacing) 0;
 	}
 `
 
-const Title = styled.h3`
-	font-family: sans-serif;
+const Intro = styled.div`
+	font-size: 1.25em;
 `
 
-const Para = styled.p`
-	font-family: serif;
-`
+const Project = styled.div``
+
+const Contact = styled.div``
 
 const Enpha = styled.span`
+	font-weight: bold;
 	${({ theme }) => css`
 		color: ${theme.highlight};
 	`}
 `
 
+const BannerBG = styled.div`
+	display: flex;
+	align-items: center;
+	${({ theme }) => css`
+		background: ${theme.highlight};
+		color: ${theme.background};
+	`}
+	> div {
+		line-height: 1;
+		text-transform: uppercase;
+		font-weight: bold;
+		font-size: 2em;
+		display: inline-block;
+		transform: scale(1.5) translate(4px, -2px);
+		transform-origin: left center;
+	}
+`
+
 /* -------------------------------- COMPONENT ------------------------------- */
 
+function Banner(props) {
+	return (
+		<BannerBG>
+			<div>{props.children}</div>
+		</BannerBG>
+	)
+}
+
 function About({ ...props }) {
+	const { isMobileWindow } = useContext(Contexts.Window)
+
 	return (
 		<Root {...props}>
 			<MainSection>
-				<Title>
-					Hello, my name is <Enpha>Preston Demko</Enpha>.<br />
-					I'm an aspiring <Enpha>full-stack</Enpha> developer based in San Antonio.
-				</Title>
-				<Para>
-					This website is an ongoing collection of projects I've made to push myself and learn new
-					things. I've encapsulated it all into the fun concept of an 'OS' with apps/programs for each
-					project.
-				</Para>
-				<Para>
-					If you're interested in working together,{" "}
-					<Link href="mailto:prestondemko@gmail.com">shoot me an e-mail</Link>. Also be sure to{" "}
-					<Link href="https://github.com/jpdemko/jpdemko.me">check out my GitHub</Link> if you want to
-					see the source code of this project or any of the others.
-				</Para>
+				<Intro>
+					Hello, my name is <Enpha>Preston Demko</Enpha>.{isMobileWindow ? " " : <br />}
+					I'm a <Enpha>full-stack</Enpha> developer based in San Antonio.
+				</Intro>
+				<Banner>Projects</Banner>
+				<Project>
+					<p>
+						When I decided to make a portfolio, I wanted to have fun and do something a little
+						different. Instead of traditional portfolios whose projects redirect the user outside the
+						site, this project allows users to see and interact with things as 'programs' right away.
+					</p>
+				</Project>
+				<Contact>
+					<p>
+						If you're interested in working together,{" "}
+						<Link href="mailto:prestondemko@gmail.com">shoot me an e-mail</Link>. Also be sure to{" "}
+						<Link href="https://github.com/jpdemko/jpdemko.me">check out my GitHub</Link> if you want to
+						see the source code of this project or any of the others.
+					</p>
+				</Contact>
 			</MainSection>
 		</Root>
 	)
@@ -66,13 +98,13 @@ About.shared = setupAppSharedOptions({
 	title: "About",
 	logo: SmileSVG,
 	theme: {
-		name: "about",
-		altBackground: "#DEE2E1",
+		name: "green",
+		altBackground: "#E4EEEB",
 		background: "#F4F9F7",
 		bgContrast: "#204234",
 		highlight: "#1BDC8C",
 		primary: "#1BDC8C",
-		primaryContrast: "#204234",
+		primaryContrast: "#F4F9F7",
 		accent: "#17B573",
 	},
 })

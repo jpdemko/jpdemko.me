@@ -7,7 +7,6 @@ import Button from "../ui/Button"
 import HorizLine from "../ui/HorizLine"
 import { ReactComponent as UserSVG } from "../../shared/assets/icons/user.svg"
 import { ReactComponent as ArrowDownCircleSVG } from "../../shared/assets/icons/arrow-down-circle.svg"
-import { opac } from "../../shared/shared"
 import { useEventListener, usePrevious } from "../../shared/hooks"
 
 /* --------------------------------- STYLES --------------------------------- */
@@ -49,19 +48,14 @@ const Info = styled.div`
 `
 
 const ContentBG = styled.div`
-	${({ theme }) => css`
+	${({ theme, authored }) => css`
 		background: ${theme.background};
-		border: 1px solid ${theme.accent};
-		filter: drop-shadow(0 0 5px ${opac(0.5, theme.accent)});
+		border: 1px solid ${authored ? theme.highlight : theme.accent};
 	`}
 `
 
 const Content = styled.div`
 	padding: var(--chat-padding) calc(var(--chat-padding) * 2);
-	${({ theme, authored }) => css`
-		color: ${authored ? theme.primaryContrast : theme.bgContrast};
-		background: ${authored ? opac(0.5, theme.highlight) : "none"};
-	`}
 `
 
 const Lessen = styled.span`
@@ -105,8 +99,8 @@ const Log = memo(({ data, authored, openDM, id }) => {
 	const preciseTime = DateTime.fromISO(created_at).toLocal().toFormat("t")
 	return (
 		<Row authored={authored} id={id}>
-			<ContentBG>
-				<Content authored={authored}>{msg}</Content>
+			<ContentBG authored={authored}>
+				<Content>{msg}</Content>
 			</ContentBG>
 			<Info authored={authored}>
 				<Button svg={UserSVG} isFocused={authored} onClick={() => openDM({ uid, uname })}>
@@ -198,7 +192,7 @@ function Logs({ data, user, openDM, roomsShown, inputSent, ...props }) {
 			</LogsRoot>
 			{!followLast && (
 				<CenterChildrenDiv>
-					<SnapEndBtn onClick={scroll2end} svg={ArrowDownCircleSVG} color="primary" />
+					<SnapEndBtn onClick={scroll2end} svg={ArrowDownCircleSVG} setColor="highlight" />
 				</CenterChildrenDiv>
 			)}
 		</>

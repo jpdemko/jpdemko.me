@@ -37,7 +37,7 @@ const Root = styled.div`
 			? "none"
 			: isFocused
 			? `1px solid ${theme.accent}`
-			: `1px solid ${opac(0.7, theme.accent)}`};
+			: `1px solid ${opac(0.6, theme.accent)}`};
 		filter: ${isFocused && `drop-shadow(0 1px 12px ${opac(0.2, theme.accent)})`} blur(0);
 	`}
 `
@@ -50,9 +50,9 @@ const TitleBar = styled.div`
 	height: var(--nav-height);
 	${({ isMobileSite, theme, isFocused }) => css`
 		color: ${isFocused ? theme.primaryContrast : theme.bgContrast};
-		border-bottom: 1px solid ${isFocused ? theme.accent : opac(0.7, theme.accent)};
+		border-bottom: 1px solid ${isFocused ? theme.accent : opac(0.6, theme.accent)};
 		display: ${isMobileSite ? "none" : "flex"};
-		background: ${isFocused ? theme.primary : theme.altBackground};
+		background: ${isFocused ? theme.highlight : theme.background};
 	`}
 `
 
@@ -129,12 +129,14 @@ const CornerSW = styled(Corner)`
 `
 
 const TitleBarBtn = styled(Button).attrs((props) => {
-	return { ...props, color: props.winFocused ? "primaryContrast" : "bgContrast" }
+	return { ...props, setColor: props.winFocused ? "primaryContrast" : "bgContrast" }
 })``
 
-const TitleBarCloseBtn = styled(Button).attrs((props) => {
-	if (props.theme.name == "red") props.color = props.winFocused ? "bgContrast" : "primary"
-	return { ...props }
+const TitleBarCloseBtn = styled(Button).attrs(({ theme, setColor, winFocused, ...props }) => {
+	if (theme.name == "red" || theme.name == "dark") {
+		setColor = winFocused ? "bgContrast" : "primary"
+	}
+	return { ...props, theme, setColor, winFocused }
 })``
 
 /* -------------------------------- COMPONENT ------------------------------- */
@@ -145,7 +147,7 @@ export default class Window extends Component {
 		this.rootRef = createRef()
 		this.checkIfMobileWindowThrottled = throttle(this.checkIfMobileWindow, 200)
 
-		const { top, left, width, height } = getRect("window-wireframe")
+		this.wireframe = getRect("window-wireframe")
 		const prevData = ls.get(`Window-${props.title}`) ?? {}
 		const { window: loadedWdow } = prevData
 		this.data = loadedWdow?.data ?? {
@@ -158,10 +160,10 @@ export default class Window extends Component {
 					autoAlpha: 0,
 				},
 				windowed: {
-					top,
-					left,
-					width,
-					height,
+					top: this.wireframe?.top,
+					left: this.wireframe?.left,
+					width: this.wireframe?.width,
+					height: this.wireframe?.height,
 					scale: 1,
 					x: 0,
 					y: 0,
@@ -182,8 +184,8 @@ export default class Window extends Component {
 					duration: 0.75,
 				},
 				current: {
-					width,
-					height,
+					width: this.wireframe?.width,
+					height: this.wireframe?.height,
 				},
 			},
 		}
@@ -292,12 +294,12 @@ export default class Window extends Component {
 			allowContextMenu: true,
 		})
 
-		const dragArea = document.getElementById("allowedDragArea")
+		this.dragArea = document.getElementById("allowedDragArea")
 
 		function genResizeDraggable({ handleOnDrag, ...vars }) {
 			const nextEle = document.createElement("div")
 			nextEle.style.position = "absolute"
-			dragArea.appendChild(nextEle)
+			wdow.dragArea.appendChild(nextEle)
 			return Draggable.create(nextEle, {
 				...vars,
 				type: "x,y",
@@ -332,10 +334,10 @@ export default class Window extends Component {
 				cursor: "n-resize",
 				handleOnDrag: function (drag, wdowCSS) {
 					const nextHeightBelowMin = wdowCSS.height - drag.deltaY < minWindowCSS.height
-					const nextHeightAboveMax = wdowCSS.height - drag.deltaY > dragArea.clientHeight
+					const nextHeightAboveMax = wdowCSS.height - drag.deltaY > wdow.dragArea.clientHeight
 
 					if (nextHeightBelowMin) drag.deltaY = wdowCSS.height - minWindowCSS.height
-					else if (nextHeightAboveMax) drag.deltaY = dragArea.clientHeight - wdowCSS.height
+					else if (nextHeightAboveMax) drag.deltaY = wdow.dragArea.clientHeight - wdowCSS.height
 					wdowCSS.height -= drag.deltaY
 
 					qsHeight(wdowCSS.height)
@@ -347,10 +349,10 @@ export default class Window extends Component {
 				cursor: "e-resize",
 				handleOnDrag: function (drag, wdowCSS) {
 					const nextWidthBelowMin = wdowCSS.width + drag.deltaX < minWindowCSS.width
-					const nextWidthAboveMax = wdowCSS.width + drag.deltaX > dragArea.clientWidth
+					const nextWidthAboveMax = wdowCSS.width + drag.deltaX > wdow.dragArea.clientWidth
 
 					if (nextWidthBelowMin) wdowCSS.width = minWindowCSS.width
-					else if (nextWidthAboveMax) wdowCSS.width = dragArea.clientWidth
+					else if (nextWidthAboveMax) wdowCSS.width = wdow.dragArea.clientWidth
 					else wdowCSS.width += drag.deltaX
 
 					qsWidth(wdowCSS.width)
@@ -361,10 +363,10 @@ export default class Window extends Component {
 				cursor: "s-resize",
 				handleOnDrag: function (drag, wdowCSS) {
 					const nextHeightBelowMin = wdowCSS.height + drag.deltaY < minWindowCSS.height
-					const nextHeightAboveMax = wdowCSS.height + drag.deltaY > dragArea.clientHeight
+					const nextHeightAboveMax = wdowCSS.height + drag.deltaY > wdow.dragArea.clientHeight
 
 					if (nextHeightBelowMin) wdowCSS.height = minWindowCSS.height
-					else if (nextHeightAboveMax) wdowCSS.height = dragArea.clientHeight
+					else if (nextHeightAboveMax) wdowCSS.height = wdow.dragArea.clientHeight
 					else wdowCSS.height += drag.deltaY
 
 					qsHeight(wdowCSS.height)
@@ -375,10 +377,10 @@ export default class Window extends Component {
 				cursor: "w-resize",
 				handleOnDrag: function (drag, wdowCSS) {
 					const nextWidthBelowMin = wdowCSS.width - drag.deltaX < minWindowCSS.width
-					const nextWidthAboveMax = wdowCSS.width - drag.deltaX > dragArea.clientWidth
+					const nextWidthAboveMax = wdowCSS.width - drag.deltaX > wdow.dragArea.clientWidth
 
 					if (nextWidthBelowMin) drag.deltaX = wdowCSS.width - minWindowCSS.width
-					else if (nextWidthAboveMax) drag.deltaX = wdowCSS.width - dragArea.clientWidth
+					else if (nextWidthAboveMax) drag.deltaX = wdowCSS.width - wdow.dragArea.clientWidth
 					wdowCSS.width -= drag.deltaX
 
 					qsWidth(wdowCSS.width)
@@ -445,6 +447,7 @@ export default class Window extends Component {
 	}
 
 	animWindowed = (extraVars = {}) => {
+		this.checkWindowedCSS()
 		this.animate({ ...this.data.css.windowed, ...extraVars })
 	}
 
@@ -536,22 +539,43 @@ export default class Window extends Component {
 		}
 	}
 
+	// Check to see if current windowed CSS is within the drag area bounds. Have to check this because
+	// the user might resize their browser after leaving the site, which will make the window out of bounds.
+	checkWindowedCSS = () => {
+		const { css } = this.data
+		const { width: wdowWidth, height: wdowHeight } = css.windowed
+		if (wdowWidth > this.dragArea?.clientWidth || wdowHeight > this.dragArea?.clientHeight) {
+			css.windowed = {
+				...css.windowed,
+				top: this.wireframe?.top,
+				left: this.wireframe?.left,
+				width: this.wireframe?.width,
+				height: this.wireframe?.height,
+			}
+			css.current = {
+				width: this.wireframe?.width,
+				height: this.wireframe?.height,
+			}
+		}
+	}
+
 	enterAnim = () => {
-		const wdow = this
 		const { css } = this.data
 		const { isMinimized, isMaximized } = this.props
+
+		this.checkWindowedCSS()
 
 		if (this.data.closedProperly) {
 			const curStateOptions = isMaximized ? css.maximized : css.windowed
 			const animTime = css.minimized.duration + curStateOptions.duration
-			gsap.set(wdow.rootRef.current, { ...css.minimized })
+			gsap.set(this.rootRef.current, { ...css.minimized })
 			const vars = { duration: animTime }
-			!isMaximized ? wdow.animWindowed(vars) : wdow.animMaximize(vars)
+			!isMaximized ? this.animWindowed(vars) : this.animMaximize(vars)
 		} else {
 			if (isMinimized) {
-				gsap.set(wdow.rootRef.current, { ...css.minimized })
+				gsap.set(this.rootRef.current, { ...css.minimized })
 			} else {
-				gsap.set(wdow.rootRef.current, { ...(isMaximized ? css.maximized : css.windowed) })
+				gsap.set(this.rootRef.current, { ...(isMaximized ? css.maximized : css.windowed) })
 			}
 		}
 		this.data.closedProperly = false
@@ -617,7 +641,7 @@ export default class Window extends Component {
 								svg={CloseSVG}
 								winFocused={isFocused}
 								setTheme="red"
-								color="primary"
+								setColor="primary"
 							/>
 						</div>
 					</TitleBar>

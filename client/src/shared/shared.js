@@ -15,7 +15,7 @@ export const ls = {
 			if (item && !skipParse) item = parse(item)
 			return item
 		} catch (error) {
-			console.error("ls.get() error: ", error)
+			console.error(`ls.get(${key}) error: `, error)
 			return null
 		}
 	},
@@ -43,7 +43,7 @@ export const flags = {
 /* -------------------------------------------------------------------------- */
 
 export const Contexts = {
-	TabHidden: createContext(),
+	PortfolioOS: createContext(),
 	Window: createContext(),
 	Auth: createContext(),
 	Themes: createContext(),
@@ -55,22 +55,22 @@ const baseThemes = {
 	light: {
 		name: "light",
 		primary: "#F5F8FA",
-		primaryContrast: "#15202B",
+		primaryContrast: "#1C2B36",
 		background: "#F5F8FA",
-		bgContrast: "#15202B",
-		altBackground: "#DFE2E4",
-		highlight: "#DB1A4A",
-		accent: "#2A343E",
+		bgContrast: "#1C2B36",
+		altBackground: "#E4EBF1",
+		highlight: "#3BA4FF",
+		accent: "#9abfe0",
 	},
 	dark: {
 		name: "dark",
-		primary: "#15202B",
-		primaryContrast: "#F5F8FA",
-		background: "#15202B",
-		bgContrast: "#F5F8FA",
-		altBackground: "#2A343E",
-		highlight: "#1DA1F2",
-		accent: "#DFE2E4",
+		primary: "#222121",
+		primaryContrast: "#FAF5F5",
+		background: "#222121",
+		bgContrast: "#FAF5F5",
+		altBackground: "#343232",
+		highlight: "#CA3131",
+		accent: "#654141",
 	},
 	blue: {
 		name: "blue",
@@ -80,7 +80,7 @@ const baseThemes = {
 		bgContrast: "#F5F8FA",
 		altBackground: "#082C42",
 		highlight: "#1DA1F2",
-		accent: "#1884C7",
+		accent: "#007CC9",
 	},
 	red: {
 		name: "red",
@@ -90,7 +90,7 @@ const baseThemes = {
 		bgContrast: "#3C0815",
 		background: "#F9F4F6",
 		highlight: "#DB1A4A",
-		accent: "#B4163D",
+		accent: "#AE1C41",
 	},
 }
 
@@ -120,6 +120,7 @@ const baseThemes = {
  * @returns {Theme}
  */
 function createTheme(theme) {
+	// console.log(`createTheme(${theme?.name})`)
 	let sortedLumin = Object.entries(theme)
 		.map(([name, hex]) => (typeof hex === "string" && hex.includes("#") ? [name, getLuminance(hex)] : null))
 		.filter((arr) => arr !== null)
@@ -135,21 +136,23 @@ function createTheme(theme) {
 /**
  * @typedef {Object.<string, Theme} Themes
  */
-export var Themes =
-	ls.get("allThemes") ??
-	Object.keys(baseThemes).reduce((acc, tName) => {
-		acc[tName] = createTheme(baseThemes[tName])
-		return acc
-	}, {})
+export var themes = Object.keys(baseThemes).reduce((acc, tName) => {
+	acc[tName] = createTheme(baseThemes[tName])
+	return acc
+}, {})
 
 /**
- * @param {Theme} theme
+ * @param {Theme} t
  */
-function addTheme(theme) {
-	if (theme && Object.keys(theme)?.length > 0 && theme?.name) {
-		Themes[theme.name] = createTheme(theme)
-		return Themes[theme.name]
+function addTheme(t = {}) {
+	if (t?.name) {
+		if (themes[t.name]) return themes[t.name]
+		else if (Object.keys(t)?.length > 0) {
+			themes[t.name] = createTheme(t)
+			return themes[t.name]
+		}
 	}
+	return themes.blue
 }
 
 /**
@@ -163,14 +166,16 @@ function addTheme(theme) {
  * @return {Object}
  */
 export function setupAppSharedOptions(options = {}) {
-	const appDefaults = {
+	if (options?.theme) options.theme = addTheme(options.theme)
+	options = {
 		title: `Gen. Title#${Math.round(new Date().getTime() / 1000000 + Math.random() * 100)}`,
 		logo: WrenchSVG,
-		theme: Themes.blue,
+		theme: themes.blue,
 		authRequired: false,
+		...options,
 	}
-	if (options?.theme) options.theme = addTheme(options.theme) ?? Themes.blue
-	return { ...appDefaults, ...options }
+	// console.log(`setupAppSharedOptions(${options?.title})`)
+	return options
 }
 
 /* -------------------------------------------------------------------------- */
@@ -264,5 +269,10 @@ export function isDoubleTouch(e) {
  * @param {string} color
  */
 export function opac(opacityAmount, color) {
-	return transparentize(1 - opacityAmount, color)
+	try {
+		return transparentize(1 - opacityAmount, color)
+	} catch (error) {
+		console.error(`opac(${opacityAmount}, ${color}) error: `, error)
+		return "#0000"
+	}
 }

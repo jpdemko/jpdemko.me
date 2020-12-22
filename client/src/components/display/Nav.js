@@ -33,7 +33,7 @@ const AppTaskbarBtn = styled(TaskbarBtn)`
 			position: absolute;
 			bottom: 0;
 			left: ${isFocused ? 0 : "7%"};
-			background: ${theme.accent};
+			background: ${theme.highlight};
 			height: ${isFocused ? 2 : 1}px;
 			transition: all 0.175s;
 			width: ${isFocused ? "100%" : "86%"};
@@ -48,8 +48,9 @@ const AppTaskbarBtn = styled(TaskbarBtn)`
 
 const DrawerDescrip = styled.div`
 	padding: var(--drawer-padding);
+	font-weight: bold;
 	${({ theme }) => css`
-		background: ${theme.primary};
+		background: ${theme.highlight};
 		color: ${theme.primaryContrast};
 	`}
 `
@@ -88,7 +89,7 @@ const DrawerBtnsCont = styled.div`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function Nav({ openedApps, isMobileSite, handleHomeButton, openApp, closeApp, mainNavBurgerCB }) {
+function Nav({ openedApps, isMobileSite, handleHomeButton, openApp, closeApp, mainNavBurgerCB, ...props }) {
 	const [mainDrawerOpened, setMainDrawerOpened] = useState(false)
 
 	function handleClose(title) {
@@ -120,7 +121,7 @@ function Nav({ openedApps, isMobileSite, handleHomeButton, openApp, closeApp, ma
 							svg={CloseSVG}
 							variant="fancy"
 							setTheme="red"
-							color="primary"
+							setColor="primary"
 						/>
 					</MenuItem>
 				</ContextMenu>
@@ -138,7 +139,7 @@ function Nav({ openedApps, isMobileSite, handleHomeButton, openApp, closeApp, ma
 					{title}
 				</DrawerBtn>
 				{oApp && (
-					<Button onClick={() => handleClose(title)} svg={CloseSVG} setTheme="red" color="primary" />
+					<Button onClick={() => handleClose(title)} svg={CloseSVG} setTheme="red" setColor="primary" />
 				)}
 			</DrawerRow>
 		)
@@ -146,7 +147,7 @@ function Nav({ openedApps, isMobileSite, handleHomeButton, openApp, closeApp, ma
 
 	return (
 		<>
-			<Taskbar isMobileSite={isMobileSite}>
+			<Taskbar {...props} isMobileSite={isMobileSite}>
 				<TaskbarBtn svg={AppsSVG} onClick={() => setMainDrawerOpened(true)} />
 				<TaskbarBtn
 					svg={HomeSVG}

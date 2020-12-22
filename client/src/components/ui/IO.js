@@ -1,6 +1,7 @@
-import { forwardRef, useRef } from "react"
-import styled, { css } from "styled-components/macro"
-import { useCorrectTheme } from "../../shared/hooks"
+import { forwardRef, useContext, useRef } from "react"
+import styled, { css, ThemeContext } from "styled-components/macro"
+
+import ThemeCheck from "./ThemeCheck"
 
 const Label = styled.label`
 	pointer-events: none;
@@ -13,6 +14,7 @@ const Label = styled.label`
 	left: calc(var(--input-padding) * 2);
 	transform-origin: center left;
 	transform: translate3d(0, -50%, 0);
+	letter-spacing: normal;
 	${({ theme }) => css`
 		color: ${theme.bgContrast};
 		background: inherit;
@@ -33,6 +35,7 @@ const Root = styled.div`
 				top: 0;
 				font-weight: bold;
 				transform: translate3d(0, -54%, 0) scale(0.8);
+				letter-spacing: 1px;
 			}
 		`
 		return value
@@ -51,12 +54,15 @@ const StyledInput = styled.input`
 	transition: all 0.25s;
 	padding: var(--input-padding) calc(var(--input-padding) * 2);
 	${({ theme }) => css`
-		color: ${theme.primaryContrast};
+		color: ${theme.bgContrast};
 		box-shadow: 0 0 0 0 ${theme.accent};
 		border: 1px solid ${theme.accent};
-		&:active,
-		&:focus {
-			box-shadow: 0 0 0 1px ${theme.accent};
+		&:focus,
+		&:hover {
+			border: 1px solid ${theme.highlight};
+		}
+		&:active {
+			box-shadow: 0 0 0 1px ${theme.highlight};
 		}
 		&::placeholder {
 			transition: opacity 0.25s;
@@ -95,26 +101,26 @@ export const Input = forwardRef(
 	({ value, error, placeholder, className, setTheme, label, id, ...props }, ref) => {
 		const idRef = useRef(id ?? new Date().getTime())
 
+		const curTheme = useContext(ThemeContext)
 		const validError = error && error?.length > 0
-		if (validError) setTheme = "red"
-
-		const themeProps = useCorrectTheme({ setTheme })
+		if (validError) setTheme = curTheme?.name == "red" ? "dark" : "red"
 
 		return (
-			<Root {...themeProps} className={className} value={value}>
-				{label && <Label htmlFor={`${idRef.current}`}>{label}</Label>}
-				<StyledInput
-					{...themeProps}
-					{...props}
-					ref={ref}
-					value={value}
-					placeholder={placeholder}
-					id={`${idRef.current}`}
-				/>
-				<Error {...themeProps} validError={validError} className="chLimit">
-					ERROR: {error}
-				</Error>
-			</Root>
+			<ThemeCheck {...props} setTheme={setTheme}>
+				<Root className={className} value={value}>
+					{label && <Label htmlFor={`${idRef.current}`}>{label}</Label>}
+					<StyledInput
+						{...props}
+						ref={ref}
+						value={value}
+						placeholder={placeholder}
+						id={`${idRef.current}`}
+					/>
+					<Error validError={validError} className="chLimit">
+						ERROR: {error}
+					</Error>
+				</Root>
+			</ThemeCheck>
 		)
 	}
 )

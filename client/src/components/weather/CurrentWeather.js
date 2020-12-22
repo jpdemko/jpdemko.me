@@ -18,8 +18,8 @@ const Root = styled.div`
 	justify-content: center;
 	text-align: center;
 	${({ theme, curWeatherBG, isLandscape }) => css`
-		background-image: ${curWeatherBG ? curWeatherBG : theme.background};
-		color: ${theme.primaryContrast};
+		background-image: ${curWeatherBG ? curWeatherBG.gradient : theme.background};
+		color: ${curWeatherBG ? theme.readableColor(curWeatherBG.base) : theme.bgContrast};
 		border-${isLandscape ? "right" : "bottom"}: 1px solid ${theme.accent};
 	`}
 	> * {
@@ -57,8 +57,8 @@ const Temps = styled.div`
 	> * {
 		flex: 0 0 auto;
 	}
-	${({ theme }) => css`
-		border-left: 1px solid ${theme.primaryContrast};
+	${({ theme, curWeatherBG }) => css`
+		border-left: 1px solid ${curWeatherBG ? theme.readableColor(curWeatherBG.base) : theme.primaryContrast};
 	`}
 `
 
@@ -93,7 +93,7 @@ const CurrentWeather = memo(({ curLocation, getTemp, isLandscape, ...props }) =>
 						<Icon>
 							<WeatherIcon iconName={weatherData.currently.icon} />
 						</Icon>
-						<Temps>
+						<Temps curWeatherBG={curLocation?.curWeatherBG}>
 							<StyledTempHue temp={high}>H: {getTemp(high)}&deg;</StyledTempHue>
 							<div style={{ marginBottom: ".1em" }}>
 								{getTemp(weatherData.currently.apparentTemperature)}&deg;

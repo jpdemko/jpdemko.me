@@ -75,7 +75,7 @@ function Tabs({ content = defaultContent, ...props }) {
 						key={`tab-header-${id}`}
 						isFocused={id === focusedID}
 						onClick={() => setFocusedID(id)}
-						color="primary"
+						setColor="highlight"
 						column
 					>
 						{tabHeader}

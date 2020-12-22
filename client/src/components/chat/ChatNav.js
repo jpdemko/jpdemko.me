@@ -258,7 +258,7 @@ function ChatNav({
 							svg={AddSVG}
 							variant="outline"
 							onClick={togCreateRoomModal}
-							color="primaryContrast"
+							setColor="primaryContrast"
 						>
 							Create
 						</HeaderBtn>
@@ -266,7 +266,7 @@ function ChatNav({
 							svg={GroupAddSVG}
 							variant="outline"
 							onClick={togJoinRoomModal}
-							color="primaryContrast"
+							setColor="primaryContrast"
 						>
 							Join
 						</HeaderBtn>
@@ -294,7 +294,7 @@ function ChatNav({
 									<RoomCloseBtn
 										svg={CloseSVG}
 										setTheme="red"
-										color="primary"
+										setColor="primary"
 										onClick={() => deleteRoom(rid)}
 									/>
 								</RoomData>
@@ -342,7 +342,7 @@ function ChatNav({
 									isFocused={recip_id == curDMUID}
 									onClick={() => openDM(recipUser)}
 									badge={myDMS[recip_id]?.dms?.unread > 0 ? "!" : null}
-									color="primary"
+									setColor="primary"
 									column
 								>
 									<div className="latest-dm-row chLimit">

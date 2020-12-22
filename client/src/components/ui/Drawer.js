@@ -31,7 +31,7 @@ const Root = styled.div`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function Drawer({ isShown = false, onClose, animDuration = 0.3, side = "left", children, ...props }) {
+function Drawer({ isShown = false, onClose, animDuration = 0.25, side = "left", children, ...props }) {
 	const drawerRef = useRef()
 
 	const memoizedCloseDrawer = useCallback(() => isShown && onClose(), [isShown, onClose])

@@ -19,8 +19,8 @@ const Root = styled.div`
 `
 
 const tgBackdropStyles = {
-	entering: { opacity: 0.7, zIndex: 250000 },
-	entered: { opacity: 0.7, zIndex: 250000 },
+	entering: { opacity: 0.75, zIndex: 250000 },
+	entered: { opacity: 0.75, zIndex: 250000 },
 	exiting: { opacity: 0, zIndex: -1 },
 	exited: { opacity: 0, zIndex: -1 },
 }

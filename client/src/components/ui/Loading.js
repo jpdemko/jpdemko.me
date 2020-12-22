@@ -14,7 +14,7 @@ const StyledSVG = styled.svg`
 	max-height: 50% !important;
 	${({ theme }) => css`
 		& .path {
-			stroke: ${theme.primary};
+			stroke: ${theme.highlight};
 			stroke-linecap: round;
 			animation: dash 1.5s ease-in-out infinite;
 		}

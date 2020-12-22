@@ -6,8 +6,8 @@ import { useState, useEffect } from "react"
 import ReactDOM from "react-dom"
 import { createGlobalStyle, ThemeProvider } from "styled-components/macro"
 
-import { useMedia } from "./shared/hooks"
-import { Themes, mediaBreakpoints, Contexts } from "./shared/shared"
+import { useLocalStorage, useMedia } from "./shared/hooks"
+import { themes, mediaBreakpoints, Contexts } from "./shared/shared"
 import Display from "./components/display/Display"
 import AuthProvider from "./components/auth/AuthProvider"
 
@@ -44,34 +44,35 @@ const GlobalStyle = createGlobalStyle`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function FakeOS() {
+function PortfolioOS() {
 	const isMobileSite = useMedia([`(min-width: ${mediaBreakpoints.desktop}px)`], [false], true)
 	const [tabHidden, setTabHidden] = useState(document.hidden)
+	const [theme, setTheme] = useLocalStorage("PortfolioOS-Theme", "blue", true)
 
-	function handleVisibChange() {
-		setTabHidden(document.hidden)
-	}
+	// function handleVisibChange() {
+	// 	setTabHidden(document.hidden)
+	// }
 
-	useEffect(() => {
-		document.addEventListener("visibilitychange", handleVisibChange, false)
-		return () => document.removeEventListener("visibilitychange", handleVisibChange, false)
-	}, [])
+	// useEffect(() => {
+	// 	document.addEventListener("visibilitychange", handleVisibChange, false)
+	// 	return () => document.removeEventListener("visibilitychange", handleVisibChange, false)
+	// }, [])
 
 	return (
 		<>
 			<GlobalStyle />
-			<ThemeProvider theme={Themes.blue}>
+			<ThemeProvider theme={themes[theme]}>
 				<AuthProvider>
-					<Contexts.TabHidden.Provider value={tabHidden}>
+					<Contexts.PortfolioOS.Provider value={{ tabHidden, setTheme }}>
 						<Display isMobileSite={isMobileSite} tabHidden={tabHidden} />
-					</Contexts.TabHidden.Provider>
+					</Contexts.PortfolioOS.Provider>
 				</AuthProvider>
 			</ThemeProvider>
 		</>
 	)
 }
 
-ReactDOM.render(<FakeOS />, document.getElementById("root"))
+ReactDOM.render(<PortfolioOS />, document.getElementById("root"))
 
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))

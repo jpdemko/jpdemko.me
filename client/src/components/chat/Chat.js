@@ -2,14 +2,13 @@ import { Component, createRef } from "react"
 import styled from "styled-components/macro"
 import socketIOClient from "socket.io-client"
 import mergeWith from "lodash/mergeWith"
+import { DateTime } from "luxon"
 
-import { setupAppSharedOptions, Themes, Contexts, ls } from "../../shared/shared"
+import { setupAppSharedOptions, themes, Contexts, ls } from "../../shared/shared"
 import { ReactComponent as ChatSVG } from "../../shared/assets/icons/chat.svg"
 import ChatNav from "./ChatNav"
 import Logs from "./Logs"
 import ChatInput from "./ChatInput"
-import Button from "../ui/Button"
-import { DateTime } from "luxon"
 import ChatInfo from "./ChatInfo"
 
 /* --------------------------------- STYLES --------------------------------- */
@@ -535,7 +534,7 @@ Chat.contextType = Contexts.Window
 Chat.shared = setupAppSharedOptions({
 	title: "Chat",
 	logo: ChatSVG,
-	theme: Themes.red,
+	theme: themes.red,
 	authRequired: true,
 })
 
