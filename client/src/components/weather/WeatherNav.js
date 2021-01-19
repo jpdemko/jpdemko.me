@@ -1,8 +1,8 @@
-import { useState, useEffect, useContext } from "react"
+import { useState, useEffect, useContext, useMemo } from "react"
 import styled, { css } from "styled-components/macro"
 import { DateTime } from "luxon"
 
-import { ReactComponent as CloseSVG } from "../../shared/assets/icons/close.svg"
+import { ReactComponent as SvgClose } from "../../shared/assets/material-icons/close.svg"
 import { useInterval } from "../../shared/hooks"
 import { Contexts } from "../../shared/shared"
 import Button from "../ui/Button"
@@ -115,11 +115,19 @@ function WeatherNav({
 		if (nextDate.minute !== date.minute) setDate(nextDate)
 	}, 1000)
 
+	const sortedLocations = useMemo(() => {
+		let nextLocations = [...(locations ?? [])]
+		nextLocations.sort((l1, l2) => {
+			return l2.timeUserClicked - l1.timeUserClicked
+		})
+		return nextLocations
+	}, [locations])
+
 	const navContent = (
 		<Root isMobileWindow={isMobileWindow} {...props}>
 			<LocationSearch map={map} modulesLoaded={modulesLoaded} onLocationFound={onLocationFound} />
 			<LocationsList>
-				{locations.map(({ id, curWeatherBG, mapData, weatherData }) => {
+				{sortedLocations.map(({ id, curWeatherBG, mapData, weatherData }) => {
 					if (!mapData?.address?.formattedAddress) return null
 					const temp = weatherData.currently.apparentTemperature
 					return (
@@ -140,7 +148,7 @@ function WeatherNav({
 								</LocationSummary>
 							</Location>
 							<Button
-								svg={CloseSVG}
+								svg={SvgClose}
 								setTheme="red"
 								setColor="primary"
 								onClick={() => removeLocation(id)}

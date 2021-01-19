@@ -6,7 +6,7 @@ import { DateTime, Interval } from "luxon"
 import { gsap } from "gsap/all"
 
 import { getCurWeatherBG } from "./WeatherIcon"
-import { ReactComponent as SunnySVG } from "../../shared/assets/weather-icons/wi-day-sunny.svg"
+import { ReactComponent as SvgSunny } from "../../shared/assets/weather-icons/wi-day-sunny.svg"
 import { setupAppSharedOptions, Contexts } from "../../shared/shared"
 import { useLocalStorage, useInterval, useResizeObserver } from "../../shared/hooks"
 import WeatherNav from "./WeatherNav"
@@ -65,6 +65,7 @@ function Weather({ title, ...props }) {
 	// Setup map and add radar data.
 	const [map, setMap] = useState()
 	function loadMap() {
+		console.log("loadMap()")
 		if (gsap.isTweening(`#window-${title}`))
 			return console.log("<Weather /> loadMap() skipped because of GSAP anim.")
 		try {
@@ -109,6 +110,7 @@ function Weather({ title, ...props }) {
 	const [modulesLoaded, setModulesLoaded] = useState(false)
 	function loadMapModules() {
 		if (map && !modulesLoaded) {
+			console.log("loadMapModules()")
 			try {
 				Microsoft.Maps.loadModule(["Microsoft.Maps.AutoSuggest", "Microsoft.Maps.Search"], {
 					callback: () => {
@@ -132,6 +134,7 @@ function Weather({ title, ...props }) {
 		const localMap = mapParam ?? map
 		if (!localMap) return
 
+		console.log("updateRadar()")
 		try {
 			localMap.layers.clear()
 			const tileSources = radar.timestamps.map(
@@ -170,12 +173,16 @@ function Weather({ title, ...props }) {
 		const locationsCopy = [...locations]
 		const { latitude: lat, longitude: lng } = mapData.location
 		const locIdx = locationsCopy.findIndex((loc) => loc.id === lat + lng)
+		const timeUserClicked = DateTime.local().toSeconds()
 		if (locIdx > -1) {
+			locationsCopy[locIdx].timeUserClicked = timeUserClicked
 			setCurLocation(locationsCopy[locIdx])
+			setLocations(locationsCopy)
 			mapLoadLocation(mapData)
 		} else {
 			fetchData(mapData)
 				.then((newLocation) => {
+					newLocation.timeUserClicked = timeUserClicked
 					setLocations([...locationsCopy, newLocation])
 					setCurLocation(newLocation)
 					mapLoadLocation(mapData)
@@ -211,13 +218,15 @@ function Weather({ title, ...props }) {
 			setAppLoading(true)
 			const weatherData = await fetchWeatherData(lat, lng)
 			const { results: sunData } = await fetchSunData(lat, lng, weatherData)
-			return {
+			const finData = {
 				id: lat + lng,
 				curWeatherBG: getCurWeatherBG(weatherData, sunData),
 				mapData,
 				sunData,
 				weatherData,
 			}
+			// console.log("<Weather /> fetchData(): ", finData)
+			return finData
 		} catch (error) {
 			console.error("<Weather /> fetchData() error: ", error)
 			return Promise.reject(error)
@@ -225,6 +234,7 @@ function Weather({ title, ...props }) {
 	}
 
 	function updateLocations() {
+		console.log("updateLocations()")
 		const locPromises = locations.map((loc) => {
 			const prevFetchDate = DateTime.fromSeconds(loc.weatherData.currently.time).toLocal()
 			const recent = Interval.fromDateTimes(prevFetchDate, prevFetchDate.plus({ minutes: updateInterval }))
@@ -232,6 +242,7 @@ function Weather({ title, ...props }) {
 		})
 		Promise.all(locPromises)
 			.then((nextLocations) => {
+				// console.log("<Weather /> updateLocations(): ", nextLocations)
 				const nextCurLocation = nextLocations.find((loc) => loc.id === curLocation.id)
 				setCurLocation(nextCurLocation)
 				setLocations(nextLocations)
@@ -254,10 +265,10 @@ function Weather({ title, ...props }) {
 		isMetric,
 	])
 
-	const checkIfLandscape = useCallback(
-		(resizeEleRect) => resizeEleRect.width > resizeEleRect.height * 1.25,
-		[]
-	)
+	const checkIfLandscape = useCallback((resizeEleRect) => {
+		console.log("resizeObs()")
+		return resizeEleRect.width > resizeEleRect.height * 1.25
+	}, [])
 	const [dataRef, isLandscape] = useResizeObserver(checkIfLandscape)
 
 	return (
@@ -282,7 +293,7 @@ function Weather({ title, ...props }) {
 
 Weather.shared = setupAppSharedOptions({
 	title: "Weather",
-	logo: SunnySVG,
+	logo: SvgSunny,
 })
 
 export default Weather

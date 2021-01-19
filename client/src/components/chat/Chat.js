@@ -5,7 +5,7 @@ import mergeWith from "lodash/mergeWith"
 import { DateTime } from "luxon"
 
 import { setupAppSharedOptions, themes, Contexts, ls } from "../../shared/shared"
-import { ReactComponent as ChatSVG } from "../../shared/assets/icons/chat.svg"
+import { ReactComponent as SvgChat } from "../../shared/assets/material-icons/chat.svg"
 import ChatNav from "./ChatNav"
 import Logs from "./Logs"
 import ChatInput from "./ChatInput"
@@ -533,7 +533,7 @@ class Chat extends Component {
 Chat.contextType = Contexts.Window
 Chat.shared = setupAppSharedOptions({
 	title: "Chat",
-	logo: ChatSVG,
+	logo: SvgChat,
 	theme: themes.red,
 	authRequired: true,
 })

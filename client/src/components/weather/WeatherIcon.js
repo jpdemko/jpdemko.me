@@ -2,70 +2,70 @@ import React from "react"
 import { DateTime, Interval } from "luxon"
 import { desaturate, shade } from "polished"
 
-import { ReactComponent as TornadoSVG } from "../../shared/assets/weather-icons/wi-tornado.svg"
-import { ReactComponent as ThunderstormSVG } from "../../shared/assets/weather-icons/wi-thunderstorm.svg"
-import { ReactComponent as StrongWindSVG } from "../../shared/assets/weather-icons/wi-strong-wind.svg"
-import { ReactComponent as SnowSVG } from "../../shared/assets/weather-icons/wi-snow.svg"
-import { ReactComponent as SleetSVG } from "../../shared/assets/weather-icons/wi-sleet.svg"
-import { ReactComponent as RainSVG } from "../../shared/assets/weather-icons/wi-rain.svg"
-import { ReactComponent as NightCloudySVG } from "../../shared/assets/weather-icons/wi-night-cloudy.svg"
-import { ReactComponent as NightClearSVG } from "../../shared/assets/weather-icons/wi-night-clear.svg"
-import { ReactComponent as HailSVG } from "../../shared/assets/weather-icons/wi-hail.svg"
-import { ReactComponent as FogSVG } from "../../shared/assets/weather-icons/wi-fog.svg"
-import { ReactComponent as DaySunnySVG } from "../../shared/assets/weather-icons/wi-day-sunny.svg"
-import { ReactComponent as DayCloudySVG } from "../../shared/assets/weather-icons/wi-day-cloudy.svg"
-import { ReactComponent as CloudySVG } from "../../shared/assets/weather-icons/wi-cloudy.svg"
+import { ReactComponent as SvgTornado } from "../../shared/assets/weather-icons/wi-tornado.svg"
+import { ReactComponent as SvgThunderstorm } from "../../shared/assets/weather-icons/wi-thunderstorm.svg"
+import { ReactComponent as SvgStrongWind } from "../../shared/assets/weather-icons/wi-strong-wind.svg"
+import { ReactComponent as SvgSnow } from "../../shared/assets/weather-icons/wi-snow.svg"
+import { ReactComponent as SvgSleet } from "../../shared/assets/weather-icons/wi-sleet.svg"
+import { ReactComponent as SvgRain } from "../../shared/assets/weather-icons/wi-rain.svg"
+import { ReactComponent as SvgNightCloudy } from "../../shared/assets/weather-icons/wi-night-cloudy.svg"
+import { ReactComponent as SvgNightClear } from "../../shared/assets/weather-icons/wi-night-clear.svg"
+import { ReactComponent as SvgHail } from "../../shared/assets/weather-icons/wi-hail.svg"
+import { ReactComponent as SvgFog } from "../../shared/assets/weather-icons/wi-fog.svg"
+import { ReactComponent as SvgDaySunny } from "../../shared/assets/weather-icons/wi-day-sunny.svg"
+import { ReactComponent as SvgDayCloudy } from "../../shared/assets/weather-icons/wi-day-cloudy.svg"
+import { ReactComponent as SvgCloudy } from "../../shared/assets/weather-icons/wi-cloudy.svg"
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
 const iconData = {
 	"clear-day": {
-		svg: DaySunnySVG,
+		svg: SvgDaySunny,
 	},
 	"clear-night": {
-		svg: NightClearSVG,
+		svg: SvgNightClear,
 	},
 	rain: {
-		svg: RainSVG,
+		svg: SvgRain,
 		paletteMorph: (color) => shade(0.15, desaturate(0.3, color)),
 	},
 	snow: {
-		svg: SnowSVG,
+		svg: SvgSnow,
 		paletteMorph: (color) => desaturate(0.3, color),
 	},
 	sleet: {
-		svg: SleetSVG,
+		svg: SvgSleet,
 		paletteMorph: (color) => shade(0.15, desaturate(0.3, color)),
 	},
 	wind: {
-		svg: StrongWindSVG,
+		svg: SvgStrongWind,
 	},
 	fog: {
-		svg: FogSVG,
+		svg: SvgFog,
 		paletteMorph: (color) => shade(0.15, desaturate(0.3, color)),
 	},
 	cloudy: {
-		svg: CloudySVG,
+		svg: SvgCloudy,
 		paletteMorph: (color) => desaturate(0.3, color),
 	},
 	"partly-cloudy-day": {
-		svg: DayCloudySVG,
+		svg: SvgDayCloudy,
 		paletteMorph: (color) => desaturate(0.15, color),
 	},
 	"partly-cloudy-night": {
-		svg: NightCloudySVG,
+		svg: SvgNightCloudy,
 		paletteMorph: (color) => desaturate(0.15, color),
 	},
 	hail: {
-		svg: HailSVG,
+		svg: SvgHail,
 		paletteMorph: (color) => shade(0.15, desaturate(0.3, color)),
 	},
 	thunderstorm: {
-		svg: ThunderstormSVG,
+		svg: SvgThunderstorm,
 		paletteMorph: (color) => shade(0.15, desaturate(0.3, color)),
 	},
 	tornado: {
-		svg: TornadoSVG,
+		svg: SvgTornado,
 		paletteMorph: (color) => shade(0.15, desaturate(0.3, color)),
 	},
 }

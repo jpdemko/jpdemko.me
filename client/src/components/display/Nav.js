@@ -2,10 +2,10 @@ import { useState } from "react"
 import styled, { css } from "styled-components/macro"
 import { ContextMenuTrigger, ContextMenu, MenuItem } from "react-contextmenu"
 
-import { ReactComponent as MenuSVG } from "../../shared/assets/icons/menu.svg"
-import { ReactComponent as AppsSVG } from "../../shared/assets/icons/apps.svg"
-import { ReactComponent as HomeSVG } from "../../shared/assets/icons/home.svg"
-import { ReactComponent as CloseSVG } from "../../shared/assets/icons/close.svg"
+import { ReactComponent as SvgMenu } from "../../shared/assets/material-icons/menu.svg"
+import { ReactComponent as SvgApps } from "../../shared/assets/material-icons/apps.svg"
+import { ReactComponent as SvgHome } from "../../shared/assets/material-icons/home.svg"
+import { ReactComponent as SvgClose } from "../../shared/assets/material-icons/close.svg"
 import Button from "../ui/Button"
 import Drawer from "../ui/Drawer"
 import { mountableApps } from "./Display"
@@ -57,12 +57,17 @@ const DrawerDescrip = styled.div`
 
 const DrawerRow = styled.div`
 	display: flex;
+	${({ theme }) => css`
+		border-top: 1px solid ${theme.altBackground};
+	`}
 `
 
-const DrawerBtn = styled(Button)`
-	padding: var(--drawer-padding);
-	justify-content: flex-start;
+const DrawerAppOpenBtn = styled(Button)`
+	justify-content: flex-end;
 	flex: 1;
+`
+const DrawerAppCloseBtn = styled(Button)`
+	margin: 1px;
 `
 
 const Taskbar = styled.div`
@@ -71,10 +76,12 @@ const Taskbar = styled.div`
 	position: relative;
 	z-index: 248000;
 	opacity: 0.95;
+	> * {
+		margin: 0 1px;
+	}
 	${({ theme }) => css`
 		background: ${theme.background};
 		border-top: 1px solid ${theme.accent};
-		${"" /* border-bottom: 1px solid ${theme.accent}; */}
 	`}
 `
 
@@ -89,7 +96,7 @@ const DrawerBtnsCont = styled.div`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function Nav({ openedApps, isMobileSite, handleHomeButton, openApp, closeApp, mainNavBurgerCB, ...props }) {
+function Nav({ apps, isMobileSite, handleHomeButton, openApp, closeApp, mainNavBurgerCB, ...props }) {
 	const [mainDrawerOpened, setMainDrawerOpened] = useState(false)
 
 	function handleClose(title) {
@@ -102,8 +109,9 @@ function Nav({ openedApps, isMobileSite, handleHomeButton, openApp, closeApp, ma
 		openApp(title)
 	}
 
-	const taskbarButtons = openedApps.map((app) =>
-		app.isClosed ? null : (
+	const taskbarButtons = Object.keys(apps).map((t) => {
+		const app = apps[t]
+		return app.isClosed ? null : (
 			<OpenedApp key={app.title} isFocused={app.isFocused}>
 				<ContextMenuTrigger id={`nav-tb-button-${app.title}`} holdToDisplay={-1}>
 					<AppTaskbarBtn
@@ -118,7 +126,7 @@ function Nav({ openedApps, isMobileSite, handleHomeButton, openApp, closeApp, ma
 					<MenuItem>
 						<Button
 							onClick={() => handleClose(app.title)}
-							svg={CloseSVG}
+							svg={SvgClose}
 							variant="fancy"
 							setTheme="red"
 							setColor="primary"
@@ -127,37 +135,43 @@ function Nav({ openedApps, isMobileSite, handleHomeButton, openApp, closeApp, ma
 				</ContextMenu>
 			</OpenedApp>
 		)
-	)
+	})
 
 	const drawerButtons = Object.keys(mountableApps).map((name) => {
 		const mApp = mountableApps[name]
 		const title = mApp.shared.title
-		const oApp = openedApps.find((a) => a.title == title && !a.isClosed)
+		const app = apps[title]
 		return (
 			<DrawerRow key={title}>
-				<DrawerBtn onClick={() => handleOpen(title)} svg={mApp.shared.logo} isFocused={oApp?.isFocused}>
+				<DrawerAppOpenBtn
+					onClick={() => handleOpen(title)}
+					svg={mApp.shared.logo}
+					isFocused={app?.isFocused}
+				>
 					{title}
-				</DrawerBtn>
-				{oApp && (
-					<Button onClick={() => handleClose(title)} svg={CloseSVG} setTheme="red" setColor="primary" />
+				</DrawerAppOpenBtn>
+				{app && !app?.isClosed && (
+					<DrawerAppCloseBtn
+						onClick={() => handleClose(title)}
+						svg={SvgClose}
+						setTheme="red"
+						setColor="primary"
+					/>
 				)}
 			</DrawerRow>
 		)
 	})
 
+	const oneAppNotMinimized = !!Object.keys(apps).find((t) => !apps[t].isMinimized)
 	return (
 		<>
 			<Taskbar {...props} isMobileSite={isMobileSite}>
-				<TaskbarBtn svg={AppsSVG} onClick={() => setMainDrawerOpened(true)} />
-				<TaskbarBtn
-					svg={HomeSVG}
-					onClick={handleHomeButton}
-					disabled={!openedApps.find((app) => app.isFocused) || openedApps.length < 1}
-				/>
+				<TaskbarBtn svg={SvgApps} onClick={() => setMainDrawerOpened(true)} />
+				<TaskbarBtn svg={SvgHome} onClick={handleHomeButton} disabled={!oneAppNotMinimized} />
 				{isMobileSite ? (
 					<TaskbarBtn
 						style={{ marginLeft: "auto" }}
-						svg={MenuSVG}
+						svg={SvgMenu}
 						onClick={mainNavBurgerCB}
 						disabled={!mainNavBurgerCB}
 					/>

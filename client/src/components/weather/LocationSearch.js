@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import styled, { css } from "styled-components/macro"
 
 import { useUpdatedValRef } from "../../shared/hooks"
-import { ReactComponent as LocationSVG } from "../../shared/assets/icons/location.svg"
+import { ReactComponent as SvgLocation } from "../../shared/assets/material-icons/location.svg"
 import Button from "../ui/Button"
 import { opac } from "../../shared/shared"
 import { Input } from "../ui/IO"
@@ -135,7 +135,7 @@ function LocationSearch({ map, modulesLoaded, onLocationFound }) {
 		}
 	}, [map, modulesLoaded, onLocationFoundRef])
 
-	// Function for when user clicks on LocationSVG button to find their current location.
+	// Function for when user clicks on SvgLocation button to find their current location.
 	function onGeolocateCurrentPosition() {
 		if (!managersLoadedRef.current || !navigator) {
 			// console.log("<LocationSearch /> onGeolocateCurrentPosition() skipped, bad params")
@@ -177,7 +177,7 @@ function LocationSearch({ map, modulesLoaded, onLocationFound }) {
 				onChange={handleChange}
 				error={error}
 			/>
-			<GeolocateBtn svg={LocationSVG} onClick={onGeolocateCurrentPosition} />
+			<GeolocateBtn svg={SvgLocation} onClick={onGeolocateCurrentPosition} setColor="highlight" />
 		</Root>
 	)
 }

@@ -7,19 +7,19 @@ import ThemeCheck from "./ThemeCheck"
 /* --------------------------------- STYLES --------------------------------- */
 
 export const ButtonBase = styled.button.attrs(({ svg, column, reverse, ...props }) => {
-	reverse = reverse ? "-reverse" : ""
+	reverse = reverse ? "" : "-reverse"
 	let varCSS = {
 		...props,
 		column,
 		fontSize: "1em",
-		sidePadding: "0.8em",
-		verticalPadding: "0.4em",
+		horizPad: "0.6em",
+		vertPad: "0.4em",
 		flexDirection: column ? `column${reverse}` : `row${reverse}`,
 		alignItems: column ? "stretch" : "center",
 	}
 	if (svg) {
-		varCSS.sidePadding = `calc(${varCSS.sidePadding} * 0.5)`
-		varCSS.verticalPadding = `calc(${varCSS.verticalPadding} * 0.5)`
+		varCSS.horizPad = `calc(${varCSS.horizPad} * 0.75)`
+		varCSS.vertPad = `calc(${varCSS.vertPad} * 0.75)`
 	}
 	return varCSS
 })`
@@ -29,26 +29,36 @@ export const ButtonBase = styled.button.attrs(({ svg, column, reverse, ...props 
 	background: none;
 	transition: 0.2s;
 	outline: none;
-	font-weight: 500;
 	position: relative;
 	border-radius: 0;
-	${(props) => css`
-		flex-direction: ${props.flexDirection};
-		align-items: ${props.alignItems};
-		font-size: ${props.fontSize};
-		padding: ${props.verticalPadding} ${props.sidePadding};
-		box-shadow: 0 0 0 0 ${props.theme.accent};
-		opacity: ${props.disabled ? 0.33 : 1};
-		cursor: ${props.disabled ? "default" : "pointer"};
+	padding: 0;
+	${({ flexDirection, alignItems, fontSize, theme, disabled, column, vertPad, horizPad }) => css`
+		flex-direction: ${flexDirection};
+		align-items: ${alignItems};
+		font-size: ${fontSize};
+		box-shadow: 0 0 0 0 ${theme.accent};
+		opacity: ${disabled ? 0.33 : 1};
+		cursor: ${disabled ? "default" : "pointer"};
+		> * {
+			margin-top: ${vertPad};
+			margin-right: ${column ? horizPad : 0};
+			margin-bottom: ${column ? 0 : vertPad};
+			margin-left: ${horizPad};
+		}
+		> *:first-child {
+			margin-right: ${horizPad};
+			margin-bottom: ${vertPad};
+		}
 		.svg-container {
-			flex: ${props.column ? 1 : 0} 1 auto;
+			flex: ${column ? 1 : 0} 1 auto;
+			${column ? "justify" : "align"}-self: stretch;
 			display: flex;
 			justify-content: center;
 			align-items: center;
 		}
-		> .svg-container + div {
-			padding: 0 ${props.sidePadding};
-		}
+		${"" /* > div + .svg-container {
+			margin: calc(${vertPad} * 0.75) calc(${horizPad} * 0.75);
+		} */}
 	`}
 `
 
@@ -148,12 +158,12 @@ function Button({ tag, variant, badge, children, ...props }) {
 	return (
 		<ThemeCheck {...props}>
 			<ButtonVariant {...props} as={tag}>
+				{children && <BtnContent>{children}</BtnContent>}
 				{props.svg && (
 					<div className="svg-container">
 						<props.svg />
 					</div>
 				)}
-				{children && <BtnContent>{children}</BtnContent>}
 				{badge && <Badge>{badge}</Badge>}
 			</ButtonVariant>
 		</ThemeCheck>

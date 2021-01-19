@@ -9,7 +9,7 @@ import TempHue from "./TempHue"
 const Root = styled.div`
 	font-size: 1.2em;
 	padding: 0.5em;
-	font-weight: 500;
+	font-weight: bold;
 	flex: 1 0 12ch;
 	position: relative;
 	display: flex;
@@ -95,9 +95,7 @@ const CurrentWeather = memo(({ curLocation, getTemp, isLandscape, ...props }) =>
 						</Icon>
 						<Temps curWeatherBG={curLocation?.curWeatherBG}>
 							<StyledTempHue temp={high}>H: {getTemp(high)}&deg;</StyledTempHue>
-							<div style={{ marginBottom: ".1em" }}>
-								{getTemp(weatherData.currently.apparentTemperature)}&deg;
-							</div>
+							<div>{getTemp(weatherData.currently.apparentTemperature)}&deg;</div>
 							<StyledTempHue temp={low}>L: {getTemp(low)}&deg;</StyledTempHue>
 						</Temps>
 					</LayoutSwitch>

@@ -3,7 +3,7 @@ import styled, { css } from "styled-components/macro"
 import { DateTime } from "luxon"
 
 import { opac } from "../../shared/shared"
-import { ReactComponent as RadarSVG } from "../../shared/assets/weather-icons/radar.svg"
+import { ReactComponent as SvgRadar } from "../../shared/assets/weather-icons/radar.svg"
 import WeatherIcon from "./WeatherIcon"
 import Tabs from "../ui/Tabs"
 import TempHue from "./TempHue"
@@ -142,17 +142,12 @@ const MapEntry = styled.div`
 
 /* -------------------------------- COMPONENTS ------------------------------- */
 
-function DaySummary({ data: { dayName, ordDay, timezone, day }, getTemp, ...props }) {
+function DaySummary({ data: { dayName, day }, getTemp, ...props }) {
 	const { icon, apparentTemperatureLow: low, apparentTemperatureHigh: high } = day
-
-	function checkDayName() {
-		const curOrdDay = DateTime.local().setZone(timezone).toFormat("o")
-		return curOrdDay === ordDay ? "Today" : dayName
-	}
 
 	return (
 		<Card {...props}>
-			<div>{checkDayName()}</div>
+			<div>{dayName}</div>
 			<HR />
 			<Temps>
 				<SummaryTempHue temp={high}>H: {getTemp(high)}&deg;</SummaryTempHue>
@@ -279,7 +274,7 @@ const Forecast = memo(({ curLocation, getTemp }) => {
 			tabHeader: (
 				<Card>
 					<div>
-						<RadarSVG />
+						<SvgRadar />
 					</div>
 					<div>Radar</div>
 				</Card>
@@ -300,16 +295,23 @@ const Forecast = memo(({ curLocation, getTemp }) => {
 		if (!curLocation) return [bingMapRadar]
 		const { daily, hourly, timezone } = curLocation.weatherData
 
-		function getOrdinalDay(time) {
-			return DateTime.fromSeconds(time).setZone(timezone).toFormat("o")
+		/**
+		 * Gets year + ordinal day as a concat string (2020 + 001 = 2020001) and then parses it to an int.
+		 * @param {number} time
+		 * @returns {number}
+		 */
+		function getSortedOrdinal(time) {
+			return parseInt(DateTime.fromSeconds(time).setZone(timezone).toFormat("yooo"))
 		}
 
 		function getDayName(time) {
-			return DateTime.fromSeconds(time).setZone(timezone).toFormat("ccc")
+			const now = DateTime.local().setZone(timezone)
+			const passedTime = DateTime.fromSeconds(time).setZone(timezone)
+			return now.hasSame(passedTime, "day") ? "Today" : passedTime.toFormat("ccc")
 		}
 
 		const sortedData = (daily?.data ?? []).reduce((obj, day) => {
-			const ordDay = getOrdinalDay(day.time)
+			const ordDay = getSortedOrdinal(day.time)
 			return {
 				...obj,
 				[ordDay]: {
@@ -321,8 +323,9 @@ const Forecast = memo(({ curLocation, getTemp }) => {
 				},
 			}
 		}, {})
+		// Don't need to display data for every hour, every other works fine.
 		hourly.data.forEach((h, i) => {
-			if (i % 2 === 0) sortedData[getOrdinalDay(h.time)].hours.push(h)
+			if (i % 2 === 0) sortedData[getSortedOrdinal(h.time)].hours.push(h)
 		})
 
 		const genContent = Object.keys(sortedData).map((ordDay) => ({

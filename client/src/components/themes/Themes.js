@@ -2,7 +2,7 @@ import { useContext } from "react"
 import styled, { css, ThemeContext } from "styled-components/macro"
 
 import { themes, setupAppSharedOptions, Contexts } from "../../shared/shared"
-import { ReactComponent as PaletteSVG } from "../../shared/assets/icons/palette.svg"
+import { ReactComponent as SvgPalette } from "../../shared/assets/material-icons/palette.svg"
 import Button from "../ui/Button"
 
 /* --------------------------------- STYLES --------------------------------- */
@@ -50,7 +50,7 @@ function Themes({ ...props }) {
 
 Themes.shared = setupAppSharedOptions({
 	title: "Themes",
-	logo: PaletteSVG,
+	logo: SvgPalette,
 	theme: {
 		name: "purple",
 		altBackground: "#EDE9F2",

@@ -84,22 +84,19 @@ const Shortcuts = styled.div`
 
 const ShortcutButton = styled(Button)`
 	font-size: 1.25em;
-	font-weight: 500;
+	font-weight: bold;
 `
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
 export const mountableApps = { About, Weather, Chat, Themes }
 
-const apps = {}
-
 class Display extends Component {
 	constructor(props) {
 		super(props)
-		const { openedApps = [], zIndexLeader, grid } = ls.get("Display") ?? {}
-		openedApps.forEach((app) => (apps[app.title] = app))
+		const { apps = {}, zIndexLeader, grid } = ls.get("Display") ?? {}
 		this.state = {
-			openedApps,
+			apps,
 			mainNavBurgerCB: null,
 			grid: grid ?? {
 				rows: 1,
@@ -126,20 +123,21 @@ class Display extends Component {
 	componentDidUpdate(prevProps, prevState) {
 		const { isMobileSite } = this.props
 		if (!prevProps.isMobileSite && isMobileSite) {
-			const nextApps = Object.keys(apps).map((t) => {
-				if (!apps[t].isMinimized && !apps[t].isMaximized) apps[t].isMaximized = true
-				return apps[t]
+			const nextApps = { ...this.state.apps }
+			Object.keys(nextApps).forEach((t) => {
+				const app = nextApps[t]
+				if (!app.isMinimized && !app.isMaximized) app.isMaximized = true
 			})
-			this.setState({ openedApps: nextApps })
+			this.setState({ apps: nextApps })
 		}
 	}
 
 	save = () => {
-		const { mainNavBurgerCB, ...savableData } = this.state
-		ls.set("Display", {
-			...savableData,
-			zIndexLeader: this.zIndexLeader,
-		})
+		// const { mainNavBurgerCB, ...savableData } = this.state
+		// ls.set("Display", {
+		// 	...savableData,
+		// 	zIndexLeader: this.zIndexLeader,
+		// })
 	}
 
 	setGridDims = () => {
@@ -154,50 +152,60 @@ class Display extends Component {
 	}
 
 	genApp = (title) => {
-		if (!title || apps[title]) return
+		if (!title) return console.log("genApp() skipped")
 
+		console.log("genApp() ", title)
+		const nextApps = { ...this.state.apps }
 		const { isMobileSite } = this.props
-		const newData = {
+		nextApps[title] = {
 			title,
-			isFocused: false,
+			isFocused: true,
 			zIndex: ++this.zIndexLeader,
-			isMinimized: true,
+			isMinimized: false,
 			isMaximized: isMobileSite,
-			isClosed: true,
+			isClosed: false,
 		}
-		apps[title] = newData
-		return newData
+		this.setState({ apps: nextApps })
 	}
 
 	openApp = (title) => {
-		if (!title) return
-		else if (!apps[title]) this.genApp(title)
-		else if (!apps[title]?.isClosed) return this.toggleMinimize(title)
+		if (!title) return console.log("openApp() skipped")
 
-		this.focusApp(title, {
-			isClosed: false,
-			isMinimized: false,
-		})
+		const { apps } = this.state
+		const app = apps[title]
+		console.log("openApp() ", title, app)
+		if (app && !app?.isClosed) return this.toggleMinimize(title)
+		else if (!app) this.genApp(title)
+		else
+			this.focusApp(title, {
+				isClosed: false,
+				isMinimized: false,
+				...(this.props.isMobileSite && { isMaximized: true }),
+			})
 	}
 
 	toggleMinimize = (title) => {
-		const app = apps[title]
-		if (!app) return
+		const { apps } = this.state
+		if (!apps[title]) return console.log("togMini() skipped")
 
+		console.log("togMini()")
+		const nextApps = { ...apps }
+		const app = nextApps[title]
 		const { isMinimized, isMaximized, isFocused } = app
 		if (!isMinimized && !isFocused) {
 			this.focusApp(title)
 		} else if (isFocused && !isMinimized) {
 			app.isMinimized = true
-			this.focusApp(this.getBelowApp(title))
+			this.setState({ apps: nextApps }, () => this.focusApp(this.getBelowApp(title)))
 		} else if (isMinimized) {
 			this.focusApp(title, {
 				isMinimized: false,
-				isMaximized: isMinimized && isMaximized ? true : false,
+				isMaximized,
 			})
 		}
 	}
 	toggleMaximize = (title) => {
+		const { apps } = this.state
 		const app = apps[title]
 		if (!app) return
 
@@ -209,29 +217,35 @@ class Display extends Component {
 	}
 
 	closeApp = (title) => {
-		if (!apps[title]) return
+		if (!this.state.apps[title]) return
 
-		apps[title].isClosed = true
-		this.focusApp(this.getBelowApp(title))
+		const nextApps = { ...this.state.apps }
+		const app = nextApps[title]
+		app.isClosed = true
+		app.isMinimized = true
+		this.setState({ apps: nextApps }, () => {
+			if (app.isFocused) this.focusApp(this.getBelowApp(title))
+		})
 	}
 
 	handleHomeButton = () => {
-		const nextApps = Object.keys(apps).map((t) => {
-			apps[t].isMinimized = true
-			apps[t].isFocused = false
-			return apps[t]
+		const nextApps = { ...this.state.apps }
+		Object.keys(nextApps).forEach((t) => {
+			nextApps[t].isMinimized = true
+			nextApps[t].isFocused = false
 		})
-		this.setState({ openedApps: nextApps, mainNavBurgerCB: null })
+		this.setState({ apps: nextApps, mainNavBurgerCB: null })
 	}
 
 	getBelowApp = (title) => {
+		const { apps } = this.state
 		const { zIndex: maxZ } = apps[title]
-		if (!maxZ) return
+		if (!maxZ) return console.log(`getBelowApp(${title}) skipped`)
 
 		let belowAppTitle = null
 		if (maxZ && Object.keys(apps).length > 1) {
 			Object.keys(apps).forEach((t) => {
-				if (t === title || apps[t].isMinimized) return
+				if (t === title || apps[t].isMinimized || apps[t].isClosed) return
 				const curZ = apps[t].zIndex
 				const firstPick = !belowAppTitle && curZ < maxZ
 				const zIsBetween = belowAppTitle && curZ < maxZ && curZ > apps[belowAppTitle].zIndex
@@ -242,24 +256,28 @@ class Display extends Component {
 	}
 
 	focusApp = (title, changes = {}) => {
+		const { apps } = this.state
 		const app = apps[title]
-		if (app?.isFocused && Object.keys(changes) < 1) return
+		if (app?.isFocused && Object.keys(changes) < 1) return console.log(`focusApp(${title}) skipped`)
 
+		const nextApps = { ...apps }
 		let noMatches = true
-		const nextApps = Object.keys(apps).map((t) => {
+		Object.keys(apps).forEach((t) => {
 			const appFound = t === title
-			if (appFound) noMatches = false
-			apps[t] = {
-				...apps[t],
+			if (appFound) {
+				noMatches = false
+				console.log(`focusApp(${t}) called`)
+			}
+			nextApps[t] = {
+				...nextApps[t],
 				...(appFound && {
 					...changes,
 					zIndex: ++this.zIndexLeader,
 				}),
 				isFocused: appFound,
 			}
-			return apps[t]
 		})
-		this.setState({ openedApps: nextApps, ...(noMatches && { mainNavBurgerCB: null }) })
+		this.setState({ apps: nextApps, ...(noMatches && { mainNavBurgerCB: null }) })
 	}
 
 	setMainNavBurgerCB = (mainNavBurgerCB) => {
@@ -293,8 +311,9 @@ class Display extends Component {
 					{this.props.children}
 					<WindowWireframe id="window-wireframe" isMobileSite={this.props.isMobileSite} />
 					<TransitionGroup component={null}>
-						{this.state.openedApps.map((app, i) =>
-							app.isClosed ? null : (
+						{Object.keys(this.state.apps).map((t) => {
+							const app = this.state.apps[t]
+							return app.isClosed ? null : (
 								<Window
 									key={app.title}
 									isMobileSite={this.props.isMobileSite}
@@ -317,11 +336,11 @@ class Display extends Component {
 									/>
 								</Window>
 							)
-						)}
+						})}
 					</TransitionGroup>
 				</AllowedDragArea>
 				<Nav
-					openedApps={this.state.openedApps}
+					apps={this.state.apps}
 					isMobileSite={this.props.isMobileSite}
 					handleHomeButton={this.handleHomeButton}
 					mainNavBurgerCB={this.state.mainNavBurgerCB}

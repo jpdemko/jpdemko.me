@@ -3,12 +3,12 @@
 import { useState, useRef, useContext, useEffect, useMemo } from "react"
 import styled, { css } from "styled-components/macro"
 
-import { ReactComponent as CloseSVG } from "../../shared/assets/icons/close.svg"
-import { ReactComponent as ArrowRightSVG } from "../../shared/assets/icons/arrow-right.svg"
-import { ReactComponent as UserSVG } from "../../shared/assets/icons/user.svg"
-import { ReactComponent as GroupAddSVG } from "../../shared/assets/icons/group-add.svg"
-import { ReactComponent as AddSVG } from "../../shared/assets/icons/add.svg"
-import { ReactComponent as ChatSVG } from "../../shared/assets/icons/chat.svg"
+import { ReactComponent as SvgClose } from "../../shared/assets/material-icons/close.svg"
+import { ReactComponent as SvgArrowRight } from "../../shared/assets/material-icons/arrow-right.svg"
+import { ReactComponent as SvgUser } from "../../shared/assets/material-icons/user.svg"
+import { ReactComponent as SvgGroupAdd } from "../../shared/assets/material-icons/group-add.svg"
+import { ReactComponent as SvgAdd } from "../../shared/assets/material-icons/add.svg"
+import { ReactComponent as SvgChat } from "../../shared/assets/material-icons/chat.svg"
 import { Contexts } from "../../shared/shared"
 import Button from "../ui/Button"
 import Modal from "../ui/Modal"
@@ -18,10 +18,11 @@ import Accordion from "../ui/Accordion"
 /* --------------------------------- STYLES --------------------------------- */
 
 const DrawerRoot = styled.div`
-	--chatnav-padding: 0.4em;
+	--chatnav-padding: 0.5rem;
 	flex: 0 0 auto;
 	display: flex;
 	flex-direction: column;
+	font-size: 0.9em;
 
 	${({ theme, isMobileWindow }) => css`
 		border-right: ${isMobileWindow ? "none" : `1px solid ${theme.accent}`};
@@ -30,7 +31,6 @@ const DrawerRoot = styled.div`
 
 const Header = styled.div`
 	flex: 0 0 auto;
-	padding: var(--chatnav-padding) calc(var(--chatnav-padding) * 2);
 	display: flex;
 	align-items: center;
 `
@@ -42,26 +42,40 @@ const RoomsSubHeader = styled.div`
 `
 
 const Title = styled.span`
-	font-weight: 500;
+	font-weight: bold;
 	font-style: italic;
 	text-transform: uppercase;
 `
 
 const HeaderBtn = styled(Button)`
-	margin-left: calc(var(--chatnav-padding) * 2);
+	margin-left: var(--chatnav-padding);
+	svg {
+		transform: scale(1.2);
+	}
 `
 
 const Rooms = styled.div`
 	padding: var(--chatnav-padding);
+	> * {
+		margin-bottom: var(--chatnav-padding);
+	}
+	> *:last-child {
+		margin-bottom: 0;
+	}
 `
 
 const Room = styled.div`
-	padding: calc(var(--chatnav-padding) / 2);
+	padding: var(--chatnav-padding);
 	> div {
-		padding-top: calc(var(--chatnav-padding) / 2);
+		padding-top: var(--chatnav-padding);
+		display: flex;
+		align-items: center;
 	}
-	${({ isFocused, theme }) => css`
-		background: ${isFocused ? theme.altBackground : "none"};
+	> div:first-child {
+		padding-top: 0;
+	}
+	${({ theme }) => css`
+		background: ${theme.altBackground};
 	`}
 `
 
@@ -73,6 +87,7 @@ const RoomDataBtn = styled(Button)`
 	}
 	${({ isFocused }) => css`
 		svg {
+			transition: 0.2s transform;
 			transform: rotate(${isFocused ? "90deg" : "0"});
 		}
 	`}
@@ -103,6 +118,9 @@ const LatestDM = styled(Button)`
 		color: ${theme.bgContrast};
 		border: 1px solid ${theme.accent};
 		outline: ${isFocused ? 1 : 0}px solid ${theme.accent};
+		> div {
+			margin: 0 !important;
+		}
 		.latest-dm-row {
 			padding: calc(var(--chatnav-padding) * 0.75);
 			svg {
@@ -140,7 +158,7 @@ const Data = styled.div`
 `
 
 const Empha = styled.span`
-	font-weight: 500;
+	font-weight: bold;
 `
 
 const Lessen = styled.span`
@@ -255,7 +273,7 @@ function ChatNav({
 					<Title>Rooms</Title>
 					<RoomsSubHeader>
 						<HeaderBtn
-							svg={AddSVG}
+							svg={SvgAdd}
 							variant="outline"
 							onClick={togCreateRoomModal}
 							setColor="primaryContrast"
@@ -263,7 +281,7 @@ function ChatNav({
 							Create
 						</HeaderBtn>
 						<HeaderBtn
-							svg={GroupAddSVG}
+							svg={SvgGroupAdd}
 							variant="outline"
 							onClick={togJoinRoomModal}
 							setColor="primaryContrast"
@@ -278,10 +296,10 @@ function ChatNav({
 					{myDMS &&
 						curRoomRID &&
 						sortedRIDS.map((rid) => (
-							<Room key={rid} isFocused={rid == curRoomRID}>
+							<Room key={rid}>
 								<RoomData>
 									<RoomDataBtn
-										svg={ArrowRightSVG}
+										svg={SvgArrowRight}
 										isFocused={rid == curRoomRID}
 										onClick={() => joinPrevRoom(myRooms?.[rid])}
 										badge={myRooms?.[rid]?.msgs?.unread > 0 ? "!" : null}
@@ -292,7 +310,7 @@ function ChatNav({
 										</Data>
 									</RoomDataBtn>
 									<RoomCloseBtn
-										svg={CloseSVG}
+										svg={SvgClose}
 										setTheme="red"
 										setColor="primary"
 										onClick={() => deleteRoom(rid)}
@@ -305,7 +323,7 @@ function ChatNav({
 										return (
 											<div key={uid}>
 												<User
-													svg={UserSVG}
+													svg={SvgUser}
 													isFocused={actUser.uid == user.uid}
 													onClick={() => openDM(actUser)}
 													className="chLimit"
@@ -342,15 +360,14 @@ function ChatNav({
 									isFocused={recip_id == curDMUID}
 									onClick={() => openDM(recipUser)}
 									badge={myDMS[recip_id]?.dms?.unread > 0 ? "!" : null}
-									setColor="primary"
 									column
 								>
 									<div className="latest-dm-row chLimit">
-										<UserSVG />
+										<SvgUser />
 										<span style={{ fontStyle: "italic" }}>{recipUser.uname}</span>
 									</div>
 									<div className="latest-dm-row chLimit">
-										<ChatSVG />
+										<SvgChat />
 										<DmTextSum>{lastDM}</DmTextSum>
 									</div>
 								</LatestDM>

@@ -18,7 +18,6 @@ const Root = styled.div`
 `
 
 const TabButton = styled(Button)`
-	padding: 0.2em 0.6em;
 	${({ theme }) => css`
 		color: ${theme.bgContrast};
 		border-right: 1px solid ${opac(0.6, theme.accent)};
@@ -26,7 +25,7 @@ const TabButton = styled(Button)`
 `
 
 const TabsHeader = styled.div`
-	font-weight: 500;
+	font-weight: bold;
 	flex: 0 0 auto;
 	display: flex;
 	overflow-x: auto;

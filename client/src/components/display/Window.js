@@ -1,15 +1,15 @@
-import { createRef, Component } from "react"
+import { createRef, Component, cloneElement } from "react"
 import { gsap, Draggable } from "gsap/all"
 import styled, { css } from "styled-components/macro"
 import { Transition } from "react-transition-group"
 import throttle from "lodash/throttle"
 import merge from "lodash/merge"
 
-import { ReactComponent as CloseSVG } from "../../shared/assets/icons/close.svg"
-import { ReactComponent as MinimizeSVG } from "../../shared/assets/icons/minimize.svg"
-import { ReactComponent as FullscreenExitSVG } from "../../shared/assets/icons/fullscreen-exit.svg"
-import { ReactComponent as FullscreenSVG } from "../../shared/assets/icons/fullscreen.svg"
-import { ReactComponent as MenuSVG } from "../../shared/assets/icons/menu.svg"
+import { ReactComponent as SvgClose } from "../../shared/assets/material-icons/close.svg"
+import { ReactComponent as SvgMinimize } from "../../shared/assets/material-icons/minimize.svg"
+import { ReactComponent as SvgFullscreenExit } from "../../shared/assets/material-icons/fullscreen-exit.svg"
+import { ReactComponent as SvgFullscreen } from "../../shared/assets/material-icons/fullscreen.svg"
+import { ReactComponent as SvgMenu } from "../../shared/assets/material-icons/menu.svg"
 import { getRect, isDoubleTouch, opac, ls, Styles, mediaBreakpoints, Contexts } from "../../shared/shared"
 import Button from "../ui/Button"
 import Drawer from "../ui/Drawer"
@@ -25,7 +25,8 @@ const Root = styled.div`
 	flex-direction: column;
 	max-width: 100vw;
 	max-height: 100vh;
-	visibility: 0;
+	visibility: hidden;
+	backface-visibility: hidden;
 	${({ minWindowCSS, zIndex, isFocused, isMobileSite, isMaximized, theme }) => css`
 		z-index: ${zIndex};
 		${!isMobileSite &&
@@ -38,16 +39,25 @@ const Root = styled.div`
 			: isFocused
 			? `1px solid ${theme.accent}`
 			: `1px solid ${opac(0.6, theme.accent)}`};
-		filter: ${isFocused && `drop-shadow(0 1px 12px ${opac(0.2, theme.accent)})`} blur(0);
+		${isFocused &&
+		css`
+			filter: drop-shadow(0 1px 12px ${opac(0.5, theme.accent)});
+		`}
 	`}
 `
 
 const TitleBar = styled.div`
 	flex: 0 0 auto;
 	padding: 0 2px;
-	font-weight: 500;
+	font-weight: bold;
 	align-items: center;
 	height: var(--nav-height);
+	button {
+		margin: 1px 0;
+	}
+	button + button {
+		margin-left: 2px;
+	}
 	${({ isMobileSite, theme, isFocused }) => css`
 		color: ${isFocused ? theme.primaryContrast : theme.bgContrast};
 		border-bottom: 1px solid ${isFocused ? theme.accent : opac(0.6, theme.accent)};
@@ -128,6 +138,12 @@ const CornerSW = styled(Corner)`
 	cursor: sw-resize !important;
 `
 
+const DragRef = styled.div`
+	visibility: hidden;
+	content-visibility: hidden;
+	position: absolute;
+`
+
 const TitleBarBtn = styled(Button).attrs((props) => {
 	return { ...props, setColor: props.winFocused ? "primaryContrast" : "bgContrast" }
 })``
@@ -183,10 +199,6 @@ export default class Window extends Component {
 					ease: "bounce.out",
 					duration: 0.75,
 				},
-				current: {
-					width: this.wireframe?.width,
-					height: this.wireframe?.height,
-				},
 			},
 		}
 		this.appDrawerContent = null
@@ -238,8 +250,7 @@ export default class Window extends Component {
 		}
 
 		// If focused and isMobileSite use 'setMainNavBurgerCB' to toggle this app's Drawer.
-		const newDrawerContent = prevState.appDrawerContent === null && !!this.state.appDrawerContent
-		if ((!prevProps.isFocused && isFocused) || newDrawerContent) {
+		if (!prevProps.isFocused && isFocused) {
 			this.determineMainNavBurgerCB()
 		}
 
@@ -256,14 +267,18 @@ export default class Window extends Component {
 
 	toggleAppDrawerShown = () => {
 		const { appDrawerShown } = this.state
-		this.setState({ appDrawerShown: !appDrawerShown, appDrawerContent: this.appDrawerContent })
+		this.setState({
+			appDrawerShown: !appDrawerShown,
+			...(appDrawerShown && { appDrawerContent: cloneElement(this.appDrawerContent) }),
+		})
 	}
 
 	setAppDrawerContent = (appDrawerContent) => {
 		this.appDrawerContent = appDrawerContent
 		if (this.state.appDrawerShown || this.state.appDrawerContent === null) {
-			this.setState({ appDrawerContent })
-		}
+			console.log("setAppDrawerContent()")
+			this.setState({ appDrawerContent: cloneElement(this.appDrawerContent) })
+		} else console.log("setAppDrawerContent() skipped")
 	}
 
 	setAppLoading = (bool) => {
@@ -273,7 +288,7 @@ export default class Window extends Component {
 	}
 
 	genDraggables = () => {
-		const { title, focusApp, minWindowCSS, isMobileSite } = this.props
+		const { title, focusApp, minWindowCSS, isMobileSite, isMaximized } = this.props
 		const wdowEle = this.rootRef.current
 		const wdow = this
 
@@ -293,13 +308,12 @@ export default class Window extends Component {
 			},
 			allowContextMenu: true,
 		})
+		if (isMaximized) this.draggableWindow[0].disable()
 
 		this.dragArea = document.getElementById("allowedDragArea")
 
-		function genResizeDraggable({ handleOnDrag, ...vars }) {
-			const nextEle = document.createElement("div")
-			nextEle.style.position = "absolute"
-			wdow.dragArea.appendChild(nextEle)
+		function genResizeDraggable({ side, handleOnDrag, ...vars }) {
+			const nextEle = document.getElementById(`dragRef-${side}-${title}`)
 			return Draggable.create(nextEle, {
 				...vars,
 				type: "x,y",
@@ -314,8 +328,6 @@ export default class Window extends Component {
 				},
 				onDrag: function () {
 					handleOnDrag(this, wdow.data.css.windowed)
-					wdow.data.css.current.width = wdow.data.css.windowed.width
-					wdow.data.css.current.height = wdow.data.css.windowed.height
 					wdow.checkIfMobileWindowThrottled()
 				},
 				allowContextMenu: true,
@@ -332,6 +344,7 @@ export default class Window extends Component {
 			genResizeDraggable({
 				trigger: `#side-top-${title}, #corner-nw-${title}, #corner-ne-${title}`,
 				cursor: "n-resize",
+				side: "top",
 				handleOnDrag: function (drag, wdowCSS) {
 					const nextHeightBelowMin = wdowCSS.height - drag.deltaY < minWindowCSS.height
 					const nextHeightAboveMax = wdowCSS.height - drag.deltaY > wdow.dragArea.clientHeight
@@ -347,6 +360,7 @@ export default class Window extends Component {
 			genResizeDraggable({
 				trigger: `#side-right-${title}, #corner-ne-${title}, #corner-se-${title}`,
 				cursor: "e-resize",
+				side: "right",
 				handleOnDrag: function (drag, wdowCSS) {
 					const nextWidthBelowMin = wdowCSS.width + drag.deltaX < minWindowCSS.width
 					const nextWidthAboveMax = wdowCSS.width + drag.deltaX > wdow.dragArea.clientWidth
@@ -361,6 +375,7 @@ export default class Window extends Component {
 			genResizeDraggable({
 				trigger: `#side-bottom-${title}, #corner-sw-${title}, #corner-se-${title}`,
 				cursor: "s-resize",
+				side: "bottom",
 				handleOnDrag: function (drag, wdowCSS) {
 					const nextHeightBelowMin = wdowCSS.height + drag.deltaY < minWindowCSS.height
 					const nextHeightAboveMax = wdowCSS.height + drag.deltaY > wdow.dragArea.clientHeight
@@ -375,6 +390,7 @@ export default class Window extends Component {
 			genResizeDraggable({
 				trigger: `#side-left-${title}, #corner-nw-${title}, #corner-sw-${title}`,
 				cursor: "w-resize",
+				side: "left",
 				handleOnDrag: function (drag, wdowCSS) {
 					const nextWidthBelowMin = wdowCSS.width - drag.deltaX < minWindowCSS.width
 					const nextWidthAboveMax = wdowCSS.width - drag.deltaX > wdow.dragArea.clientWidth
@@ -392,25 +408,25 @@ export default class Window extends Component {
 	}
 
 	save = () => {
-		this.setLastWindowedCSS()
-		const { title } = this.props
-		const { appDrawerContent, context, ...otherState } = this.state
-		const { isMobileWindow } = context
-		const prevData = ls.get(`Window-${title}`) ?? {}
-		const nextData = {
-			title,
-			...prevData,
-			window: {
-				state: {
-					...otherState,
-					context: {
-						isMobileWindow,
-					},
-				},
-				data: { ...this.data },
-			},
-		}
-		ls.set(`Window-${title}`, nextData)
+		// this.setLastWindowedCSS()
+		// const { title } = this.props
+		// const { appDrawerContent, context, ...otherState } = this.state
+		// const { isMobileWindow } = context
+		// const prevData = ls.get(`Window-${title}`) ?? {}
+		// const nextData = {
+		// 	title,
+		// 	...prevData,
+		// 	window: {
+		// 		state: {
+		// 			...otherState,
+		// 			context: {
+		// 				isMobileWindow,
+		// 			},
+		// 		},
+		// 		data: { ...this.data },
+		// 	},
+		// }
+		// ls.set(`Window-${title}`, nextData)
 	}
 
 	handleExit = () => {
@@ -419,10 +435,12 @@ export default class Window extends Component {
 	}
 
 	checkIfMobileWindow = () => {
-		const width = this.data.css.current.width
+		if (!this.rootRef.current) return
+		const width = this.rootRef.current.offsetWidth
 		const { isMobileWindow } = this.state.context
 		const { isMobileSite } = this.props
 
+		// console.log("checkIfMobileWindow()")
 		if ((!isMobileWindow && isMobileSite) || (!isMobileWindow && width < mediaBreakpoints.desktop)) {
 			this.setState((prev) => ({
 				context: {
@@ -461,6 +479,7 @@ export default class Window extends Component {
 		const { isMinimized, isMaximized } = this.props
 		if (isMinimized || isMaximized || !this.rootRef.current) return
 
+		// console.log("preventSubpixelValues()")
 		this.wdowStyles = this.wdowStyles ?? new Styles(this.rootRef.current)
 		const matrix = this.wdowStyles.get("transform")
 		const transform = { x: Math.round(matrix[matrix.length - 2]), y: Math.round(matrix[matrix.length - 1]) }
@@ -484,10 +503,6 @@ export default class Window extends Component {
 			...this.data.css.windowed,
 			...roundedVars,
 		}
-		this.data.css.current = {
-			...this.data.css.current,
-			...roundedVars,
-		}
 		gsap.set(this.rootRef.current, roundedVars)
 	}
 
@@ -497,7 +512,7 @@ export default class Window extends Component {
 		this.curAnim = gsap.to(wdow.rootRef.current, {
 			...tweenVars,
 			startAt: {
-				backfaceVisibility: "hidden",
+				contentVisibility: "visible",
 			},
 			onStart: () => {
 				wdow.draggableWindow[0].disable()
@@ -506,17 +521,15 @@ export default class Window extends Component {
 			onComplete: () => {
 				if (!wdow.props.isMinimized) {
 					wdow.draggableWindow[0].update(true)
-					wdow.draggableWindow[0].enable()
+					wdow.draggableWindow[0].enabled(!wdow.props.isMaximized)
 				}
 				if (!wdow.props.isMinimized && !wdow.props.isMaximized) {
 					wdow.dragInstances.forEach((i) => i[0].enable())
 				}
-				wdow.gsapQS({ backfaceVisibility: "visible" })
+				wdow.gsapQS({ contentVisibility: wdow.props.isMinimized ? "hidden" : "visible" })
 				wdow.preventSubpixelValues()
 			},
 			onUpdate: function () {
-				wdow.data.css.current.width = this._targets[0].offsetWidth
-				wdow.data.css.current.height = this._targets[0].offsetHeight
 				if (!wdow.props.isMinimized) wdow.checkIfMobileWindowThrottled()
 			},
 		})
@@ -525,8 +538,9 @@ export default class Window extends Component {
 
 	setLastWindowedCSS = () => {
 		const { isMinimized, isMaximized } = this.props
-		if (!this.rootRef.current || gsap.isTweening(this.rootRef.current) || isMinimized || isMaximized) return // console.log(`wdow-${this.props.title} setLastWindowedCSS() skipped, no root OR isTweening`)
+		if (!this.rootRef.current || gsap.isTweening(this.rootRef.current) || isMinimized || isMaximized) return
 
+		// console.log("setLastWindowedCSS()")
 		this.draggableWindow[0].update(true)
 		this.wdowStyles = this.wdowStyles ?? new Styles(this.rootRef.current)
 
@@ -542,6 +556,7 @@ export default class Window extends Component {
 	// Check to see if current windowed CSS is within the drag area bounds. Have to check this because
 	// the user might resize their browser after leaving the site, which will make the window out of bounds.
 	checkWindowedCSS = () => {
+		// console.log("checkWindowedCSS()")
 		const { css } = this.data
 		const { width: wdowWidth, height: wdowHeight } = css.windowed
 		if (wdowWidth > this.dragArea?.clientWidth || wdowHeight > this.dragArea?.clientHeight) {
@@ -549,10 +564,6 @@ export default class Window extends Component {
 				...css.windowed,
 				top: this.wireframe?.top,
 				left: this.wireframe?.left,
-				width: this.wireframe?.width,
-				height: this.wireframe?.height,
-			}
-			css.current = {
 				width: this.wireframe?.width,
 				height: this.wireframe?.height,
 			}
@@ -612,6 +623,7 @@ export default class Window extends Component {
 						id={`title-bar-${title}`}
 						isFocused={isFocused}
 						isMobileSite={this.props.isMobileSite}
+						onClick={() => this.props.focusApp(title)}
 						onDoubleClick={() => this.props.toggleMaximize(title)}
 						onTouchEnd={(e) => {
 							// 'onDoubleClick' doesn't work w/ touch events even though the normal 'onClick' does?
@@ -620,7 +632,7 @@ export default class Window extends Component {
 					>
 						<TitleBarBtn
 							onClick={this.toggleAppDrawerShown}
-							svg={MenuSVG}
+							svg={SvgMenu}
 							disabled={appDrawerContent === null || !isMobileWindow}
 							winFocused={isFocused}
 						/>
@@ -628,17 +640,17 @@ export default class Window extends Component {
 						<div style={{ display: "flex", marginLeft: "auto" }}>
 							<TitleBarBtn
 								onClick={() => this.props.toggleMinimize(title)}
-								svg={MinimizeSVG}
+								svg={SvgMinimize}
 								winFocused={isFocused}
 							/>
 							<TitleBarBtn
 								onClick={() => this.props.toggleMaximize(title)}
-								svg={isMaximized ? FullscreenExitSVG : FullscreenSVG}
+								svg={isMaximized ? SvgFullscreenExit : SvgFullscreen}
 								winFocused={isFocused}
 							/>
 							<TitleBarCloseBtn
 								onClick={() => this.props.closeApp(title)}
-								svg={CloseSVG}
+								svg={SvgClose}
 								winFocused={isFocused}
 								setTheme="red"
 								setColor="primary"
@@ -664,6 +676,10 @@ export default class Window extends Component {
 					<Side position="right" id={`side-right-${title}`} />
 					<Side position="bottom" id={`side-bottom-${title}`} />
 					<Side position="left" id={`side-left-${title}`} />
+					<DragRef id={`dragRef-top-${title}`} />
+					<DragRef id={`dragRef-right-${title}`} />
+					<DragRef id={`dragRef-bottom-${title}`} />
+					<DragRef id={`dragRef-left-${title}`} />
 					<CornerNW id={`corner-nw-${title}`} />
 					<CornerNE id={`corner-ne-${title}`} />
 					<CornerSE id={`corner-se-${title}`} />

@@ -2,8 +2,7 @@ import { useState } from "react"
 import styled, { css } from "styled-components/macro"
 
 import Button from "./Button"
-import { ReactComponent as UnfoldLessSVG } from "../../shared/assets/icons/unfold-less.svg"
-import { ReactComponent as UnfoldMoreSVG } from "../../shared/assets/icons/unfold-more.svg"
+import { ReactComponent as SvgArrowRight } from "../../shared/assets/material-icons/arrow-right.svg"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -25,14 +24,12 @@ const MenuRoot = styled.div`
 
 const MenuTitle = styled(Button)`
 	padding: 0;
-	justify-content: space-between;
-	> .svg-container {
-		transition: transform 0.2s;
-		transform: scale(1);
-	}
-	&:hover > .svg-container {
-		transform: scale(1.2);
-	}
+	justify-content: flex-end;
+	${({ opened }) => css`
+		> .svg-container {
+			transform: rotate(${opened ? "90deg" : 0});
+		}
+	`}
 `
 
 const MenuContent = styled.div`
@@ -55,8 +52,8 @@ function Menu({ data }) {
 				tag="div"
 				variant="fancy"
 				onClick={() => setOpened((prev) => !prev)}
-				svg={opened ? UnfoldLessSVG : UnfoldMoreSVG}
-				reverse
+				svg={SvgArrowRight}
+				opened={opened}
 			>
 				{title}
 			</MenuTitle>

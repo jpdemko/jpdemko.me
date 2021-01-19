@@ -2,7 +2,7 @@ import "sanitize.css"
 import "sanitize.css/typography.css"
 import "sanitize.css/forms.css"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, StrictMode } from "react"
 import ReactDOM from "react-dom"
 import { createGlobalStyle, ThemeProvider } from "styled-components/macro"
 
@@ -11,9 +11,46 @@ import { themes, mediaBreakpoints, Contexts } from "./shared/shared"
 import Display from "./components/display/Display"
 import AuthProvider from "./components/auth/AuthProvider"
 
+import Roboto from "./shared/assets/fonts/Roboto-Regular.ttf"
+import RobotoB from "./shared/assets/fonts/Roboto-Bold.ttf"
+import RobotoI from "./shared/assets/fonts/Roboto-Italic.ttf"
+import RobotoBI from "./shared/assets/fonts/Roboto-BoldItalic.ttf"
+
 /* --------------------------------- STYLES --------------------------------- */
 
 const GlobalStyle = createGlobalStyle`
+	@font-face {
+		font-family: "Roboto";
+		src: local('Roboto') url(${Roboto}) format("truetype");
+		font-weight: 400;
+		font-style: normal;
+		vertical-align: baseline;
+	}
+
+	@font-face {
+		font-family: "Roboto";
+		src: local('Roboto-Italic') url(${RobotoI}) format("truetype");
+		font-weight: 400;
+		font-style: italic;
+		vertical-align: baseline;
+	}
+
+	@font-face {
+		font-family: "Roboto";
+		src: local('Roboto-Bold') url(${RobotoB}) format("truetype");
+		font-weight: 700;
+		font-style: normal;
+		vertical-align: baseline;
+	}
+
+	@font-face {
+		font-family: "Roboto";
+		src: local('Roboto-BoldItalic') url(${RobotoBI}) format("truetype");
+		font-weight: 700;
+		font-style: italic;
+		vertical-align: baseline;
+	}
+
 	html {
 		font-size: 16px;
 		height: 100%;
@@ -21,6 +58,7 @@ const GlobalStyle = createGlobalStyle`
 
 	body {
 		height: 100%;
+		font-family: 'Roboto', sans-serif;
 	}
 
 	svg:not(:root) {

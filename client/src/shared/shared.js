@@ -3,7 +3,7 @@ import { createContext, FunctionComponent, SVGProps } from "react"
 import { transparentize, readableColor, getLuminance } from "polished"
 import { parse, stringify } from "flatted"
 
-import { ReactComponent as WrenchSVG } from "../shared/assets/icons/wrench.svg"
+import { ReactComponent as SvgWrench } from "../shared/assets/material-icons/wrench.svg"
 
 /* -------------------------------------------------------------------------- */
 
@@ -169,7 +169,7 @@ export function setupAppSharedOptions(options = {}) {
 	if (options?.theme) options.theme = addTheme(options.theme)
 	options = {
 		title: `Gen. Title#${Math.round(new Date().getTime() / 1000000 + Math.random() * 100)}`,
-		logo: WrenchSVG,
+		logo: SvgWrench,
 		theme: themes.blue,
 		authRequired: false,
 		...options,

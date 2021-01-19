@@ -5,8 +5,8 @@ import throttle from "lodash/throttle"
 
 import Button from "../ui/Button"
 import HorizLine from "../ui/HorizLine"
-import { ReactComponent as UserSVG } from "../../shared/assets/icons/user.svg"
-import { ReactComponent as ArrowDownCircleSVG } from "../../shared/assets/icons/arrow-down-circle.svg"
+import { ReactComponent as SvgUser } from "../../shared/assets/material-icons/user.svg"
+import { ReactComponent as SvgArrowDownCircle } from "../../shared/assets/material-icons/arrow-down-circle.svg"
 import { useEventListener, usePrevious } from "../../shared/hooks"
 
 /* --------------------------------- STYLES --------------------------------- */
@@ -40,6 +40,9 @@ const Info = styled.div`
 	display: flex;
 	> * {
 		flex: 0 0 auto;
+	}
+	button {
+		font-size: 0.8em;
 	}
 	align-items: flex-start;
 	${({ authored }) => css`
@@ -103,7 +106,7 @@ const Log = memo(({ data, authored, openDM, id }) => {
 				<Content>{msg}</Content>
 			</ContentBG>
 			<Info authored={authored}>
-				<Button svg={UserSVG} isFocused={authored} onClick={() => openDM({ uid, uname })}>
+				<Button svg={SvgUser} isFocused={authored} onClick={() => openDM({ uid, uname })}>
 					{uname}
 				</Button>
 				<Lessen authored={authored}>
@@ -192,7 +195,7 @@ function Logs({ data, user, openDM, roomsShown, inputSent, ...props }) {
 			</LogsRoot>
 			{!followLast && (
 				<CenterChildrenDiv>
-					<SnapEndBtn onClick={scroll2end} svg={ArrowDownCircleSVG} setColor="highlight" />
+					<SnapEndBtn onClick={scroll2end} svg={SvgArrowDownCircle} setColor="highlight" />
 				</CenterChildrenDiv>
 			)}
 		</>

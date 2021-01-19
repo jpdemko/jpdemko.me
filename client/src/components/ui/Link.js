@@ -2,6 +2,7 @@ import styled, { css } from "styled-components/macro"
 
 const Anchor = styled.a`
 	text-decoration: none;
+	cursor: pointer;
 	${({ theme }) => css`
 		color: ${theme.highlight};
 		transition: all 0.175s;
@@ -16,14 +17,14 @@ const Anchor = styled.a`
 	`}
 `
 
-function Link({ children, openNewTab = true, trustedLink = false, ...props }) {
+function Link({ children, openNewTab = true, trustedLink = false, href, ...props }) {
 	const attrs = {
 		...(openNewTab && { target: "_blank" }),
 		...(!trustedLink && { rel: "noopener noreferrer" }),
 	}
 
 	return (
-		<Anchor {...props} {...attrs}>
+		<Anchor {...props} {...attrs} title={href} href={href}>
 			{children}
 		</Anchor>
 	)
