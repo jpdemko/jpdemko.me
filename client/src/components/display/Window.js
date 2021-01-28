@@ -1,4 +1,4 @@
-import { createRef, Component, cloneElement } from "react"
+import { createRef, Component } from "react"
 import { gsap, Draggable } from "gsap/all"
 import styled, { css } from "styled-components/macro"
 import { Transition } from "react-transition-group"
@@ -10,7 +10,16 @@ import { ReactComponent as SvgMinimize } from "../../shared/assets/material-icon
 import { ReactComponent as SvgFullscreenExit } from "../../shared/assets/material-icons/fullscreen-exit.svg"
 import { ReactComponent as SvgFullscreen } from "../../shared/assets/material-icons/fullscreen.svg"
 import { ReactComponent as SvgMenu } from "../../shared/assets/material-icons/menu.svg"
-import { getRect, isDoubleTouch, opac, ls, Styles, mediaBreakpoints, Contexts } from "../../shared/shared"
+import {
+	getRect,
+	isDoubleTouch,
+	opac,
+	ls,
+	Styles,
+	mediaBreakpoints,
+	Contexts,
+	Debug,
+} from "../../shared/shared"
 import Button from "../ui/Button"
 import Drawer from "../ui/Drawer"
 import Loading from "../ui/Loading"
@@ -70,7 +79,8 @@ const Content = styled.div`
 	flex: 1 1;
 	position: relative;
 	overflow: hidden;
-	${({ theme }) => css`
+	${({ theme, isMobileWindow }) => css`
+		--content-spacing: ${isMobileWindow ? 1 : 2}rem;
 		> div:last-child {
 			overflow-x: hidden;
 			overflow-y: auto;
@@ -81,6 +91,26 @@ const Content = styled.div`
 			width: 100%;
 			background: ${theme.background};
 			color: ${theme.bgContrast};
+		}
+		section {
+			max-width: 1024px;
+			margin: 0 auto;
+			padding: 0 var(--content-spacing);
+			> * {
+				margin: var(--content-spacing) 0;
+			}
+		}
+		p,
+		ul {
+			margin: calc(var(--content-spacing) / 2) 0;
+		}
+		li::marker {
+			color: ${theme.highlight};
+		}
+		.enpha {
+			font-weight: bold;
+			color: ${theme.highlight};
+			font-size: 1.1em;
 		}
 	`}
 `
@@ -157,6 +187,9 @@ const TitleBarCloseBtn = styled(Button).attrs(({ theme, setColor, winFocused, ..
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
+// eslint-disable-next-line no-unused-vars
+const debug = new Debug("Window: ", true)
+
 export default class Window extends Component {
 	constructor(props) {
 		super(props)
@@ -201,13 +234,13 @@ export default class Window extends Component {
 				},
 			},
 		}
-		this.appDrawerContent = null
 		this.state = merge(
 			{
 				context: {
 					isMobileWindow: props.isMobileSite,
 					setAppDrawerContent: this.setAppDrawerContent,
 					setAppLoading: this.setAppLoading,
+					setAppDrawerShown: this.setAppDrawerShown,
 				},
 				appLoading: false,
 				appDrawerContent: null,
@@ -249,7 +282,7 @@ export default class Window extends Component {
 			else this.animWindowed()
 		}
 
-		// If focused and isMobileSite use 'setMainNavBurgerCB' to toggle this app's Drawer.
+		// If app focused and isMobileSite 'setMainNavBurgerCB' from Display to this app's Drawer open/close toggle.
 		if (!prevProps.isFocused && isFocused) {
 			this.determineMainNavBurgerCB()
 		}
@@ -259,31 +292,26 @@ export default class Window extends Component {
 	}
 
 	determineMainNavBurgerCB = () => {
-		if (this.props.isMobileSite && this.props.isFocused) {
-			const cb = this.state.appDrawerContent ? this.toggleAppDrawerShown : null
-			this.props.setMainNavBurgerCB(cb)
+		const { isMobileSite, isFocused, setMainNavBurgerCB } = this.props
+		if (isMobileSite && isFocused) {
+			const cb = this.state.appDrawerContent ? this.setAppDrawerShown : null
+			setMainNavBurgerCB(cb)
 		}
 	}
 
-	toggleAppDrawerShown = () => {
+	setAppDrawerShown = (bool) => {
 		const { appDrawerShown } = this.state
-		this.setState({
-			appDrawerShown: !appDrawerShown,
-			...(appDrawerShown && { appDrawerContent: cloneElement(this.appDrawerContent) }),
-		})
+		this.setState({ appDrawerShown: typeof bool === "boolean" ? bool : !appDrawerShown })
 	}
 
 	setAppDrawerContent = (appDrawerContent) => {
-		this.appDrawerContent = appDrawerContent
-		if (this.state.appDrawerShown || this.state.appDrawerContent === null) {
-			console.log("setAppDrawerContent()")
-			this.setState({ appDrawerContent: cloneElement(this.appDrawerContent) })
-		} else console.log("setAppDrawerContent() skipped")
+		this.setState({ appDrawerContent })
+		if (!this.props.mainNavBurgerCB) this.determineMainNavBurgerCB()
 	}
 
 	setAppLoading = (bool) => {
 		this.setState((prev) => ({
-			appLoading: bool ?? !prev.appLoading,
+			appLoading: typeof bool === "boolean" ? bool : !prev.appLoading,
 		}))
 	}
 
@@ -408,25 +436,25 @@ export default class Window extends Component {
 	}
 
 	save = () => {
-		// this.setLastWindowedCSS()
-		// const { title } = this.props
-		// const { appDrawerContent, context, ...otherState } = this.state
-		// const { isMobileWindow } = context
-		// const prevData = ls.get(`Window-${title}`) ?? {}
-		// const nextData = {
-		// 	title,
-		// 	...prevData,
-		// 	window: {
-		// 		state: {
-		// 			...otherState,
-		// 			context: {
-		// 				isMobileWindow,
-		// 			},
-		// 		},
-		// 		data: { ...this.data },
-		// 	},
-		// }
-		// ls.set(`Window-${title}`, nextData)
+		this.setLastWindowedCSS()
+		const { title } = this.props
+		const { appDrawerContent, context, ...otherState } = this.state
+		const { isMobileWindow } = context
+		const prevData = ls.get(`Window-${title}`) ?? {}
+		const nextData = {
+			title,
+			...prevData,
+			window: {
+				state: {
+					...otherState,
+					context: {
+						isMobileWindow,
+					},
+				},
+				data: { ...this.data },
+			},
+		}
+		ls.set(`Window-${title}`, nextData)
 	}
 
 	handleExit = () => {
@@ -440,7 +468,6 @@ export default class Window extends Component {
 		const { isMobileWindow } = this.state.context
 		const { isMobileSite } = this.props
 
-		// console.log("checkIfMobileWindow()")
 		if ((!isMobileWindow && isMobileSite) || (!isMobileWindow && width < mediaBreakpoints.desktop)) {
 			this.setState((prev) => ({
 				context: {
@@ -479,7 +506,6 @@ export default class Window extends Component {
 		const { isMinimized, isMaximized } = this.props
 		if (isMinimized || isMaximized || !this.rootRef.current) return
 
-		// console.log("preventSubpixelValues()")
 		this.wdowStyles = this.wdowStyles ?? new Styles(this.rootRef.current)
 		const matrix = this.wdowStyles.get("transform")
 		const transform = { x: Math.round(matrix[matrix.length - 2]), y: Math.round(matrix[matrix.length - 1]) }
@@ -540,7 +566,6 @@ export default class Window extends Component {
 		const { isMinimized, isMaximized } = this.props
 		if (!this.rootRef.current || gsap.isTweening(this.rootRef.current) || isMinimized || isMaximized) return
 
-		// console.log("setLastWindowedCSS()")
 		this.draggableWindow[0].update(true)
 		this.wdowStyles = this.wdowStyles ?? new Styles(this.rootRef.current)
 
@@ -556,7 +581,6 @@ export default class Window extends Component {
 	// Check to see if current windowed CSS is within the drag area bounds. Have to check this because
 	// the user might resize their browser after leaving the site, which will make the window out of bounds.
 	checkWindowedCSS = () => {
-		// console.log("checkWindowedCSS()")
 		const { css } = this.data
 		const { width: wdowWidth, height: wdowHeight } = css.windowed
 		if (wdowWidth > this.dragArea?.clientWidth || wdowHeight > this.dragArea?.clientHeight) {
@@ -631,7 +655,7 @@ export default class Window extends Component {
 						}}
 					>
 						<TitleBarBtn
-							onClick={this.toggleAppDrawerShown}
+							onClick={this.setAppDrawerShown}
 							svg={SvgMenu}
 							disabled={appDrawerContent === null || !isMobileWindow}
 							winFocused={isFocused}
@@ -657,13 +681,13 @@ export default class Window extends Component {
 							/>
 						</div>
 					</TitleBar>
-					<Content onClick={() => this.props.focusApp(title)}>
+					<Content onClick={() => this.props.focusApp(title)} isMobileWindow={isMobileWindow}>
 						<Loading isLoading={this.state.appLoading} />
 						{appDrawerContent !== null && isMobileWindow && (
 							<Drawer
 								side={this.props.isMobileSite ? "right" : "left"}
 								isShown={appDrawerShown}
-								onClose={this.toggleAppDrawerShown}
+								onClose={this.setAppDrawerShown}
 							>
 								{appDrawerContent}
 							</Drawer>

@@ -58,16 +58,14 @@ const radar = {
 }
 
 function Weather({ title, ...props }) {
-	const { setAppLoading } = useContext(Contexts.Window)
+	const { setAppLoading, setAppDrawerShown } = useContext(Contexts.Window)
 	const [curLocation, setCurLocation] = useLocalStorage("curLocation")
 	const [locations, setLocations] = useLocalStorage("locations", [])
 
 	// Setup map and add radar data.
 	const [map, setMap] = useState()
 	function loadMap() {
-		console.log("loadMap()")
-		if (gsap.isTweening(`#window-${title}`))
-			return console.log("<Weather /> loadMap() skipped because of GSAP anim.")
+		if (gsap.isTweening(`#window-${title}`)) return
 		try {
 			const genMap = new Microsoft.Maps.Map("#BingMapRadar", {
 				navigationBarMode: Microsoft.Maps.NavigationBarMode.minified,
@@ -90,7 +88,6 @@ function Weather({ title, ...props }) {
 				updateRadar(genMap)
 				setMap(genMap)
 			}
-			// console.log("<Weather /> loadMap() success")
 		} catch (error) {
 			console.error("<Weather /> loadMap() error: ", error)
 		}
@@ -110,11 +107,9 @@ function Weather({ title, ...props }) {
 	const [modulesLoaded, setModulesLoaded] = useState(false)
 	function loadMapModules() {
 		if (map && !modulesLoaded) {
-			console.log("loadMapModules()")
 			try {
 				Microsoft.Maps.loadModule(["Microsoft.Maps.AutoSuggest", "Microsoft.Maps.Search"], {
 					callback: () => {
-						// console.log("<Weather /> loadMapModules() success")
 						setModulesLoaded(true)
 					},
 					errorCallback: (error) => {
@@ -134,7 +129,6 @@ function Weather({ title, ...props }) {
 		const localMap = mapParam ?? map
 		if (!localMap) return
 
-		console.log("updateRadar()")
 		try {
 			localMap.layers.clear()
 			const tileSources = radar.timestamps.map(
@@ -145,7 +139,6 @@ function Weather({ title, ...props }) {
 			)
 			const animatedLayer = new Microsoft.Maps.AnimatedTileLayer({ mercator: tileSources, frameRate: 500 })
 			localMap.layers.insert(animatedLayer)
-			// console.log("<Weather /> updateRadar() success")
 		} catch (error) {
 			console.error("<Weather /> updateRadar() error: ", error)
 		}
@@ -154,7 +147,6 @@ function Weather({ title, ...props }) {
 
 	function mapLoadLocation(mapData) {
 		if (!map) {
-			// console.log("<Weather /> mapLoadLocation() skipped, no 'map' found")
 			return
 		}
 		map.entities.clear()
@@ -166,7 +158,6 @@ function Weather({ title, ...props }) {
 
 	function onLocationFound(mapData) {
 		if (!map || !mapData) {
-			// console.log("<Weather /> onLocationFound() skipped, bad params")
 			return
 		}
 
@@ -179,6 +170,7 @@ function Weather({ title, ...props }) {
 			setCurLocation(locationsCopy[locIdx])
 			setLocations(locationsCopy)
 			mapLoadLocation(mapData)
+			setAppDrawerShown(false)
 		} else {
 			fetchData(mapData)
 				.then((newLocation) => {
@@ -186,6 +178,7 @@ function Weather({ title, ...props }) {
 					setLocations([...locationsCopy, newLocation])
 					setCurLocation(newLocation)
 					mapLoadLocation(mapData)
+					setAppDrawerShown(false)
 				})
 				.catch((error) => console.error("<Weather /> onLocationFound() error: ", error))
 				.finally(() => setAppLoading(false))
@@ -225,7 +218,6 @@ function Weather({ title, ...props }) {
 				sunData,
 				weatherData,
 			}
-			// console.log("<Weather /> fetchData(): ", finData)
 			return finData
 		} catch (error) {
 			console.error("<Weather /> fetchData() error: ", error)
@@ -234,7 +226,6 @@ function Weather({ title, ...props }) {
 	}
 
 	function updateLocations() {
-		console.log("updateLocations()")
 		const locPromises = locations.map((loc) => {
 			const prevFetchDate = DateTime.fromSeconds(loc.weatherData.currently.time).toLocal()
 			const recent = Interval.fromDateTimes(prevFetchDate, prevFetchDate.plus({ minutes: updateInterval }))
@@ -242,7 +233,6 @@ function Weather({ title, ...props }) {
 		})
 		Promise.all(locPromises)
 			.then((nextLocations) => {
-				// console.log("<Weather /> updateLocations(): ", nextLocations)
 				const nextCurLocation = nextLocations.find((loc) => loc.id === curLocation.id)
 				setCurLocation(nextCurLocation)
 				setLocations(nextLocations)
@@ -265,10 +255,10 @@ function Weather({ title, ...props }) {
 		isMetric,
 	])
 
-	const checkIfLandscape = useCallback((resizeEleRect) => {
-		console.log("resizeObs()")
-		return resizeEleRect.width > resizeEleRect.height * 1.25
-	}, [])
+	const checkIfLandscape = useCallback(
+		(resizeEleRect) => resizeEleRect.width > resizeEleRect.height * 1.25,
+		[]
+	)
 	const [dataRef, isLandscape] = useResizeObserver(checkIfLandscape)
 
 	return (

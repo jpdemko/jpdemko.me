@@ -3,13 +3,11 @@ const router = express.Router()
 const passport = require("../passport")
 
 function checkAuth(req, res, next) {
-	// console.log(`checkAuth() authenticated: ${req.isAuthenticated()}`)
 	if (req.isAuthenticated()) return next()
 	res.json({ error: "User is not authenticated." })
 }
 
 router.get("/user", checkAuth, function (req, res) {
-	// console.log("get user/ success, user is: ", req.user)
 	res.json(req.user)
 })
 
@@ -18,6 +16,16 @@ router.get("/google", passport.authenticate("google", { scope: ["profile", "emai
 router.get(
 	"/google/callback",
 	passport.authenticate("google", {
+		failureRedirect: "/",
+		successRedirect: "/",
+	})
+)
+
+router.get("/github", passport.authenticate("github", { scope: ["read:user"] }))
+
+router.get(
+	"/github/callback",
+	passport.authenticate("github", {
 		failureRedirect: "/",
 		successRedirect: "/",
 	})

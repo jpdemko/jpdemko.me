@@ -25,7 +25,7 @@ function App({ title, isFocused, tabHidden }) {
 	if (App && (!App.shared.authRequired || (App.shared.authRequired && isAuthed && user))) {
 		return memoApp
 	} else {
-		return <SocialLogin />
+		return <SocialLogin reason={App?.shared.authReasoning} />
 	}
 }
 

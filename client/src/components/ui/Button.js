@@ -49,16 +49,9 @@ export const ButtonBase = styled.button.attrs(({ svg, column, reverse, ...props 
 			margin-right: ${horizPad};
 			margin-bottom: ${vertPad};
 		}
-		.svg-container {
+		svg {
 			flex: ${column ? 1 : 0} 1 auto;
-			${column ? "justify" : "align"}-self: stretch;
-			display: flex;
-			justify-content: center;
-			align-items: center;
 		}
-		${"" /* > div + .svg-container {
-			margin: calc(${vertPad} * 0.75) calc(${horizPad} * 0.75);
-		} */}
 	`}
 `
 
@@ -73,12 +66,14 @@ const BasicButton = styled(ButtonBase).attrs(({ color, theme, ...props }) => ({
 		&:focus {
 			box-shadow: 0 0 0 1px ${props.color};
 		}
-		&:hover {
-			box-shadow: 0 0 0 1px ${props.color};
-			background: ${opac(0.2, props.color)};
-		}
 		&:active {
 			background: ${opac(0.25, props.color)};
+		}
+		@media (hover) {
+			&:hover {
+				box-shadow: 0 0 0 1px ${props.color};
+				background: ${opac(0.2, props.color)};
+			}
 		}
 	`}
 `
@@ -86,11 +81,13 @@ const BasicButton = styled(ButtonBase).attrs(({ color, theme, ...props }) => ({
 const OutlinedButton = styled(BasicButton)`
 	${(props) => css`
 		box-shadow: 0 0 0 1px ${props.color};
-		&:hover {
-			box-shadow: 0 0 0 2px ${props.color};
-		}
 		&:active {
 			box-shadow: 0 0 0 3px ${props.color};
+		}
+		@media (hover) {
+			&:hover {
+				box-shadow: 0 0 0 2px ${props.color};
+			}
 		}
 	`}
 `
@@ -104,14 +101,19 @@ const FancyButton = styled(ButtonBase).attrs(({ color, theme, ...props }) => ({
 		background: ${color ?? "none"};
 		color: ${theme.primaryContrast};
 		box-shadow: 0 1px 8px 1px ${opac(0.5, theme.accent)}, 0 0 0 1px ${opac(0.7, theme.accent)};
-		&:focus,
-		&:hover {
+		&:focus {
 			box-shadow: 0 1px 8px 3px ${opac(0.5, theme.accent)}, 0 0 0 2px ${theme.accent};
 			background: ${color ? saturate(0.04, lighten(0.04, color)) : "none"};
 		}
 		&:active {
 			box-shadow: 0 1px 8px 2px ${opac(0.7, theme.accent)}, 0 0 0 3px ${theme.accent};
 			opacity: 1;
+		}
+		@media (hover) {
+			&:hover {
+				box-shadow: 0 1px 8px 3px ${opac(0.5, theme.accent)}, 0 0 0 2px ${theme.accent};
+				background: ${color ? saturate(0.04, lighten(0.04, color)) : "none"};
+			}
 		}
 	`}
 `
@@ -159,11 +161,7 @@ function Button({ tag, variant, badge, children, ...props }) {
 		<ThemeCheck {...props}>
 			<ButtonVariant {...props} as={tag}>
 				{children && <BtnContent>{children}</BtnContent>}
-				{props.svg && (
-					<div className="svg-container">
-						<props.svg />
-					</div>
-				)}
+				{props.svg && <props.svg />}
 				{badge && <Badge>{badge}</Badge>}
 			</ButtonVariant>
 		</ThemeCheck>

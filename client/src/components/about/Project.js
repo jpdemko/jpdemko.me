@@ -46,13 +46,13 @@ const ProjTech = styled.div`
 	flex-flow: row wrap;
 	> span {
 		flex: 0 0 auto;
-		margin-right: calc(var(--about-spacing) / 2);
+		margin-right: calc(var(--content-spacing) / 2);
 	}
 	> div {
 		flex: 1 0 auto;
 		display: flex;
 		> * {
-			margin-right: calc(var(--about-spacing) / 4);
+			margin-right: calc(var(--content-spacing) / 4);
 		}
 		> *:last-child {
 			margin-right: 0;
@@ -62,22 +62,13 @@ const ProjTech = styled.div`
 
 const ProjInfo = styled.div`
 	flex: 2 0 320px;
-	padding: 0 var(--about-spacing);
+	padding: 0 var(--content-spacing);
 	> div {
-		margin-top: calc(var(--about-spacing) * 0.6);
+		margin-top: calc(var(--content-spacing) * 0.75);
 	}
 	> div:last-child {
-		margin-bottom: calc(var(--about-spacing) * 0.6);
+		margin-bottom: calc(var(--content-spacing) * 0.75);
 	}
-	p,
-	ul {
-		margin: calc(var(--about-spacing) / 2) 0;
-	}
-	${({ theme }) => css`
-		li::marker {
-			color: ${theme.highlight};
-		}
-	`}
 `
 
 /* -------------------------------- COMPONENT ------------------------------- */
@@ -102,7 +93,7 @@ function Project({ title, img, imgPosition, tech = "", github, children, ...prop
 					<span className="enpha">Tech</span>
 					<div>
 						<span>[</span>
-						{tech.split(/\s*[,|\/|-]\s*/gm).map((t) => {
+						{tech.split(",").map((t) => {
 							const TechIcon = TechIcons[t]
 							return TechIcon ? <TechIcon key={t} title={t} /> : null
 						})}

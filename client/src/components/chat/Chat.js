@@ -53,7 +53,6 @@ class Chat extends Component {
 		socket.on("updateRoom", this.updateRoom)
 		socket.on("receiveData", this.receiveData)
 		socket.on("reconnect", this.loadUser)
-		// socket.on("disconnect", (reason) => console.log("socket disconnect event - reason: ", reason))
 		// Setup data save on exit.
 		window.addEventListener("beforeunload", this.saveUserData)
 		// Attempt to load prev. save data if any.
@@ -536,6 +535,8 @@ Chat.shared = setupAppSharedOptions({
 	logo: SvgChat,
 	theme: themes.red,
 	authRequired: true,
+	authReasoning:
+		"To showcase user authentication as well as chat logs being persisted onto a PostreSQL database so user's won't lose their data.",
 })
 
 export default Chat

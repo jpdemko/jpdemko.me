@@ -18,7 +18,7 @@ const Root = styled.div`
 	`};
 `
 
-const tgBackdropStyles = {
+const tranStyles = {
 	entering: { opacity: 0.75, zIndex: 250000 },
 	entered: { opacity: 0.75, zIndex: 250000 },
 	exiting: { opacity: 0, zIndex: -1 },
@@ -31,7 +31,7 @@ const Backdrop = forwardRef(({ isShown = false, animDuration = 0.4, interactFn, 
 	return (
 		<Transition timeout={animDuration * 1000} in={isShown}>
 			{(state) => (
-				<Root {...props} ref={ref} animDuration={animDuration} style={{ ...tgBackdropStyles[state] }} />
+				<Root {...props} ref={ref} animDuration={animDuration} style={{ ...tranStyles[state] }} />
 			)}
 		</Transition>
 	)

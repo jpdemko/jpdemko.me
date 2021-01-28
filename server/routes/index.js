@@ -24,7 +24,6 @@ const authCheck = (req, res, next) => {
 // })
 
 router.get("/", authCheck, (req, res) => {
-	console.log("router.get() index")
 	res.status(200).json({
 		authenticated: true,
 		message: "User is authenticated.",

@@ -42,24 +42,18 @@ export function useLocalStorage(key, initValue, skipParse = false) {
  * @param {*} [defaultValue=null] - what to return if no queries match
  * @return {*} - returns value in values array based on the same index of matching query
  */
-export function useMedia(queries = [], values, defaultValue = null) {
-	const mediaQueryLists = queries.map((q) => window.matchMedia(q))
-
-	function getValue() {
-		const index = mediaQueryLists.findIndex((mql) => mql.matches)
-		return typeof values[index] !== "undefined" ? values[index] : defaultValue
-	}
-
-	const [value, setValue] = useState(getValue)
+export function useMediaQuery(query) {
+	const mq = window.matchMedia(query)
+	const [match, setMatch] = useState(mq.matches)
 
 	useEffect(() => {
-		const handler = () => setValue(getValue)
-		mediaQueryLists.forEach((mql) => mql.addListener(handler))
-		return () => mediaQueryLists.forEach((mql) => mql.removeListener(handler))
+		const handler = () => setMatch(mq.matches)
+		mq.addEventListener("change", handler)
+		return () => mq.removeEventListener("change", handler)
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
 
-	return value
+	return match
 }
 
 /* -------------------------------------------------------------------------- */
@@ -217,11 +211,9 @@ export function useEventListener(eventName, handler, eleRef) {
 			return () => {
 				// Check if handler is a throttle/debounce related, if so then we need to cancel it.
 				if (savedHandler.current?.cancel) {
-					// console.log(`useEventListener-${eventName} throttle/debounce cancel() called`)
 					savedHandler.current.cancel()
 				}
 				if (ele?.removeEventListener) {
-					// console.log(`useEventListener-${eventName} removeEventListener() called`)
 					ele.removeEventListener(eventName, eventListener)
 				}
 			}

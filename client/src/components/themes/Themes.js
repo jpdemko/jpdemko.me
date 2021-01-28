@@ -1,13 +1,25 @@
 import { useContext } from "react"
-import styled, { css, ThemeContext } from "styled-components/macro"
+import styled from "styled-components/macro"
 
 import { themes, setupAppSharedOptions, Contexts } from "../../shared/shared"
 import { ReactComponent as SvgPalette } from "../../shared/assets/material-icons/palette.svg"
+import { ReactComponent as SvgWrench } from "../../shared/assets/material-icons/wrench.svg"
 import Button from "../ui/Button"
 
 /* --------------------------------- STYLES --------------------------------- */
 
 const Root = styled.div``
+
+const MainSection = styled.section``
+
+const Construction = styled.div`
+	svg {
+		margin: 0 1em;
+		&:first-child {
+			margin-left: 0;
+		}
+	}
+`
 
 const BtnGroup = styled.div`
 	display: flex;
@@ -17,33 +29,38 @@ const BtnGroup = styled.div`
 const ThemeBtn = styled(Button)`
 	text-transform: uppercase;
 	font-size: 1.2em;
-	margin: 0.5em;
+	margin: 0 var(--content-spacing) var(--content-spacing) 0;
 `
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function Themes({ ...props }) {
-	const curTheme = useContext(ThemeContext)
+function Themes({ title, ...props }) {
 	const { setTheme } = useContext(Contexts.PortfolioOS)
+	const { isMobileWindow } = useContext(Contexts.Window)
 
 	return (
-		<Root>
-			<div>Choose theme: </div>
-			<BtnGroup>
-				{Object.keys(themes).map((title) => {
-					return (
-						<ThemeBtn
-							key={title}
-							variant="fancy"
-							setTheme={title}
-							onClick={() => setTheme(title)}
-							setColor="primary"
-						>
-							{title}
-						</ThemeBtn>
-					)
-				})}
-			</BtnGroup>
+		<Root {...props} isMobileWindow={isMobileWindow}>
+			<MainSection>
+				<Construction className="enpha">
+					<SvgWrench /> Under construction! <SvgWrench />
+				</Construction>
+				<div className="enpha">Pre-made themes: </div>
+				<BtnGroup>
+					{Object.keys(themes).map((title) => {
+						return (
+							<ThemeBtn
+								key={title}
+								variant="fancy"
+								setTheme={title}
+								onClick={() => setTheme(title)}
+								setColor="primary"
+							>
+								{title}
+							</ThemeBtn>
+						)
+					})}
+				</BtnGroup>
+			</MainSection>
 		</Root>
 	)
 }

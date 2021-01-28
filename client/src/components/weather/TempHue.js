@@ -20,7 +20,6 @@ const Root = styled.div`
 				}
 			`
 		} catch (error) {
-			console.log(`<TempHue /> error`)
 			return css`
 				background: none;
 			`

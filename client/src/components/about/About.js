@@ -18,7 +18,7 @@ const ProjList = styled.div`
 		flex-direction: row-reverse;
 	}
 	> * {
-		margin: var(--about-spacing) 0;
+		margin: var(--content-spacing) 0;
 	}
 `
 
@@ -36,26 +36,9 @@ const Banner = styled.div`
 	`}
 `
 
-const Root = styled.div`
-	${({ theme, isMobileWindow }) => css`
-		--about-spacing: ${isMobileWindow ? 1 : 2}rem;
-		.enpha {
-			font-weight: bold;
-			color: ${theme.highlight};
-			font-size: 1.1em;
-		}
-	`}
-`
+const Root = styled.div``
 
-const MainSection = styled.section`
-	font-size: 1em;
-	max-width: 1024px;
-	margin: 0 auto;
-	padding: 0 var(--about-spacing);
-	> * {
-		margin: var(--about-spacing) 0;
-	}
-`
+const MainSection = styled.section``
 
 const Intro = styled.div`
 	font-size: 1.5em;
@@ -65,7 +48,7 @@ const NameRow = styled.div``
 
 const IntroLinks = styled.div`
 	> * {
-		margin-right: calc(var(--about-spacing) / 2);
+		margin-right: calc(var(--content-spacing) / 2);
 	}
 `
 
@@ -83,6 +66,7 @@ export const LogoLink = styled(Link)`
 
 function About({ title, ...props }) {
 	const { isMobileWindow } = useContext(Contexts.Window)
+
 	return (
 		<Root {...props} isMobileWindow={isMobileWindow}>
 			<MainSection>

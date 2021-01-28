@@ -3,7 +3,7 @@ import styled, { css } from "styled-components/macro"
 import { TransitionGroup } from "react-transition-group"
 import throttle from "lodash/throttle"
 
-import { getRect, ls } from "../../shared/shared"
+import { ls, Debug } from "../../shared/shared"
 import About from "../about/About"
 import Weather from "../weather/Weather"
 import Chat from "../chat/Chat"
@@ -71,7 +71,7 @@ const Shortcuts = styled.div`
 	height: 100%;
 	position: relative;
 	z-index: 10; /* Need this because of absolute positioned background div. */
-	--sc-padding: 0.75em;
+	--sc-padding: 1rem;
 	padding: var(--sc-padding);
 	display: grid;
 	${({ grid }) => css`
@@ -83,11 +83,17 @@ const Shortcuts = styled.div`
 `
 
 const ShortcutButton = styled(Button)`
-	font-size: 1.25em;
+	font-size: 1.1rem;
 	font-weight: bold;
+	svg {
+		height: 3rem;
+	}
 `
 
 /* -------------------------------- COMPONENT ------------------------------- */
+
+// eslint-disable-next-line no-unused-vars
+const debug = new Debug("Display: ", true)
 
 export const mountableApps = { About, Weather, Chat, Themes }
 
@@ -99,8 +105,8 @@ class Display extends Component {
 			apps,
 			mainNavBurgerCB: null,
 			grid: grid ?? {
-				rows: 1,
-				cols: 1,
+				rows: 2,
+				cols: 2,
 			},
 		}
 		this.zIndexLeader = zIndexLeader ?? 999
@@ -133,47 +139,42 @@ class Display extends Component {
 	}
 
 	save = () => {
-		// const { mainNavBurgerCB, ...savableData } = this.state
-		// ls.set("Display", {
-		// 	...savableData,
-		// 	zIndexLeader: this.zIndexLeader,
-		// })
+		const { mainNavBurgerCB, ...savableData } = this.state
+		ls.set("Display", {
+			...savableData,
+			zIndexLeader: this.zIndexLeader,
+		})
 	}
 
 	setGridDims = () => {
-		const { width, height } = getRect(this.dragAreaRef.current)
-		const optCell = 16 * 7 + 16 * 0.75 // 7em + (1em * .75)
-		const nextGrid = {
-			rows: Math.floor(height / optCell) ?? 1,
-			cols: Math.floor(width / optCell) ?? 1,
-		}
-		const { grid } = this.state
-		if (nextGrid.rows !== grid.rows || nextGrid.cols !== grid.cols) this.setState({ grid: nextGrid })
+		let nextGrid = {}
+		const cellSize = 16 * 8
+		nextGrid.rows = Math.round(window.innerHeight / cellSize)
+		nextGrid.cols = Math.round(window.innerWidth / cellSize)
+		this.setState({ grid: nextGrid })
 	}
 
 	genApp = (title) => {
-		if (!title) return console.log("genApp() skipped")
+		if (!title) return
 
-		console.log("genApp() ", title)
 		const nextApps = { ...this.state.apps }
 		const { isMobileSite } = this.props
 		nextApps[title] = {
 			title,
-			isFocused: true,
+			isFocused: false,
 			zIndex: ++this.zIndexLeader,
-			isMinimized: false,
+			isMinimized: true,
 			isMaximized: isMobileSite,
-			isClosed: false,
+			isClosed: true,
 		}
-		this.setState({ apps: nextApps })
+		this.setState({ apps: nextApps }, () => this.focusApp(title, { isClosed: false, isMinimized: false }))
 	}
 
 	openApp = (title) => {
-		if (!title) return console.log("openApp() skipped")
+		if (!title) return
 
 		const { apps } = this.state
 		const app = apps[title]
-		console.log("openApp() ", title, app)
 		if (app && !app?.isClosed) return this.toggleMinimize(title)
 		else if (!app) this.genApp(title)
 		else
@@ -186,9 +187,8 @@ class Display extends Component {
 
 	toggleMinimize = (title) => {
 		const { apps } = this.state
-		if (!apps[title]) return console.log("togMini() skipped")
+		if (!apps[title]) return
 
-		console.log("togMini()")
 		const nextApps = { ...apps }
 		const app = nextApps[title]
 		const { isMinimized, isMaximized, isFocused } = app
@@ -240,7 +240,7 @@ class Display extends Component {
 	getBelowApp = (title) => {
 		const { apps } = this.state
 		const { zIndex: maxZ } = apps[title]
-		if (!maxZ) return console.log(`getBelowApp(${title}) skipped`)
+		if (!maxZ) return
 
 		let belowAppTitle = null
 		if (maxZ && Object.keys(apps).length > 1) {
@@ -258,7 +258,7 @@ class Display extends Component {
 	focusApp = (title, changes = {}) => {
 		const { apps } = this.state
 		const app = apps[title]
-		if (app?.isFocused && Object.keys(changes) < 1) return console.log(`focusApp(${title}) skipped`)
+		if (app?.isFocused && Object.keys(changes) < 1) return
 
 		const nextApps = { ...apps }
 		let noMatches = true
@@ -266,7 +266,6 @@ class Display extends Component {
 			const appFound = t === title
 			if (appFound) {
 				noMatches = false
-				console.log(`focusApp(${t}) called`)
 			}
 			nextApps[t] = {
 				...nextApps[t],
@@ -327,6 +326,7 @@ class Display extends Component {
 									isMaximized={app.isMaximized}
 									toggleMaximize={this.toggleMaximize}
 									toggleMinimize={this.toggleMinimize}
+									mainNavBurgerCB={this.state.mainNavBurgerCB}
 									setMainNavBurgerCB={this.setMainNavBurgerCB}
 								>
 									<App

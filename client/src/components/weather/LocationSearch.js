@@ -119,7 +119,6 @@ function LocationSearch({ map, modulesLoaded, onLocationFound }) {
 					setInput("")
 				})
 				if (mapManagersRef.current) {
-					// console.log("<LocationSearch /> map managers loaded", mapManagersRef.current)
 					managersLoadedRef.current = true
 				}
 			} catch (error) {
@@ -138,7 +137,6 @@ function LocationSearch({ map, modulesLoaded, onLocationFound }) {
 	// Function for when user clicks on SvgLocation button to find their current location.
 	function onGeolocateCurrentPosition() {
 		if (!managersLoadedRef.current || !navigator) {
-			// console.log("<LocationSearch /> onGeolocateCurrentPosition() skipped, bad params")
 			return
 		}
 
@@ -166,6 +164,12 @@ function LocationSearch({ map, modulesLoaded, onLocationFound }) {
 		setInput(e.target.value)
 		if (error) setError(null)
 	}
+
+	useEffect(() => {
+		if (!error) return
+		const timer = setTimeout(() => setError(null), 5000)
+		return () => clearTimeout(timer)
+	}, [error])
 
 	return (
 		<Root id="searchRoot">

@@ -34,7 +34,6 @@ module.exports = function (io) {
 		},
 		joinRoom: function (rid, makeCur = true) {
 			if (!rid) {
-				console.log(`error - bad joinRoom param: ${rid}`)
 				return false
 			}
 			const socket = io.of("/").sockets.get(this.socketID)
@@ -56,18 +55,12 @@ module.exports = function (io) {
 			const rooms = [...this.myRooms]
 			rooms.forEach((rid) => this.leaveRoom(rid))
 		},
-		log: function (msg) {
-			console.log(`User >>> ${this.uname}#${this.uid}: ${msg}`)
-		},
 	}
 
 	var Users = {
 		active: {},
 		setup: function (userData) {
-			if (!userData || (userData && !userData.uid)) {
-				console.log("Users.setup() error, param: ", userData)
-				throw Error("Users.setup() bad params")
-			}
+			if (!userData || (userData && !userData.uid)) return
 			this.active[userData.uid] = User.setup(userData)
 			return this.active[userData.uid]
 		},
@@ -86,7 +79,6 @@ module.exports = function (io) {
 		disconnect: function (sid) {
 			const user = this.get(sid)
 			if (user) {
-				user.log("disconnecting --> leaving all rooms")
 				user.disconnect()
 				delete this.active[user.uid]
 				return true
@@ -107,7 +99,6 @@ module.exports = function (io) {
 			self.rname = rname
 			self.password = password
 			self.activeUsers = []
-			self.log(`>>> CREATED`)
 			return self
 		},
 		contains: function (uid) {
@@ -117,16 +108,13 @@ module.exports = function (io) {
 			const user = Users.get(uid)
 			if (!user || this.contains(uid)) return false
 			this.activeUsers.push(uid)
-			this.log(`added user#${uid}`)
 			return true
 		},
 		removeUser: function (uid) {
 			if (!this.contains(uid)) {
-				this.log(`removeUser(${uid}) error`)
 				return false
 			}
 			this.activeUsers = this.activeUsers.filter((u) => u != uid)
-			this.log(`removed user#${uid}`)
 			if (this.activeUsers.length < 1) Rooms.destroy(this.rid)
 			else io.in(`${this.rid}`).emit("updateRoom", this.clientCopy())
 			return true
@@ -143,9 +131,6 @@ module.exports = function (io) {
 					return acc
 				}, {}),
 			}
-		},
-		log: function (msg) {
-			console.log(`Room >>> ${this.rname}#${this.rid}: ${msg}`)
 		},
 	}
 
@@ -175,7 +160,7 @@ module.exports = function (io) {
 	// Precaution to trim any rooms/users that shouldn't be there due to my coding or weird network issues.
 	const trimIntervalHours = 12
 	setInterval(() => {
-		console.log(`socketAPI.js trim ${trimIntervalHours}hr interval called.`)
+		console.log(`socketAPI trim interval called.`)
 		Object.keys(Rooms.active).forEach((rid) => {
 			const room = Rooms.get(rid)
 			if (room.activeUsers.length < 1) Rooms.destroy(rid)
@@ -191,8 +176,6 @@ module.exports = function (io) {
 	}, 1000 * 60 * 60 * trimIntervalHours)
 
 	io.on("connection", function (socket) {
-		console.log(`socket#${socket.id} connected`)
-
 		socket.on("setupUser", async function (passedUser, clientCB) {
 			if (!passedUser) return clientCB({ error: "server error - setupUser() - bad params" })
 
@@ -217,7 +200,7 @@ module.exports = function (io) {
 						},
 					})
 				} catch (error) {
-					console.error("server error - setupUser(): ", error)
+					console.error("socket setupUser() error: ", error)
 					clientCB({ error: `server error - setupUser() - ${error}` })
 				}
 			}
@@ -235,7 +218,7 @@ module.exports = function (io) {
 
 				clientCB({ success: "server success - createRoom()", room: room.clientCopy() })
 			} catch (error) {
-				console.error("server error - createRoom(): ", error)
+				console.error("socket createRoom() error: ", error)
 				clientCB({ error: `server error - createRoom() - ${error}` })
 			}
 		})
@@ -275,7 +258,7 @@ module.exports = function (io) {
 					},
 				})
 			} catch (error) {
-				console.error("server error - joinRoom(): ", error)
+				console.error("socket joinRoom() error: ", error)
 				clientCB({ error: `server error - joinRoom() - ${error}` })
 			}
 		})
@@ -285,7 +268,7 @@ module.exports = function (io) {
 				const dms = await queries.chat.getLogsDMS({ uid, recip_id, tsLogsFetched })
 				clientCB({ success: "server success - getLogsDMS()", data: { dms, recip_id } })
 			} catch (error) {
-				console.log("server error - getLogsDMS(): ", error)
+				console.error("socket getLogsDMS() error: ", error)
 				clientCB({ error: `server error - getLogsDMS() - ${error}` })
 			}
 		})
@@ -303,7 +286,7 @@ module.exports = function (io) {
 					socket.to(recip.socketID).emit("receiveData", { data: { dms: receiverDMS, recip_id: uid } })
 				clientCB({ success: "server success - sendDM()", data: { dms: senderDMS, recip_id } })
 			} catch (error) {
-				console.log("server error - sendDM(): ", error)
+				console.error("socket sendDM() error: ", error)
 				clientCB({ error: `server error - sendDM() - ${error}` })
 			}
 		})
@@ -319,7 +302,7 @@ module.exports = function (io) {
 
 				clientCB({ success: "server success - deleteRoom()" })
 			} catch (error) {
-				console.error("server error - deleteRoom(): ", error)
+				console.error("socket deleteRoom() error: ", error)
 				clientCB({ error: `server error - deleteRoom() - ${error}` })
 			}
 		})
@@ -336,16 +319,14 @@ module.exports = function (io) {
 				const cbMsgs = shared.dataUnreadTransform(insertMsgRes.rows, { uid, uniqKey: "mid" })
 				clientCB({ success: "server success - sendMsg()", msgs: cbMsgs })
 			} catch (error) {
-				console.error("server error - sendMsg(): ", error)
+				console.error("socket sendRoomMsg() error: ", error)
 				clientCB({ error: `server error - sendMsg() - ${error}` })
 			}
 		})
 
 		socket.on("log", function () {
-			console.log("- - - - - - - - - - - - - - - - -")
 			Rooms.log()
 			Users.log()
-			console.log("- - - - - - - - - - - - - - - - -")
 		})
 
 		socket.on("disconnecting", function () {

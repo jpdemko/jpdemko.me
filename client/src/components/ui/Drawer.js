@@ -1,5 +1,6 @@
 import { useCallback, useRef } from "react"
 import styled, { css } from "styled-components/macro"
+import { Transition } from "react-transition-group"
 
 import { safeTranslate } from "../../shared/shared"
 import { useOnClick } from "../../shared/hooks"
@@ -29,6 +30,11 @@ const Root = styled.div`
 	`}
 `
 
+const tranStyles = {
+	entering: { visibility: "visible", contentVisibility: "visible" },
+	exited: { visibility: "hidden", contentVisibility: "hidden" },
+}
+
 /* -------------------------------- COMPONENT ------------------------------- */
 
 function Drawer({ isShown = false, onClose, animDuration = 0.25, side = "left", children, ...props }) {
@@ -39,9 +45,20 @@ function Drawer({ isShown = false, onClose, animDuration = 0.25, side = "left", 
 
 	return (
 		<>
-			<Root ref={drawerRef} isShown={isShown} animDuration={animDuration} side={side} {...props}>
-				{children}
-			</Root>
+			<Transition timeout={animDuration * 1000} in={isShown}>
+				{(state) => (
+					<Root
+						{...props}
+						ref={drawerRef}
+						isShown={isShown}
+						animDuration={animDuration}
+						side={side}
+						style={{ ...tranStyles[state] }}
+					>
+						{children}
+					</Root>
+				)}
+			</Transition>
 			<Backdrop ref={bdRef} isShown={isShown} animDuration={animDuration} />
 		</>
 	)

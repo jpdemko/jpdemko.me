@@ -26,15 +26,11 @@ const InputForm = styled.form`
 function ChatInput({ send, ...props }) {
 	const [text, setText] = useState("")
 
-	function log() {
-		console.log("<ChatInput /> ", arguments)
-	}
-
 	function submit(e) {
 		e.preventDefault()
 		send(text)
 			.then(() => setText(""))
-			.catch((err) => log("send() error: ", err))
+			.catch((err) => console.error("<ChatInput /> submit() error: ", err))
 	}
 
 	function handleTextChange(e) {

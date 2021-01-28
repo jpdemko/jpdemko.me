@@ -2,12 +2,12 @@ import "sanitize.css"
 import "sanitize.css/typography.css"
 import "sanitize.css/forms.css"
 
-import { useState, useEffect, StrictMode } from "react"
+import { useState, useEffect, useLayoutEffect } from "react"
 import ReactDOM from "react-dom"
 import { createGlobalStyle, ThemeProvider } from "styled-components/macro"
 
-import { useLocalStorage, useMedia } from "./shared/hooks"
-import { themes, mediaBreakpoints, Contexts } from "./shared/shared"
+import { useLocalStorage, useMediaQuery } from "./shared/hooks"
+import { themes, mediaBreakpoints, Contexts, flags } from "./shared/shared"
 import Display from "./components/display/Display"
 import AuthProvider from "./components/auth/AuthProvider"
 
@@ -51,26 +51,42 @@ const GlobalStyle = createGlobalStyle`
 		vertical-align: baseline;
 	}
 
+	html, body {
+		height: 100%;
+		margin: 0;
+		padding: 0;
+	}
+
 	html {
 		font-size: 16px;
-		height: 100%;
+		box-sizing: border-box;
+	}
+
+	*, *::before, *::after {
+		box-sizing: border-box;
 	}
 
 	body {
-		height: 100%;
 		font-family: 'Roboto', sans-serif;
 	}
 
 	svg:not(:root) {
 		max-width: 100%;
 		max-height: 100%;
-		height: 100%;
 		width: auto;
 		overflow: hidden;
 	}
 
+	textarea,
+	input[type] {
+		-webkit-appearance: none !important;
+		border-radius: 0 !important;
+	}
+
 	#root {
 		height: 100%;
+		overflow: hidden;
+
 		.chLimit {
 			max-width: 35ch;
 			white-space: nowrap;
@@ -83,9 +99,16 @@ const GlobalStyle = createGlobalStyle`
 /* -------------------------------- COMPONENT ------------------------------- */
 
 function PortfolioOS() {
-	const isMobileSite = useMedia([`(min-width: ${mediaBreakpoints.desktop}px)`], [false], true)
+	const isDesktop = useMediaQuery(`(min-width: ${mediaBreakpoints.desktop}px)`)
+
 	const [tabHidden, setTabHidden] = useState(document.hidden)
+
 	const [theme, setTheme] = useLocalStorage("PortfolioOS-Theme", "blue", true)
+
+	// useLayoutEffect(() => {
+	// 	const calcHeight = window.innerHeight - (flags.isMobile ? window.screen.availHeight : 0)
+	// 	document.documentElement.style.setProperty("--calcHeight", `${calcHeight}px`)
+	// }, [])
 
 	// function handleVisibChange() {
 	// 	setTabHidden(document.hidden)
@@ -102,7 +125,7 @@ function PortfolioOS() {
 			<ThemeProvider theme={themes[theme]}>
 				<AuthProvider>
 					<Contexts.PortfolioOS.Provider value={{ tabHidden, setTheme }}>
-						<Display isMobileSite={isMobileSite} tabHidden={tabHidden} />
+						<Display isMobileSite={!isDesktop} tabHidden={tabHidden} />
 					</Contexts.PortfolioOS.Provider>
 				</AuthProvider>
 			</ThemeProvider>

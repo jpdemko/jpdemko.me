@@ -106,6 +106,7 @@ const THeader = styled.thead`
 
 const TBody = styled.tbody`
 	overflow: auto;
+	font-weight: bold;
 	${({ theme }) => css`
 		tr:nth-child(odd) {
 			background: ${opac(0.5, theme.background)};

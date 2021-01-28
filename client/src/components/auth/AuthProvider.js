@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from "react"
 
-import { Contexts } from "../../shared/shared"
+import { Contexts, Debug } from "../../shared/shared"
+
+const debug = new Debug("AuthProvider: ", true)
 
 function AuthProvider({ children }) {
 	const [isAuthed, setIsAuthed] = useState(false)
@@ -12,14 +14,14 @@ function AuthProvider({ children }) {
 			.then((data) => {
 				if (data?.error && isAuthed) {
 					setIsAuthed(false)
-					console.log("<AuthProvider /> getUser() error, setting isAuthed to false.")
+					debug.log("setIsAuthed(FALSE) data: ", data)
 				} else if (data?.pid && !isAuthed) {
-					console.log("<AuthProvider /> getUser() success, isAuthed is true.")
 					setIsAuthed(true)
 					setUser(data)
+					debug.log("setIsAuthed(TRUE) data: ", data)
 				}
 			})
-			.catch((error) => console.error("<AuthProvider /> getuser() error: ", error))
+			.catch((error) => console.error("<AuthProvider /> getUser() error: ", error))
 	}
 
 	useEffect(() => {

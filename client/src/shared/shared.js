@@ -38,6 +38,7 @@ export const flags = {
 	// Chrome WebKit bug causes blurry text/images on child elements upon parent 3D transform.
 	// This flag is used to disable 3D transforms in Chrome.
 	isChrome: !!window.chrome && (!!window.chrome.webstore || !!window.chrome.runtime),
+	isMobile: /Mobi/i.test(navigator.userAgent) || /Android/i.test(navigator.userAgent),
 }
 
 /* -------------------------------------------------------------------------- */
@@ -120,7 +121,6 @@ const baseThemes = {
  * @returns {Theme}
  */
 function createTheme(theme) {
-	// console.log(`createTheme(${theme?.name})`)
 	let sortedLumin = Object.entries(theme)
 		.map(([name, hex]) => (typeof hex === "string" && hex.includes("#") ? [name, getLuminance(hex)] : null))
 		.filter((arr) => arr !== null)
@@ -163,6 +163,7 @@ function addTheme(t = {}) {
  * @param {FunctionComponent<SVGProps<SVGSVGElement>>} options.logo
  * @param {Theme} options.theme
  * @param {boolean} options.authRequired
+ * @param {string} options.authReasoning
  * @return {Object}
  */
 export function setupAppSharedOptions(options = {}) {
@@ -172,9 +173,9 @@ export function setupAppSharedOptions(options = {}) {
 		logo: SvgWrench,
 		theme: themes.blue,
 		authRequired: false,
+		authReasoning: "",
 		...options,
 	}
-	// console.log(`setupAppSharedOptions(${options?.title})`)
 	return options
 }
 
@@ -275,4 +276,13 @@ export function opac(opacityAmount, color) {
 		console.error(`opac(${opacityAmount}, ${color}) error: `, error)
 		return "#0000"
 	}
+}
+
+/* -------------------------------------------------------------------------- */
+
+const DEBUG_ENABLED = true
+
+export function Debug(prefix, localEnabled) {
+	this.log = DEBUG_ENABLED && localEnabled ? console.log.bind(window.console, prefix) : function () {}
+	return this
 }
