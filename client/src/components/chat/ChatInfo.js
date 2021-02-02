@@ -46,13 +46,13 @@ const DisplayData = styled.span`
 
 function ChatInfo({ data, roomsShown, ...props }) {
 	// ROOMS - Chatting in 'General #RID'
-	// DMS - Chatting with 'Bob #UID'
+	// DMS - Chatting with 'Bob'
 	const category = roomsShown ? "ROOMS" : "DMS"
 	const preposition = roomsShown ? "in" : "with"
 	const displayData = (
 		<DisplayData>
-			{roomsShown ? data?.rname : data?.recip_uname}{" "}
-			<Lighten>#{roomsShown ? data?.rid : data?.recip_id}</Lighten>
+			{roomsShown ? data?.rname : data?.recip_uname}
+			{roomsShown && <Lighten> #{data?.rid}</Lighten>}
 		</DisplayData>
 	)
 	return (

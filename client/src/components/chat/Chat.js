@@ -281,7 +281,10 @@ class Chat extends Component {
 
 		this.setState({ roomsShown: true })
 		return this.socketJoinRoom({ room, user, makeCur: true }).then((res) => {
-			if (res?.room) this.updateRoom(res.room, true)
+			if (res?.room) {
+				this.updateRoom(res.room, true)
+			}
+			this.context.setAppDrawerShown(false)
 			return res
 		})
 	}
@@ -334,6 +337,7 @@ class Chat extends Component {
 	createRoom = (room) => {
 		return this.socketCreateRoom(room).then(({ room: roomRes }) => {
 			this.updateRoom(roomRes, true)
+			this.context.setAppDrawerShown(false)
 			return roomRes
 		})
 	}
@@ -382,6 +386,7 @@ class Chat extends Component {
 			}
 			this.setState({ myDMS: nextDMS })
 		}
+		this.context.setAppDrawerShown(false)
 	}
 
 	socketGetLogsDMS = ({ recip_id, user: passedUser }) => {
@@ -444,6 +449,7 @@ class Chat extends Component {
 		nextMyDMS[recip_id] = {
 			...(nextMyDMS[recip_id] ?? {}),
 			tsLogsFetched,
+			recip_id,
 			dms: {
 				...(nextMyDMS[recip_id]?.dms ?? {}),
 				...(dms ?? {}),
@@ -522,7 +528,7 @@ class Chat extends Component {
 						roomsShown={roomsShown}
 						inputSent={inputSent}
 					/>
-					<ChatInput send={this.send} />
+					<ChatInput send={this.send} data={data} roomsShown={roomsShown} />
 				</Main>
 			</Root>
 		)

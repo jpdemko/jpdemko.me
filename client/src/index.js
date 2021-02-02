@@ -2,12 +2,12 @@ import "sanitize.css"
 import "sanitize.css/typography.css"
 import "sanitize.css/forms.css"
 
-import { useState, useEffect, useLayoutEffect } from "react"
+import { useState, useEffect } from "react"
 import ReactDOM from "react-dom"
 import { createGlobalStyle, ThemeProvider } from "styled-components/macro"
 
 import { useLocalStorage, useMediaQuery } from "./shared/hooks"
-import { themes, mediaBreakpoints, Contexts, flags } from "./shared/shared"
+import { themes, mediaBreakpoints, Contexts } from "./shared/shared"
 import Display from "./components/display/Display"
 import AuthProvider from "./components/auth/AuthProvider"
 
@@ -101,23 +101,18 @@ const GlobalStyle = createGlobalStyle`
 function PortfolioOS() {
 	const isDesktop = useMediaQuery(`(min-width: ${mediaBreakpoints.desktop}px)`)
 
-	const [tabHidden, setTabHidden] = useState(document.hidden)
-
 	const [theme, setTheme] = useLocalStorage("PortfolioOS-Theme", "blue", true)
 
-	// useLayoutEffect(() => {
-	// 	const calcHeight = window.innerHeight - (flags.isMobile ? window.screen.availHeight : 0)
-	// 	document.documentElement.style.setProperty("--calcHeight", `${calcHeight}px`)
-	// }, [])
+	const [tabHidden, setTabHidden] = useState(document.hidden)
 
-	// function handleVisibChange() {
-	// 	setTabHidden(document.hidden)
-	// }
+	function handleVisibChange() {
+		setTabHidden(document.hidden)
+	}
 
-	// useEffect(() => {
-	// 	document.addEventListener("visibilitychange", handleVisibChange, false)
-	// 	return () => document.removeEventListener("visibilitychange", handleVisibChange, false)
-	// }, [])
+	useEffect(() => {
+		document.addEventListener("visibilitychange", handleVisibChange, false)
+		return () => document.removeEventListener("visibilitychange", handleVisibChange, false)
+	}, [])
 
 	return (
 		<>

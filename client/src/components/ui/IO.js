@@ -5,14 +5,14 @@ import ThemeCheck from "./ThemeCheck"
 import { ReactComponent as SvgError } from "../../shared/assets/material-icons/error.svg"
 import { opac } from "../../shared/shared"
 
-const Root = styled.div`
+const InpRoot = styled.div`
 	--input-padding: 0.25em;
 	display: inline-block;
 	width: 25ch;
 	position: relative;
 	margin: calc(var(--input-padding) * 3);
 	background: inherit;
-	${({ theme, hasValue, validError }) => {
+	${({ theme, hasValue, error }) => {
 		const cssLabelChanged = css`
 			> label {
 				color: ${theme.highlight};
@@ -24,7 +24,7 @@ const Root = styled.div`
 		`
 		return css`
 			${hasValue && cssLabelChanged}
-			${validError &&
+			${error &&
 			css`
 				* {
 					color: ${theme.highlight} !important;
@@ -79,8 +79,8 @@ const Label = styled.label`
 	transform-origin: center left;
 	transform: translate3d(0, -50%, 0);
 	letter-spacing: normal;
-	${({ theme, validError }) => css`
-		${validError &&
+	${({ theme, error }) => css`
+		${error &&
 		css`
 			font-weight: bold;
 		`}
@@ -107,12 +107,12 @@ const Error = styled.div`
 	> div {
 		flex: 1 1;
 	}
-	${({ theme, validError }) => css`
+	${({ theme, error }) => css`
 		color: ${theme.primary};
 		border-left: 1px solid ${theme.accent};
 		border-right: 1px solid ${theme.accent};
 		border-bottom: 1px solid ${theme.accent};
-		opacity: ${validError ? 1 : 0};
+		opacity: ${error ? 1 : 0};
 		background: ${opac(0.9, theme.bgContrast)};
 	`}
 `
@@ -123,7 +123,7 @@ const Error = styled.div`
  */
 export const Input = forwardRef(
 	({ value, error, placeholder, className, setTheme, label, id, ...props }, ref) => {
-		const idRef = useRef(id ?? new Date().getTime())
+		const idRef = useRef(id ?? Date.now() / 1000)
 
 		const curTheme = useContext(ThemeContext)
 		if (error && curTheme?.name === "red") setTheme = "dark"
@@ -131,9 +131,9 @@ export const Input = forwardRef(
 
 		return (
 			<ThemeCheck {...props} setTheme={setTheme}>
-				<Root className={className} hasValue={value?.length > 0} validError={!!error}>
+				<InpRoot className={className} hasValue={value?.length > 0} error={error}>
 					{label && (
-						<Label htmlFor={`${idRef.current}`} validError={!!error}>
+						<Label htmlFor={`${idRef.current}`} error={error}>
 							{label}
 						</Label>
 					)}
@@ -143,12 +143,13 @@ export const Input = forwardRef(
 						value={value}
 						placeholder={placeholder}
 						id={`${idRef.current}`}
+						maxLength="100"
 					/>
-					<Error validError={!!error}>
+					<Error error={error}>
 						<SvgError />
 						<div>{error}</div>
 					</Error>
-				</Root>
+				</InpRoot>
 			</ThemeCheck>
 		)
 	}
@@ -156,21 +157,35 @@ export const Input = forwardRef(
 
 /* -------------------------------------------------------------------------- */
 
-export const MsgBox = styled.textarea`
+const MbRoot = styled.textarea`
 	outline: none;
 	min-height: var(--nav-height);
 	height: 100%;
 	width: 100%;
 	resize: none;
 	overflow: auto;
-	${({ theme }) => css`
+	transition-property: color, border, box-shadow;
+	transition-duration: 0.25s;
+	${({ theme, error, inset }) => css`
 		border: 1px solid ${theme.accent};
-		color: ${theme.bgContrast};
-		padding: 0.25em 0.5em;
-		box-shadow: 0 0 0 0 ${theme.accent};
+		color: ${error ? theme.highlight : theme.bgContrast};
+		padding: calc(var(--content-spacing) * 0.25) calc(var(--content-spacing) * 0.45);
+		box-shadow: ${inset && "inset "}0 0 0 ${error ? "1px" : 0} ${theme.accent};
 		&:active,
 		&:focus {
-			box-shadow: 0 0 0 1px ${theme.accent};
+			box-shadow: ${inset && "inset "}0 0 0 ${error ? "2px" : "1px"} ${theme.accent};
 		}
 	`}
 `
+
+export function MsgBox({ id, error, setTheme, ...props }) {
+	const curTheme = useContext(ThemeContext)
+	if (error && curTheme?.name === "red") setTheme = "dark"
+	else if (error) setTheme = "red"
+
+	return (
+		<ThemeCheck {...props} setTheme={setTheme}>
+			<MbRoot {...props} error={error} />
+		</ThemeCheck>
+	)
+}

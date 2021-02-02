@@ -26,7 +26,7 @@ const MenuTitle = styled(Button)`
 	padding: 0;
 	justify-content: flex-end;
 	${({ opened }) => css`
-		> .svg-container {
+		> svg {
 			transform: rotate(${opened ? "90deg" : 0});
 		}
 	`}

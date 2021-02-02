@@ -2,9 +2,11 @@ import { memo, useState, useRef, useEffect, useCallback, Fragment } from "react"
 import styled, { css, keyframes } from "styled-components/macro"
 import { DateTime } from "luxon"
 import throttle from "lodash/throttle"
+import Linkify from "react-linkify"
 
 import Button from "../ui/Button"
 import HorizLine from "../ui/HorizLine"
+import Link from "../ui/Link"
 import { ReactComponent as SvgUser } from "../../shared/assets/material-icons/user.svg"
 import { ReactComponent as SvgArrowDownCircle } from "../../shared/assets/material-icons/arrow-down-circle.svg"
 import { useEventListener, usePrevious } from "../../shared/hooks"
@@ -94,16 +96,27 @@ const SnapEndBtn = styled(Button)`
 
 /* ------------------------------- COMPONENTS ------------------------------- */
 
+// react-linkify docs are completely wrong, there is no 'component' prop, but we can abuse the
+// 'componentDecorator' prop which you can override what they were doing for yourself.
+const linkifyCompDec = (href, text, key) => (
+	<Link href={href} key={key}>
+		{text}
+	</Link>
+)
+
 const Log = memo(({ data, authored, openDM, id }) => {
 	const { uid, uname, mid, dmid, msg, created_at } = data
 	if (!mid && !dmid) return null
 
 	const relativeTime = DateTime.fromISO(created_at).toLocal().toRelative()
 	const preciseTime = DateTime.fromISO(created_at).toLocal().toFormat("t")
+
 	return (
 		<Row authored={authored} id={id}>
 			<ContentBG authored={authored}>
-				<Content>{msg}</Content>
+				<Content>
+					<Linkify componentDecorator={linkifyCompDec}>{msg}</Linkify>
+				</Content>
 			</ContentBG>
 			<Info authored={authored}>
 				<Button svg={SvgUser} isFocused={authored} onClick={() => openDM({ uid, uname })}>

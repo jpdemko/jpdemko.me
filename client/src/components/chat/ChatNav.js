@@ -49,9 +49,6 @@ const Title = styled.span`
 
 const HeaderBtn = styled(Button)`
 	margin-left: var(--chatnav-padding);
-	svg {
-		transform: scale(1.2);
-	}
 `
 
 const Rooms = styled.div`
