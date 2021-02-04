@@ -241,7 +241,7 @@ function Weather({ title, ...props }) {
 			.finally(() => setAppLoading(false))
 	}
 
-	// On initial load and subsequent intervals we get new data for user's locations.
+	// On initial load and subsequent intervals I get new data for user's locations.
 	useEffect(() => {
 		updateLocations()
 		// eslint-disable-next-line react-hooks/exhaustive-deps

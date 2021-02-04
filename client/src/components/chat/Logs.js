@@ -1,6 +1,6 @@
-import { memo, useState, useRef, useEffect, useCallback, Fragment } from "react"
+import { memo, useState, useRef, useEffect, useCallback, Fragment, useMemo } from "react"
 import styled, { css, keyframes } from "styled-components/macro"
-import { DateTime } from "luxon"
+import { DateTime, Interval } from "luxon"
 import throttle from "lodash/throttle"
 import Linkify from "react-linkify"
 
@@ -10,6 +10,7 @@ import Link from "../ui/Link"
 import { ReactComponent as SvgUser } from "../../shared/assets/material-icons/user.svg"
 import { ReactComponent as SvgArrowDownCircle } from "../../shared/assets/material-icons/arrow-down-circle.svg"
 import { useEventListener, usePrevious } from "../../shared/hooks"
+import { Debug } from "../../shared/shared"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -28,10 +29,10 @@ const LogsRoot = styled.div`
 	overflow-y: auto;
 	overflow-x: hidden;
 	> div {
-		margin-top: var(--chat-padding);
-	}
-	> ${Row}:last-child {
-		margin-bottom: var(--chat-padding);
+		margin-top: calc(var(--chat-padding) * 1.25);
+		&:last-child {
+			margin-bottom: calc(var(--chat-padding) * 1.25);
+		}
 	}
 	${({ theme }) => css`
 		background: ${theme.altBackground};
@@ -39,14 +40,13 @@ const LogsRoot = styled.div`
 `
 
 const Info = styled.div`
+	font-size: 0.8em;
 	display: flex;
+	align-items: center;
+	padding: 0 1px;
 	> * {
 		flex: 0 0 auto;
 	}
-	button {
-		font-size: 0.8em;
-	}
-	align-items: flex-start;
 	${({ authored }) => css`
 		flex-direction: ${authored ? "row-reverse" : "row"};
 	`}
@@ -55,7 +55,7 @@ const Info = styled.div`
 const ContentBG = styled.div`
 	${({ theme, authored }) => css`
 		background: ${theme.background};
-		border: 1px solid ${authored ? theme.highlight : theme.accent};
+		border-radius: ${!authored ? "1.2em 0" : "0 1.2em"};
 	`}
 `
 
@@ -63,11 +63,18 @@ const Content = styled.div`
 	padding: var(--chat-padding) calc(var(--chat-padding) * 2);
 `
 
+const UserBtn = styled(Button)`
+	height: 1.2em;
+	svg {
+		height: 100%;
+	}
+`
+
 const Lessen = styled.span`
-	opacity: 0.75;
-	font-size: 0.8em;
+	opacity: 0.55;
+	font-style: italic;
 	${({ authored }) => css`
-		margin-${authored ? "right" : "left"}: var(--chat-padding);
+		margin: 0 var(--chat-padding);
 	`}
 `
 
@@ -96,7 +103,10 @@ const SnapEndBtn = styled(Button)`
 
 /* ------------------------------- COMPONENTS ------------------------------- */
 
-// react-linkify docs are completely wrong, there is no 'component' prop, but we can abuse the
+// eslint-disable-next-line no-unused-vars
+const debug = new Debug("Logs: ", true)
+
+// react-linkify docs are completely wrong, there is no 'component' prop, but I can abuse the
 // 'componentDecorator' prop which you can override what they were doing for yourself.
 const linkifyCompDec = (href, text, key) => (
 	<Link href={href} key={key}>
@@ -104,8 +114,8 @@ const linkifyCompDec = (href, text, key) => (
 	</Link>
 )
 
-const Log = memo(({ data, authored, openDM, id }) => {
-	const { uid, uname, mid, dmid, msg, created_at } = data
+const Log = memo(({ data, authored, openDM, id, children }) => {
+	const { uid, uname, mid, dmid, created_at } = data
 	if (!mid && !dmid) return null
 
 	const relativeTime = DateTime.fromISO(created_at).toLocal().toRelative()
@@ -115,13 +125,18 @@ const Log = memo(({ data, authored, openDM, id }) => {
 		<Row authored={authored} id={id}>
 			<ContentBG authored={authored}>
 				<Content>
-					<Linkify componentDecorator={linkifyCompDec}>{msg}</Linkify>
+					<Linkify componentDecorator={linkifyCompDec}>{children}</Linkify>
 				</Content>
 			</ContentBG>
 			<Info authored={authored}>
-				<Button svg={SvgUser} isFocused={authored} onClick={() => openDM({ uid, uname })}>
+				<UserBtn
+					svg={SvgUser}
+					isFocused={authored}
+					onClick={() => openDM({ uid, uname })}
+					setColor="highlight"
+				>
 					{uname}
-				</Button>
+				</UserBtn>
 				<Lessen authored={authored}>
 					{relativeTime} at {preciseTime}
 				</Lessen>
@@ -157,9 +172,10 @@ function Logs({ data, user, openDM, roomsShown, inputSent, ...props }) {
 		if (!followLast) setFollowLast(true)
 	}, [followLast, handleScrolling])
 
-	const type = roomsShown ? "msgs" : "dms"
+	const logType = roomsShown ? "msgs" : "dms"
+
 	// Determine where to scroll on fresh start or following updates.
-	const logsLength = data?.[type] ? Object.keys(data[type]).length : 0
+	const logsLength = data?.[logType] ? Object.keys(data[logType]).length : 0
 	useEffect(() => {
 		if (followLast === null) {
 			const horizLine = document.getElementById("chat-unread-start")
@@ -168,43 +184,82 @@ function Logs({ data, user, openDM, roomsShown, inputSent, ...props }) {
 		} else if (followLast) scroll2end()
 	}, [logsLength, followLast, scroll2end])
 
-	// We want to scroll to the end if the user sends a message. Have to implement this w/ parent
+	// I want to scroll to the end if the user sends a message. Have to implement this w/ parent
 	// state change since <ChatInput /> is sibling.
 	const prevInputSent = usePrevious(inputSent)
 	useEffect(() => {
 		if (prevInputSent !== inputSent) scroll2end()
 	}, [inputSent, prevInputSent, scroll2end])
 
-	function getData() {
-		if (!data?.[type] || data[type].length < 1) return null
+	// Want to limit renders and prevent a bunch of logic inside the JSX of the hook.
+	const groupedData = useMemo(() => {
+		if (logsLength < 1) return null
+
+		// Remove non id keys like { unread: true } instead of { 12: {} }
+		const ids = Object.keys(data[logType]).filter((id) => isNaN(data[logType][id]))
+
+		// Need to quickly find, copy, and add properties of logs for returned data.
+		function getLog(i) {
+			if (i < ids.length) {
+				const log = { ...data[logType][ids[i]], id: ids[i] }
+				if (log) log.dt = DateTime.fromISO(log.created_at)
+				return log
+			}
+			return {}
+		}
+
+		// For a cleaner UI, I want to group logs from the same person which are submitted in quick succession.
+		let allLogs = [] // Going for an array of arrays [p1:[1,2], p2:[4], p1:[8,9]]
+		for (let i = 0, j = 0; i < ids.length; ) {
+			let logs = []
+			let curLog = getLog(i)
+			logs.push(curLog)
+			let nextLog = getLog(++j)
+			// If consecutive logs are from the same person within 2 minutes then add them to the array group.
+			if (!curLog?.interval && nextLog?.uid == curLog?.uid) {
+				curLog.groupMsgsInt = Interval.fromDateTimes(curLog.dt, curLog.dt.plus({ minutes: 2 }))
+			}
+			while (curLog?.uid == nextLog?.uid && curLog?.groupMsgsInt?.contains(nextLog.dt)) {
+				logs.push(nextLog)
+				nextLog = getLog(++j)
+			}
+			allLogs.push(logs)
+			i = j
+		}
 
 		let foundUnread = false
-		const ids = Object.keys(data[type]).filter((key) => isNaN(data[type][key]))
-		return ids.map((id, i) => {
-			const log = data[type][id]
+		// Go through the mapped logs (array of arrays) and properly layout the JSX.
+		return allLogs.map((logGroup, i) => {
+			const lastLog = logGroup?.[logGroup.length - 1]
 			let HL = null
-			if (!foundUnread && log?.unread) {
+			// QoL for returning users to make sure their focus is returned to their last read location.
+			if (!foundUnread && lastLog?.unread) {
 				foundUnread = true
 				HL = <HorizLine id="chat-unread-start">NEW MESSAGES BELOW</HorizLine>
 			}
 			return (
-				<Fragment key={id}>
+				<Fragment key={`${lastLog.uid}-${i}`}>
 					{HL}
 					<Log
-						data={log}
-						authored={user.uid == log.uid}
-						id={i === ids.length - 1 ? "logs-end" : null}
+						data={lastLog}
+						authored={user.uid == lastLog.uid}
+						id={i === allLogs.length - 1 ? "logs-end" : null}
 						openDM={openDM}
-					/>
+					>
+						{logGroup.map((log, i) => (
+							<div key={log?.dmid || log?.mid}>{log.msg}</div>
+						))}
+					</Log>
 				</Fragment>
 			)
 		})
-	}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [logsLength, roomsShown, data])
 
 	return (
 		<>
 			<LogsRoot {...props} ref={rootRef} id="logs-root">
-				{getData()}
+				{groupedData}
 			</LogsRoot>
 			{!followLast && (
 				<CenterChildrenDiv>

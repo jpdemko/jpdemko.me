@@ -277,8 +277,8 @@ module.exports = function (io) {
 			const recip = Users.get(recip_id)
 			try {
 				let dmsRes = await queries.chat.sendDM({ uid, recip_id, msg })
-				// Client's state { myDMS } keys are based on the UID of their DM partner. So we
-				// need to be careful and make sure the returned data's key is their partners UID.
+				// Client's state { myDMS } keys are based on the UID of their DM partner. So I
+				// need to be careful and make sure the returned data's key is their partner's UID.
 				const senderDMS = shared.dataUnreadTransform(dmsRes.rows, { uid, uniqKey: "dmid" })
 				const receiverDMS = shared.dataUnreadTransform(dmsRes.rows, { uid: recip_id, uniqKey: "dmid" })
 

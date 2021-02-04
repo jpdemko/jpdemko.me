@@ -138,7 +138,7 @@ FOR EACH ROW EXECUTE PROCEDURE join_default_room();
 -- **************************************************************** --
 
 -- Every time a user sends a room msg, make that msg their last sent msg in table users_rooms.
--- We use this to retrieve their participating rooms and sort by their last activity.
+-- I use this to retrieve their participating rooms and sort by their last activity.
 	CREATE OR REPLACE FUNCTION set_last_room_msg()
 		RETURNS trigger AS
 			$$ BEGIN

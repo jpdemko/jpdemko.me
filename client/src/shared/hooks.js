@@ -209,7 +209,7 @@ export function useEventListener(eventName, handler, eleRef) {
 			// Remove event listener and possible throttle/debounce w/ cancel() on cleanup.
 			const ele = eleRef.current
 			return () => {
-				// Check if handler is a throttle/debounce related, if so then we need to cancel it.
+				// Check if handler is a throttle/debounce related, if so then I need to cancel it.
 				if (savedHandler.current?.cancel) {
 					savedHandler.current.cancel()
 				}

@@ -88,7 +88,7 @@ export function getCurWeatherBG(weatherData, sunData) {
 	let sun = { ...sunData }
 	Object.keys(sun).forEach((key) => (sun[key] = DateTime.fromISO(sun[key]).toLocal()))
 
-	// Create time intervals where we can tell where the weather data retrieval time falls under.
+	// Create time intervals where I can tell where the weather data retrieval time falls under.
 	const goldenDawn = Interval.fromDateTimes(
 		sun.sunrise,
 		sun.sunrise.plus(sun.sunrise.diff(sun.civil_twilight_begin))

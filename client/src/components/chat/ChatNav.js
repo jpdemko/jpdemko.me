@@ -113,8 +113,7 @@ const LatestDM = styled(Button)`
 	}
 	${({ theme, isFocused }) => css`
 		color: ${theme.bgContrast};
-		border: 1px solid ${theme.accent};
-		outline: ${isFocused ? 1 : 0}px solid ${theme.accent};
+		border: ${isFocused ? 1 : 0}px solid ${theme.accent};
 		> div {
 			margin: 0 !important;
 		}

@@ -11,7 +11,7 @@ function App({ title, isFocused, tabHidden }) {
 	// to make sure the user is actively participating.
 	const appActive = !tabHidden && isFocused
 
-	// Some apps require the user to be logged in. We check this per 'app' config and the Auth context.
+	// Some apps require the user to be logged in. I check this per 'app' config and the Auth context.
 	const { isAuthed, user } = useContext(Contexts.Auth)
 
 	// Prevent renders for apps from frequent Display and Window component updates.

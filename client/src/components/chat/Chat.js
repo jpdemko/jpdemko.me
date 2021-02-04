@@ -396,7 +396,7 @@ class Chat extends Component {
 
 		return new Promise((resolve, reject) => {
 			if (!recip_id && !user?.uid) return reject("<Chat /> socketGetLogsDMS() error: bad params")
-			// To prevent redundant calls to the DB. We could set this up for rooms as well, but
+			// To prevent redundant calls to the DB. I could set this up for rooms as well, but
 			// rooms are kept track of on the server actively. DMS are not, so there is no way to know on the
 			// server if the user doesn't need logs or not.
 			const convo = myDMS?.[recip_id]
@@ -476,7 +476,7 @@ class Chat extends Component {
 	}
 
 	receiveData = ({ data }) => {
-		// Incoming data will automatically be flagged unread from server. So if the user is active we
+		// Incoming data will automatically be flagged unread from server. So if the user is active I
 		// need to change the data before merging it into our state.
 		if (data.msgs) {
 			if (this.props.appActive) this.unreadHandler(data.msgs)
