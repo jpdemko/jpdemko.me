@@ -1,28 +1,48 @@
 {
 	"name": "jpdemko.me",
 	"version": "1.0.0",
+	"private": true,
 	"scripts": {
-		"client-start": "npm start --prefix client",
-		"server-start": "npm start --prefix server",
-		"start": "concurrently \"npm run client-start\" \"npm run server-start\"",
-		"client-install": "cd client && npm install",
-		"server-install": "cd server && npm install",
-		"install-all": "concurrently \"npm run server-install\" \"npm run client-install\"",
-		"client-update": "cd client && npm update",
-		"server-update": "cd server && npm update",
-		"update-all": "concurrently \"npm run server-update\" \"npm run client-update\""
+		"dev": "cross-env NODE_ENV=development & nodemon ./server/app",
+		"start": "cross-env NODE_ENV=production & node ./server/app",
+		"build": "cd client/ && npm install && npm run build"
 	},
+	"main": "./server/app",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/jpdemko/jpdemko.me.git"
 	},
 	"author": "Joseph P Demko",
-	"license": "ISC",
 	"bugs": {
 		"url": "https://github.com/jpdemko/jpdemko.me/issues"
 	},
 	"homepage": "https://github.com/jpdemko/jpdemko.me#readme",
+	"engines": {
+		"node": "14.x"
+	},
+	"dependencies": {
+		"connect-pg-simple": "^6.2.1",
+		"cookie-parser": "^1.4.5",
+		"cors": "^2.8.5",
+		"debug": "^4.3.1",
+		"dotenv": "^8.2.0",
+		"express": "^4.17.1",
+		"express-session": "^1.17.1",
+		"helmet": "^4.4.1",
+		"morgan": "^1.10.0",
+		"node-fetch": "^2.6.1",
+		"passport": "^0.4.1",
+		"passport-github2": "^0.1.12",
+		"passport-google-oauth20": "^2.0.0",
+		"pg": "^8.5.1",
+		"socket.io": "^3.1.1"
+	},
 	"devDependencies": {
-		"concurrently": "^5.3.0"
-	}
+		"cross-env": "^7.0.3",
+		"eslint": "^7.19.0"
+	},
+	"cacheDirectories": [
+		"node_modules",
+		"client/node_modules"
+	]
 }
