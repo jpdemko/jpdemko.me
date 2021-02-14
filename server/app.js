@@ -73,7 +73,9 @@ if (isProd && !isHerokuLocal && cluster.isMaster) {
 	)
 	app.use(
 		cors({
-			origin: isProd ? ["https://www.jpdemko.me/"] : ["http://localhost:3000/", "http://localhost:5000/"],
+			origin: isProd
+				? [process.env.REACT_APP_HOME_URL]
+				: ["http://localhost:3000/", "http://localhost:5000/"],
 			credentials: true,
 		})
 	)
