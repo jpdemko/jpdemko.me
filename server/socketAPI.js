@@ -160,7 +160,7 @@ module.exports = function (io) {
 	// Precaution to trim any rooms/users that shouldn't be there due to my coding or weird network issues.
 	const trimIntervalHours = 12
 	setInterval(() => {
-		console.log(`socketAPI trim interval called.`)
+		// console.log(`socketAPI trim interval called.`)
 		Object.keys(Rooms.active).forEach((rid) => {
 			const room = Rooms.get(rid)
 			if (room.activeUsers.length < 1) Rooms.destroy(rid)

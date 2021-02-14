@@ -41,13 +41,17 @@ if (isProd && !isHerokuLocal && cluster.isMaster) {
 	const passport = require("./passport")
 
 	app = express()
+
+	if (isProd || isHerokuLocal) app.use(express.static(path.resolve(__dirname, "../client/build")))
+
 	// app.use(compression())
 	// const limiter = rateLimiter({
 	// 	windowMs: 1 * 60 * 1000, // time
 	// 	max: 10, // requests,
 	// })
-	app.use(limiter)
-	app.use(morgan(isProd ? "common" : "dev"))
+	// app.use(limiter)
+
+	app.use(morgan(isProd && !isHerokuLocal ? "common" : "dev"))
 	app.use(
 		helmet({
 			contentSecurityPolicy: {
@@ -62,23 +66,43 @@ if (isProd && !isHerokuLocal && cluster.isMaster) {
 					"script-src": [
 						"'self'",
 						"https://polyfill.io",
+						"'unsafe-eval'",
 						"https://*.bing.com",
 						"https://*.virtualearth.net",
 					],
 					"style-src": ["'self'", "'unsafe-inline'", "https://*.bing.com", "https://*.virtualearth.net"],
 					"font-src": ["data:", "'self'", "https://*.bing.com", "https://*.virtualearth.net"],
+					"img-src": [
+						"data:",
+						"'self'",
+						"https://*.bing.com",
+						"https://*.virtualearth.net",
+						"https://mesonet.agron.iastate.edu",
+					],
+					"connect-src": [
+						"ws:",
+						"wss:",
+						"'self'",
+						"http://localhost:5000",
+						"ws://localhost:5000",
+						"wss://localhost:5000",
+						"ws://*.jpdemko.me",
+						"wss://*.jpdemko.me",
+						"https://*.bing.com",
+						"https://*.virtualearth.net",
+					],
 				},
 			},
 		})
 	)
-	app.use(
-		cors({
-			origin: isProd
-				? [process.env.REACT_APP_HOME_URL]
-				: ["http://localhost:3000/", "http://localhost:5000/"],
-			credentials: true,
-		})
-	)
+	const corsOptions = {
+		origin:
+			isProd && !isHerokuLocal
+				? "https://www.jpdemko.me"
+				: ["http://localhost:3000", "http://localhost:5000"],
+		credentials: true,
+	}
+	app.use(cors(corsOptions))
 	app.use(express.json())
 	app.use(express.urlencoded({ extended: false }))
 	app.use(cookieParser(process.env.SESSION_SECRET))
@@ -90,30 +114,27 @@ if (isProd && !isHerokuLocal && cluster.isMaster) {
 		saveUninitialized: true,
 		cookie: {
 			maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-			...(isProd && { secure: true }),
+			...(isProd && !isHerokuLocal && { secure: true }),
 		},
 	})
 	app.use(sessionMiddleware)
 	app.use(passport.initialize())
 	app.use(passport.session())
 
+	app.use("/auth", require("./routes/auth"))
+	app.use("/weather", require("./routes/weather"))
 	if (isProd || isHerokuLocal) {
-		app.use(express.static(path.resolve(__dirname, "../client/build")))
 		app.get("*", function (req, res) {
 			res.sendFile(path.resolve(__dirname, "../client/build", "index.html"))
 		})
-	}
-
-	app.use("/", require("./routes/index"))
-	app.use("/auth", require("./routes/auth"))
-	app.use("/weather", require("./routes/weather"))
+	} else app.use("/", require("./routes/index"))
 
 	const server = require("http").createServer(app)
 	const port = process.env.PORT || 5000
 	app.set("port", port)
 
 	// @ts-ignore
-	const io = require("socket.io")(server)
+	const io = require("socket.io")(server, { cors: corsOptions })
 	require("./socketAPI")(io, sessionMiddleware)
 
 	server.listen(port)

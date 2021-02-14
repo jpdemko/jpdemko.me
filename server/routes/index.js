@@ -13,7 +13,7 @@ const router = express.Router()
 // }
 
 router.get("/", (req, res) => {
-	res.status(200)
+	res.status(200).send("You should only see this testing CRA local via it's proxy...")
 })
 
 module.exports = router

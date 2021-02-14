@@ -4,7 +4,7 @@ import socketIOClient from "socket.io-client"
 import mergeWith from "lodash/mergeWith"
 import { DateTime } from "luxon"
 
-import { setupAppSharedOptions, themes, Contexts, ls } from "../../shared/shared"
+import { setupAppSharedOptions, themes, Contexts, ls, Debug } from "../../shared/shared"
 import { ReactComponent as SvgChat } from "../../shared/assets/material-icons/chat.svg"
 import ChatNav from "./ChatNav"
 import Logs from "./Logs"
@@ -26,10 +26,14 @@ const Main = styled.div`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
+const debug = new Debug("<Chat />", true)
+
 class Chat extends Component {
 	constructor(props) {
 		super(props)
 		const prevData = this.getUserData()
+
+		const isProd = process.env.NODE_ENV === "production"
 		this.state = {
 			curRoomRID: 1,
 			curDMUID: null,
@@ -38,9 +42,13 @@ class Chat extends Component {
 			initUsername: "",
 			roomsShown: true,
 			...prevData,
-			socket: socketIOClient(
-				process.env.NODE_ENV === "production" ? process.env.REACT_APP_HOME_URL : "http://localhost:5000/"
-			),
+			socket: socketIOClient(isProd ? "https://www.jpdemko.me" : "http://localhost:5000", {
+				// socket: socketIOClient("http://localhost:5000", {
+				credentials: "include",
+				withCredentials: true,
+				transports: ["polling", "websocket"],
+				// rejectUnauthorized: isProd,
+			}),
 		}
 		this.tsChatOpened = DateTime.local()
 		this.initUsernameRef = createRef()
@@ -55,6 +63,9 @@ class Chat extends Component {
 		socket.on("updateRoom", this.updateRoom)
 		socket.on("receiveData", this.receiveData)
 		socket.on("reconnect", this.loadUser)
+		socket.on("connect_error", (err) => {
+			debug.log(`socket connect_error due to ${err.message}`)
+		})
 		// Setup data save on exit.
 		window.addEventListener("beforeunload", this.saveUserData)
 		// Attempt to load prev. save data if any.

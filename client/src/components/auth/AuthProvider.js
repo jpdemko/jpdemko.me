@@ -9,16 +9,19 @@ function AuthProvider({ children }) {
 	const [user, setUser] = useState(null)
 
 	function getUser() {
-		fetch("/auth/user", { withCredentials: true })
-			.then((res) => res?.json?.())
+		fetch("/auth/user", {
+			credentials: "include",
+		})
+			.then((res) => res.json())
 			.then((data) => {
+				debug.log("Auth getUser() init data: ", data)
 				if (data?.error && isAuthed) {
 					setIsAuthed(false)
-					debug.log("setIsAuthed(FALSE) data: ", data)
+					debug.log("setIsAuthed(FALSE) parsedData: ", data)
 				} else if (data?.pid && !isAuthed) {
 					setIsAuthed(true)
 					setUser(data)
-					debug.log("setIsAuthed(TRUE) data: ", data)
+					debug.log("setIsAuthed(TRUE) parsedData: ", data)
 				}
 			})
 			.catch((error) => console.error("<AuthProvider /> getUser() error: ", error))

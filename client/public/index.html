@@ -9,10 +9,12 @@
 		<meta
 			http-equiv="Content-Security-Policy"
 			content="
-				default-src 'self' https://polyfill.io https://*.bing.com https://*.virtualearth.net;
-				script-src	'self' https://polyfill.io https://www.bing.com;
-				style-src	'self' 'unsafe-inline' https://*.bing.com https://*.virtualearth.net;
-				font-src		data: 'self' https://*.bing.com https://*.virtualearth.net;
+				default-src 	'self' https://polyfill.io https://*.bing.com https://*.virtualearth.net;
+				script-src		'self' https://polyfill.io 'unsafe-eval' https://*.bing.com https://*.virtualearth.net;
+				style-src		'self' 'unsafe-inline' https://*.bing.com https://*.virtualearth.net;
+				font-src			data: 'self' https://*.bing.com https://*.virtualearth.net;
+				img-src			data: 'self' https://*.bing.com https://*.virtualearth.net https://mesonet.agron.iastate.edu;
+				connect-src 	ws: wss: 'self' http://localhost:5000 ws://localhost:5000 wss://localhost:5000 ws://*.jpdemko.me wss://*.jpdemko.me https://*.bing.com https://*.virtualearth.net;
 			"
 		/>
 

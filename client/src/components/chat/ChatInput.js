@@ -33,6 +33,7 @@ function ChatInput({ data, roomsShown, send, ...props }) {
 	const type = roomsShown ? "msgs" : "dms"
 	const logsLength = data?.[type] ? Object.keys(data[type]).length : 0
 	useEffect(() => {
+		if (!data) return
 		let ids = Object.keys(data[type]).filter((key) => isNaN(data[type][key]))
 		ids = ids.slice(ids.length - 4 < 0 ? 0 : ids.length - 4)
 		last3LogsRef.current = ids.map((id) => data[type][id]?.msg)

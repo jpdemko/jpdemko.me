@@ -281,7 +281,7 @@ export function opac(opacityAmount, color) {
 
 /* -------------------------------------------------------------------------- */
 
-const DEBUG_ENABLED = true
+const DEBUG_ENABLED = process.env.NODE_ENV !== "production"
 
 export function Debug(prefix, localEnabled) {
 	this.log = DEBUG_ENABLED && localEnabled ? console.log.bind(window.console, prefix) : function () {}
