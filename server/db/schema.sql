@@ -175,6 +175,7 @@ FOR EACH ROW EXECUTE PROCEDURE update_latest_dm();
 -- **************************************************************** --
 
 -- DELETE ALL DATA
+
 -- DROP SCHEMA public CASCADE;
 -- CREATE SCHEMA public;
 -- GRANT ALL ON SCHEMA public TO postgres;

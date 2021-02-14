@@ -41,11 +41,11 @@ if (isProd && !isHerokuLocal && cluster.isMaster) {
 	const passport = require("./passport")
 
 	app = express()
-	app.use(compression())
-	const limiter = rateLimiter({
-		windowMs: 1 * 60 * 1000, // time
-		max: 10, // requests,
-	})
+	// app.use(compression())
+	// const limiter = rateLimiter({
+	// 	windowMs: 1 * 60 * 1000, // time
+	// 	max: 10, // requests,
+	// })
 	app.use(limiter)
 	app.use(morgan(isProd ? "common" : "dev"))
 	app.use(
@@ -73,7 +73,7 @@ if (isProd && !isHerokuLocal && cluster.isMaster) {
 	)
 	app.use(
 		cors({
-			origin: isProd ? ["https://jpdemko.me/"] : ["http://localhost:3000/", "http://localhost:5000/"],
+			origin: isProd ? ["https://www.jpdemko.me/"] : ["http://localhost:3000/", "http://localhost:5000/"],
 			credentials: true,
 		})
 	)

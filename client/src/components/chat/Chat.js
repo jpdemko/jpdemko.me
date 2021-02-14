@@ -39,7 +39,7 @@ class Chat extends Component {
 			roomsShown: true,
 			...prevData,
 			socket: socketIOClient(
-				process.env.NODE_ENV === "production" ? "https://jpdemko.me/" : "http://localhost:5000/"
+				process.env.NODE_ENV === "production" ? "https://wwww.jpdemko.me/" : "http://localhost:5000/"
 			),
 		}
 		this.tsChatOpened = DateTime.local()
