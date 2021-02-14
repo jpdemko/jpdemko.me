@@ -34,6 +34,7 @@ export const ls = {
 /* -------------------------------------------------------------------------- */
 
 export const flags = {
+	// isIE: /*@cc_on!@*/ false || !!document.documentMode,
 	isIE: !!window.navigator.userAgent.match(/(MSIE|Trident)/),
 	// Chrome WebKit bug causes blurry text/images on child elements upon parent 3D transform.
 	// This flag is used to disable 3D transforms in Chrome.

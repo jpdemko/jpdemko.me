@@ -6,6 +6,15 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 		<meta name="theme-color" content="#000000" />
 		<meta name="jpdemko.me" content="jpdemko.me Portfolio OS" />
+		<meta
+			http-equiv="Content-Security-Policy"
+			content="
+				default-src 'self' https://polyfill.io https://*.bing.com https://*.virtualearth.net;
+				script-src	'self' https://polyfill.io https://www.bing.com;
+				style-src	'self' 'unsafe-inline' https://*.bing.com https://*.virtualearth.net;
+				font-src		data: 'self' https://*.bing.com https://*.virtualearth.net;
+			"
+		/>
 
 		<link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
 		<link rel="icon" href="%PUBLIC_URL%/favicon.ico" />

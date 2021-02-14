@@ -1,3 +1,15 @@
+const path = require("path")
+
+const isProd = process.env.NODE_ENV === "production"
+const isHerokuLocal = process.env.HEROKU_LOCAL
+
+if (isHerokuLocal || !isProd) console.log(`HELLO!!! isProd: ${isProd}, isHerokuLocal: ${isHerokuLocal}`)
+
+if (!isProd) {
+	const devEnvPath = require("find-config")(".env")
+	require("dotenv").config({ path: devEnvPath })
+}
+
 const express = require("express")
 const session = require("express-session")
 const pgSession = require("connect-pg-simple")(session)
@@ -6,14 +18,16 @@ const morgan = require("morgan")
 const cors = require("cors")
 const helmet = require("helmet")
 const debug = require("debug")("backend:server")
+const compression = require("compression")
+const rateLimiter = require("express-rate-limit")
+
 // Heroku packages for optimization?
 const cluster = require("cluster")
 const numCPUs = require("os").cpus().length
 
-const dev = process.env.NODE_ENV !== "production"
 let app = null
 
-if (!dev && cluster.isMaster) {
+if (isProd && !isHerokuLocal && cluster.isMaster) {
 	console.error(`Node cluster master ${process.pid} is running!`)
 	// Fork workers.
 	for (let i = 0; i < numCPUs; i++) {
@@ -23,16 +37,43 @@ if (!dev && cluster.isMaster) {
 		console.error(`Node cluster worker ${worker.process.pid} exited: code ${code}, signal ${signal}`)
 	})
 } else {
-	if (dev) require("dotenv").config({ path: "./.env.local" })
 	const db = require("./db/db")
 	const passport = require("./passport")
 
 	app = express()
-	app.use(morgan(dev ? "dev" : "common"))
-	app.use(helmet())
+	app.use(compression())
+	const limiter = rateLimiter({
+		windowMs: 1 * 60 * 1000, // time
+		max: 10, // requests,
+	})
+	app.use(limiter)
+	app.use(morgan(isProd ? "common" : "dev"))
+	app.use(
+		helmet({
+			contentSecurityPolicy: {
+				directives: {
+					...helmet.contentSecurityPolicy.getDefaultDirectives(),
+					"default-src": [
+						"'self'",
+						"https://polyfill.io",
+						"https://*.bing.com",
+						"https://*.virtualearth.net",
+					],
+					"script-src": [
+						"'self'",
+						"https://polyfill.io",
+						"https://*.bing.com",
+						"https://*.virtualearth.net",
+					],
+					"style-src": ["'self'", "'unsafe-inline'", "https://*.bing.com", "https://*.virtualearth.net"],
+					"font-src": ["data:", "'self'", "https://*.bing.com", "https://*.virtualearth.net"],
+				},
+			},
+		})
+	)
 	app.use(
 		cors({
-			origin: [process.env.ORIGIN_URL, process.env.SERVER_URL],
+			origin: isProd ? ["https://jpdemko.me/"] : ["http://localhost:3000/", "http://localhost:5000/"],
 			credentials: true,
 		})
 	)
@@ -47,15 +88,14 @@ if (!dev && cluster.isMaster) {
 		saveUninitialized: true,
 		cookie: {
 			maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-			...(dev && { secure: true }),
+			...(isProd && { secure: true }),
 		},
 	})
 	app.use(sessionMiddleware)
 	app.use(passport.initialize())
 	app.use(passport.session())
 
-	if (!dev) {
-		const path = require("path")
+	if (isProd || isHerokuLocal) {
 		app.use(express.static(path.resolve(__dirname, "../client/build")))
 		app.get("*", function (req, res) {
 			res.sendFile(path.resolve(__dirname, "../client/build", "index.html"))
@@ -71,13 +111,7 @@ if (!dev && cluster.isMaster) {
 	app.set("port", port)
 
 	// @ts-ignore
-	const io = require("socket.io")(server, {
-		cors: {
-			origin: [process.env.ORIGIN_URL, process.env.SERVER_URL],
-			methods: ["GET", "POST"],
-			credentials: true,
-		},
-	})
+	const io = require("socket.io")(server)
 	require("./socketAPI")(io, sessionMiddleware)
 
 	server.listen(port)

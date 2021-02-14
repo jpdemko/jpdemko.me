@@ -38,7 +38,9 @@ class Chat extends Component {
 			initUsername: "",
 			roomsShown: true,
 			...prevData,
-			socket: socketIOClient(process.env.REACT_APP_SERVER_URL),
+			socket: socketIOClient(
+				process.env.NODE_ENV === "production" ? "https://jpdemko.me/" : "http://localhost:5000/"
+			),
 		}
 		this.tsChatOpened = DateTime.local()
 		this.initUsernameRef = createRef()

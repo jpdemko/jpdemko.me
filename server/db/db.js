@@ -1,25 +1,18 @@
 const { Pool } = require("pg")
 
-const pool = new Pool()
+const isProd = process.env.NODE_ENV === "production"
+const isHerokuLocal = process.env.HEROKU_LOCAL
+
+const connectionString = `postgresql://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_DATABASE}`
+
+const pool = new Pool({
+	connectionString: isHerokuLocal || !isProd ? connectionString : process.env.DATABASE_URL,
+	ssl: isProd && !isHerokuLocal,
+})
 
 pool.on("error", function (err, client) {
 	console.error("pg pool error: ", err)
 	process.exit(-1)
-})
-
-pool.query("SELECT * FROM pg_catalog.pg_tables", function (selectErr, selectRes) {
-	console.log(`Checking PG credentials:`)
-
-	console.log(`PGHOST=${process.env.PGHOST}`)
-	console.log(`PGUSER=${process.env.PGUSER}`)
-	console.log(`PGDATABASE=${process.env.PGDATABASE}`)
-	console.log(`PGPASSWORD=${process.env.PGPASSWORD}`)
-	console.log(`PGPORT=${process.env.PGPORT}`)
-
-	console.log(
-		"@check db",
-		selectRes.rows.filter((r) => r.schemaname === "public").map((r) => r.tablename)
-	)
 })
 
 module.exports = pool
