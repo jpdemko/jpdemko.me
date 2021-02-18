@@ -194,7 +194,7 @@ export default class Window extends Component {
 	constructor(props) {
 		super(props)
 		this.rootRef = createRef()
-		this.checkIfMobileWindowThrottled = throttle(this.checkIfMobileWindow, 200)
+		this.handleResizeThrottled = throttle(this.handleResize, 200)
 
 		this.wireframe = getRect("window-wireframe")
 		const prevData = ls.get(`Window-${props.title}`) ?? {}
@@ -254,16 +254,16 @@ export default class Window extends Component {
 		this.genDraggables()
 		this.enterAnim()
 		window.addEventListener("beforeunload", this.save)
-		window.addEventListener("resize", this.checkIfMobileWindowThrottled)
-		this.checkIfMobileWindowThrottled()
+		window.addEventListener("resize", this.handleResizeThrottled)
+		this.handleResizeThrottled()
 		this.determineMainNavBurgerCB()
 	}
 
 	componentWillUnmount() {
 		this.handleExit()
 		window.removeEventListener("beforeunload", this.save)
-		window.removeEventListener("resize", this.checkIfMobileWindowThrottled)
-		this.checkIfMobileWindowThrottled.cancel()
+		window.removeEventListener("resize", this.handleResizeThrottled)
+		this.handleResizeThrottled.cancel()
 		if (this.dragInstances) this.dragInstances.forEach((i) => i[0].kill())
 	}
 
@@ -288,7 +288,7 @@ export default class Window extends Component {
 		}
 
 		// Resize listener isn't sufficient for all cases if window instantly resizes
-		this.checkIfMobileWindowThrottled()
+		this.handleResizeThrottled()
 	}
 
 	determineMainNavBurgerCB = () => {
@@ -356,7 +356,7 @@ export default class Window extends Component {
 				},
 				onDrag: function () {
 					handleOnDrag(this, wdow.data.css.windowed)
-					wdow.checkIfMobileWindowThrottled()
+					wdow.handleResizeThrottled()
 				},
 				allowContextMenu: true,
 			})
@@ -462,7 +462,7 @@ export default class Window extends Component {
 		this.save()
 	}
 
-	checkIfMobileWindow = () => {
+	handleResize = () => {
 		if (!this.rootRef.current) return
 		const width = this.rootRef.current.offsetWidth
 		const { isMobileWindow } = this.state.context
@@ -556,7 +556,7 @@ export default class Window extends Component {
 				wdow.preventSubpixelValues()
 			},
 			onUpdate: function () {
-				if (!wdow.props.isMinimized) wdow.checkIfMobileWindowThrottled()
+				if (!wdow.props.isMinimized) wdow.handleResizeThrottled()
 			},
 		})
 		this.curAnim.play()

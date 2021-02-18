@@ -43,7 +43,6 @@ class Chat extends Component {
 			roomsShown: true,
 			...prevData,
 			socket: socketIOClient(isProd ? "https://www.jpdemko.me" : "http://localhost:5000", {
-				// socket: socketIOClient("http://localhost:5000", {
 				credentials: "include",
 				withCredentials: true,
 				transports: ["polling", "websocket"],

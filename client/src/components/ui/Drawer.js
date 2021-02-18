@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react"
+import { forwardRef, useCallback, useRef } from "react"
 import styled, { css } from "styled-components/macro"
 import { Transition } from "react-transition-group"
 
@@ -37,31 +37,31 @@ const tranStyles = {
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function Drawer({ isShown = false, onClose, animDuration = 0.25, side = "left", children, ...props }) {
-	const drawerRef = useRef()
+const Drawer = forwardRef(
+	({ isShown = false, onClose, animDuration = 0.25, side = "left", children, ...props }, passedRef) => {
+		const memoizedCloseDrawer = useCallback(() => isShown && onClose(), [isShown, onClose])
+		const bdRef = useOnClick(memoizedCloseDrawer)
 
-	const memoizedCloseDrawer = useCallback(() => isShown && onClose(), [isShown, onClose])
-	const bdRef = useOnClick(memoizedCloseDrawer)
-
-	return (
-		<>
-			<Transition timeout={animDuration * 1000} in={isShown}>
-				{(state) => (
-					<Root
-						{...props}
-						ref={drawerRef}
-						isShown={isShown}
-						animDuration={animDuration}
-						side={side}
-						style={{ ...tranStyles[state] }}
-					>
-						{children}
-					</Root>
-				)}
-			</Transition>
-			<Backdrop ref={bdRef} isShown={isShown} animDuration={animDuration} />
-		</>
-	)
-}
+		return (
+			<>
+				<Transition timeout={animDuration * 1000} in={isShown}>
+					{(state) => (
+						<Root
+							{...props}
+							ref={passedRef}
+							isShown={isShown}
+							animDuration={animDuration}
+							side={side}
+							style={{ ...tranStyles[state] }}
+						>
+							{children}
+						</Root>
+					)}
+				</Transition>
+				<Backdrop ref={bdRef} isShown={isShown} animDuration={animDuration} />
+			</>
+		)
+	}
+)
 
 export default Drawer

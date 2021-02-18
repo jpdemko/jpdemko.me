@@ -8,6 +8,7 @@ import About from "../about/About"
 import Weather from "../weather/Weather"
 import Chat from "../chat/Chat"
 import Themes from "../themes/Themes"
+import Minesweeper from "../minesweeper/Minesweeper"
 import Button from "../ui/Button"
 import Window from "./Window"
 import Nav from "./Nav"
@@ -95,7 +96,8 @@ const ShortcutButton = styled(Button)`
 // eslint-disable-next-line no-unused-vars
 const debug = new Debug("Display: ", true)
 
-export const mountableApps = { About, Weather, Chat, Themes }
+export const mountableApps = { About, Chat, Weather, Themes }
+if (process.env.NODE_ENV !== "production") mountableApps.Minesweeper = Minesweeper
 
 class Display extends Component {
 	constructor(props) {
@@ -148,7 +150,7 @@ class Display extends Component {
 
 	setGridDims = () => {
 		let nextGrid = {}
-		const cellSize = 16 * 8
+		const cellSize = 16 * 10
 		nextGrid.rows = Math.round(window.innerHeight / cellSize)
 		nextGrid.cols = Math.round(window.innerWidth / cellSize)
 		this.setState({ grid: nextGrid })

@@ -3,9 +3,9 @@ const path = require("path")
 const isProd = process.env.NODE_ENV === "production"
 const isHerokuLocal = process.env.HEROKU_LOCAL
 
-if (isHerokuLocal || !isProd) console.log(`HELLO!!! isProd: ${isProd}, isHerokuLocal: ${isHerokuLocal}`)
+if (!isProd) console.log(`HELLO!!! isProd: ${isProd}, isHerokuLocal: ${isHerokuLocal}`)
 
-if (!isProd) {
+if (!isProd || isHerokuLocal) {
 	const devEnvPath = require("find-config")(".env")
 	require("dotenv").config({ path: devEnvPath })
 }
@@ -27,7 +27,7 @@ const numCPUs = require("os").cpus().length
 
 let app = null
 
-if (isProd && !isHerokuLocal && cluster.isMaster) {
+if (isProd && cluster.isMaster) {
 	console.error(`Node cluster master ${process.pid} is running!`)
 	// Fork workers.
 	for (let i = 0; i < numCPUs; i++) {
@@ -51,7 +51,7 @@ if (isProd && !isHerokuLocal && cluster.isMaster) {
 	// })
 	// app.use(limiter)
 
-	app.use(morgan(isProd && !isHerokuLocal ? "common" : "dev"))
+	app.use(morgan(isProd ? "common" : "dev"))
 	app.use(
 		helmet({
 			contentSecurityPolicy: {
@@ -96,10 +96,7 @@ if (isProd && !isHerokuLocal && cluster.isMaster) {
 		})
 	)
 	const corsOptions = {
-		origin:
-			isProd && !isHerokuLocal
-				? "https://www.jpdemko.me"
-				: ["http://localhost:3000", "http://localhost:5000"],
+		origin: isProd ? "https://www.jpdemko.me" : ["http://localhost:3000", "http://localhost:5000"],
 		credentials: true,
 	}
 	app.use(cors(corsOptions))
@@ -114,7 +111,7 @@ if (isProd && !isHerokuLocal && cluster.isMaster) {
 		saveUninitialized: true,
 		cookie: {
 			maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-			...(isProd && !isHerokuLocal && { secure: true }),
+			...(isProd && { secure: true }),
 		},
 	})
 	app.use(sessionMiddleware)

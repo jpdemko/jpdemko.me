@@ -21,6 +21,7 @@ passport.deserializeUser(async function (pid, done) {
 passport.use(
 	new GoogleStrat(
 		{
+			proxy: true,
 			clientID: process.env.GOOGLE_CLIENT_ID,
 			clientSecret: process.env.GOOGLE_CLIENT_SECRET,
 			callbackURL: "/auth/google/callback",
@@ -45,6 +46,7 @@ passport.use(
 passport.use(
 	new GitHubStrat(
 		{
+			proxy: true,
 			clientID: process.env.GITHUB_CLIENT_ID,
 			clientSecret: process.env.GITHUB_CLIENT_SECRET,
 			callbackURL: "/auth/github/callback",
