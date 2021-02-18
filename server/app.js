@@ -16,6 +16,7 @@ const morgan = require("morgan")
 const cors = require("cors")
 const helmet = require("helmet")
 const debug = require("debug")("server:app")
+const passport = require("passport")
 // const compression = require("compression")
 // const rateLimiter = require("express-rate-limit")
 
@@ -38,19 +39,19 @@ if (isProd && cluster.isMaster) {
 	})
 } else {
 	const db = require("./db/db")
-	const passport = require("./passport")
-
 	app = express()
 
 	if (isProd || isHerokuLocal) app.use(express.static(path.resolve(__dirname, "../client/build")))
 
-	// app.use(compression())
 	// const limiter = rateLimiter({
 	// 	windowMs: 1 * 60 * 1000, // time
 	// 	max: 10, // requests,
 	// })
 	// app.use(limiter)
-
+	if (isProd) {
+		app.use(compression())
+		app.set("trust proxy", 1)
+	}
 	app.use(morgan(isProd ? "common" : "dev"))
 	app.use(
 		helmet({
@@ -105,20 +106,23 @@ if (isProd && cluster.isMaster) {
 	app.use(express.json())
 	app.use(express.urlencoded({ extended: false }))
 	app.use(cookieParser(process.env.SESSION_SECRET))
-	const sessionMiddleware = session({
-		name: "sessionID",
-		store: new pgSession({ pool: db }),
-		secret: process.env.SESSION_SECRET,
-		resave: false,
-		saveUninitialized: true,
-		cookie: {
-			maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-			...(isProd && { secure: true }),
-		},
-	})
-	app.use(sessionMiddleware)
+	app.use(
+		session({
+			name: "sessionID",
+			store: new pgSession({ pool: db }),
+			secret: process.env.SESSION_SECRET,
+			resave: true,
+			saveUninitialized: false, // If you want all the sessions to be saved in store, even if they don't have any modifications?
+			cookie: {
+				maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+				secure: isProd,
+			},
+		})
+	)
 	app.use(passport.initialize())
 	app.use(passport.session())
+
+	require("./passport")(passport)
 
 	app.use("/auth", require("./routes/auth"))
 	app.use("/weather", require("./routes/weather"))
@@ -134,7 +138,7 @@ if (isProd && cluster.isMaster) {
 
 	// @ts-ignore
 	const io = require("socket.io")(server, { cors: corsOptions })
-	require("./socketAPI")(io, sessionMiddleware)
+	require("./socketAPI")(io)
 
 	server.listen(port)
 	server.on("error", onError)

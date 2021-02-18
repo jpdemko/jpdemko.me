@@ -11,6 +11,7 @@ function AuthProvider({ children }) {
 	function getUser() {
 		fetch("/auth/user", {
 			credentials: "include",
+			withCredentials: true,
 		})
 			.then((res) => res.json())
 			.then((data) => {
