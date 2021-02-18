@@ -18,18 +18,20 @@ router.get("/google", passport.authenticate("google", { scope: ["profile", "emai
 
 router.get(
 	"/google/callback",
-	passport.authenticate("google", { failureRedirect: "/" }, function (req, res) {
+	passport.authenticate("google", { failureRedirect: "/" }),
+	function (req, res) {
 		res.redirect("/")
-	})
+	}
 )
 
 router.get("/github", passport.authenticate("github", { scope: ["read:user"] }))
 
 router.get(
 	"/github/callback",
-	passport.authenticate("github", { failureRedirect: "/" }, function (req, res) {
+	passport.authenticate("github", { failureRedirect: "/" }),
+	function (req, res) {
 		res.redirect("/")
-	})
+	}
 )
 
 module.exports = router
