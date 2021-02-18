@@ -124,7 +124,7 @@ if (isProd && cluster.isMaster) {
 
 	require("./passport")(passport)
 
-	app.use("/auth", require("./routes/auth"))
+	app.use("/auth", require("./routes/auth")(passport))
 	app.use("/weather", require("./routes/weather"))
 	if (isProd || isHerokuLocal) {
 		app.get("*", function (req, res) {
