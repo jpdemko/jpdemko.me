@@ -45,8 +45,13 @@ class Chat extends Component {
 			socket: socketIOClient(isProd ? "https://www.jpdemko.me" : "http://localhost:5000", {
 				credentials: "include",
 				withCredentials: true,
-				transports: ["polling", "websocket"],
-				// rejectUnauthorized: isProd,
+				reconnectionDelay: 1000,
+				reconnection: true,
+				reconnectionAttempts: 20,
+				transports: ["websocket"],
+				agent: false,
+				upgrade: false,
+				...(isProd && { rejectUnauthorized: false }),
 			}),
 		}
 		this.tsChatOpened = DateTime.local()
