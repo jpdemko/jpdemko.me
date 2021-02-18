@@ -3,9 +3,7 @@ const path = require("path")
 const isProd = process.env.NODE_ENV === "production"
 const isHerokuLocal = process.env.HEROKU_LOCAL
 
-if (!isProd) console.log(`HELLO!!! isProd: ${isProd}, isHerokuLocal: ${isHerokuLocal}`)
-
-if (!isProd || isHerokuLocal) {
+if (!isProd && !isHerokuLocal) {
 	const devEnvPath = require("find-config")(".env")
 	require("dotenv").config({ path: devEnvPath })
 }
@@ -17,24 +15,26 @@ const cookieParser = require("cookie-parser")
 const morgan = require("morgan")
 const cors = require("cors")
 const helmet = require("helmet")
-const debug = require("debug")("backend:server")
-const compression = require("compression")
-const rateLimiter = require("express-rate-limit")
+const debug = require("debug")("server:app")
+// const compression = require("compression")
+// const rateLimiter = require("express-rate-limit")
 
 // Heroku packages for optimization?
 const cluster = require("cluster")
 const numCPUs = require("os").cpus().length
 
+if (!isProd) debug(`HELLO!!! isProd: ${isProd}, isHerokuLocal: ${isHerokuLocal}`)
+
 let app = null
 
 if (isProd && cluster.isMaster) {
-	console.error(`Node cluster master ${process.pid} is running!`)
+	debug(`Node cluster master ${process.pid} is running!`)
 	// Fork workers.
 	for (let i = 0; i < numCPUs; i++) {
 		cluster.fork()
 	}
 	cluster.on("exit", (worker, code, signal) => {
-		console.error(`Node cluster worker ${worker.process.pid} exited: code ${code}, signal ${signal}`)
+		debug(`Node cluster worker ${worker.process.pid} exited: code ${code}, signal ${signal}`)
 	})
 } else {
 	const db = require("./db/db")
@@ -88,8 +88,10 @@ if (isProd && cluster.isMaster) {
 						"wss://localhost:5000",
 						"ws://*.jpdemko.me",
 						"wss://*.jpdemko.me",
+						"https://*.jpdemko.me",
 						"https://*.bing.com",
 						"https://*.virtualearth.net",
+						"accounts.google.com",
 					],
 				},
 			},
@@ -145,10 +147,10 @@ if (isProd && cluster.isMaster) {
 		// Handle specific listen errors with friendly messages.
 		switch (error.code) {
 			case "EACCES":
-				console.error(bind + " requires elevated privileges")
+				debug(bind + " requires elevated privileges")
 				process.exit(1)
 			case "EADDRINUSE":
-				console.error(bind + " is already in use")
+				debug(bind + " is already in use")
 				process.exit(1)
 			default:
 				throw error

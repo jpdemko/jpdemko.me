@@ -1,5 +1,6 @@
 const shared = require("./shared")
 const queries = require("./db/queries")
+const debug = require("debug")("server:socketapi")
 
 module.exports = function (io) {
 	var User = {
@@ -86,8 +87,8 @@ module.exports = function (io) {
 			return false
 		},
 		log: function () {
-			console.log("### USERS ###")
-			console.log(this.active)
+			debug("### USERS ###")
+			debug(this.active)
 		},
 	}
 
@@ -152,15 +153,15 @@ module.exports = function (io) {
 			return false
 		},
 		log: function () {
-			console.log("### ROOMS ### ")
-			console.log(this.active)
+			debug("### ROOMS ### ")
+			debug(this.active)
 		},
 	}
 
 	// Precaution to trim any rooms/users that shouldn't be there due to my coding or weird network issues.
 	const trimIntervalHours = 12
 	setInterval(() => {
-		// console.log(`socketAPI trim interval called.`)
+		// debug(`socketAPI trim interval called.`)
 		Object.keys(Rooms.active).forEach((rid) => {
 			const room = Rooms.get(rid)
 			if (room.activeUsers.length < 1) Rooms.destroy(rid)
@@ -200,7 +201,7 @@ module.exports = function (io) {
 						},
 					})
 				} catch (error) {
-					console.error("socket setupUser() error: ", error)
+					debug("socket setupUser() error: ", error)
 					clientCB({ error: `server error - setupUser() - ${error}` })
 				}
 			}
@@ -218,7 +219,7 @@ module.exports = function (io) {
 
 				clientCB({ success: "server success - createRoom()", room: room.clientCopy() })
 			} catch (error) {
-				console.error("socket createRoom() error: ", error)
+				debug("socket createRoom() error: ", error)
 				clientCB({ error: `server error - createRoom() - ${error}` })
 			}
 		})
@@ -258,7 +259,7 @@ module.exports = function (io) {
 					},
 				})
 			} catch (error) {
-				console.error("socket joinRoom() error: ", error)
+				debug("socket joinRoom() error: ", error)
 				clientCB({ error: `server error - joinRoom() - ${error}` })
 			}
 		})
@@ -268,7 +269,7 @@ module.exports = function (io) {
 				const dms = await queries.chat.getLogsDMS({ uid, recip_id, tsLogsFetched })
 				clientCB({ success: "server success - getLogsDMS()", data: { dms, recip_id } })
 			} catch (error) {
-				console.error("socket getLogsDMS() error: ", error)
+				debug("socket getLogsDMS() error: ", error)
 				clientCB({ error: `server error - getLogsDMS() - ${error}` })
 			}
 		})
@@ -286,7 +287,7 @@ module.exports = function (io) {
 					socket.to(recip.socketID).emit("receiveData", { data: { dms: receiverDMS, recip_id: uid } })
 				clientCB({ success: "server success - sendDM()", data: { dms: senderDMS, recip_id } })
 			} catch (error) {
-				console.error("socket sendDM() error: ", error)
+				debug("socket sendDM() error: ", error)
 				clientCB({ error: `server error - sendDM() - ${error}` })
 			}
 		})
@@ -302,7 +303,7 @@ module.exports = function (io) {
 
 				clientCB({ success: "server success - deleteRoom()" })
 			} catch (error) {
-				console.error("socket deleteRoom() error: ", error)
+				debug("socket deleteRoom() error: ", error)
 				clientCB({ error: `server error - deleteRoom() - ${error}` })
 			}
 		})
@@ -319,7 +320,7 @@ module.exports = function (io) {
 				const cbMsgs = shared.dataUnreadTransform(insertMsgRes.rows, { uid, uniqKey: "mid" })
 				clientCB({ success: "server success - sendMsg()", msgs: cbMsgs })
 			} catch (error) {
-				console.error("socket sendRoomMsg() error: ", error)
+				debug("socket sendRoomMsg() error: ", error)
 				clientCB({ error: `server error - sendMsg() - ${error}` })
 			}
 		})

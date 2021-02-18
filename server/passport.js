@@ -1,19 +1,22 @@
 const passport = require("passport")
 const GoogleStrat = require("passport-google-oauth20").Strategy
 const GitHubStrat = require("passport-github2").Strategy
+const debug = require("debug")("server:passport")
 
 const queries = require("./db/queries")
 
 passport.serializeUser(function (user, done) {
+	debug("passport serializeUser(): ", user)
 	done(null, user.pid)
 })
 
 passport.deserializeUser(async function (pid, done) {
 	try {
 		const res = await queries.users.getUserByPID(pid)
+		debug("passport deserializeUser(): ", res.rows[0])
 		done(null, res.rows[0])
 	} catch (error) {
-		console.error("passport deserializeUser() error: ", error)
+		debug("passport deserializeUser() error: ", error)
 		done(error)
 	}
 })
@@ -21,7 +24,6 @@ passport.deserializeUser(async function (pid, done) {
 passport.use(
 	new GoogleStrat(
 		{
-			proxy: true,
 			clientID: process.env.GOOGLE_CLIENT_ID,
 			clientSecret: process.env.GOOGLE_CLIENT_SECRET,
 			callbackURL: "/auth/google/callback",
@@ -34,9 +36,10 @@ passport.use(
 			}
 			try {
 				const res = await queries.users.upsertAll(user)
+				debug("passport Google user upsert return: ", res.rows[0])
 				done(null, res.rows[0])
 			} catch (error) {
-				console.error("passport GoogleStrat error: ", error)
+				debug("passport GoogleStrat error: ", error)
 				done(error, user)
 			}
 		}
@@ -46,13 +49,11 @@ passport.use(
 passport.use(
 	new GitHubStrat(
 		{
-			proxy: true,
 			clientID: process.env.GITHUB_CLIENT_ID,
 			clientSecret: process.env.GITHUB_CLIENT_SECRET,
 			callbackURL: "/auth/github/callback",
 		},
 		async function (accessToken, refreshToken, profile, done) {
-			console.log("passport github profile: ", profile)
 			let user = {
 				pid: profile.id,
 				uname: profile.displayName,
@@ -60,9 +61,10 @@ passport.use(
 			}
 			try {
 				const res = await queries.users.upsertAll(user)
+				debug("passport GitHub user upsert return: ", res.rows[0])
 				done(null, res.rows[0])
 			} catch (error) {
-				console.error("passport GitHubStrat error: ", error)
+				debug("passport GitHubStrat error: ", error)
 				done(error, user)
 			}
 		}

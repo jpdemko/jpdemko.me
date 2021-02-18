@@ -1,4 +1,5 @@
 const { Pool } = require("pg")
+const debug = require("debug")("server:db")
 
 const isProd = process.env.NODE_ENV === "production"
 
@@ -12,7 +13,7 @@ const pool = new Pool({
 })
 
 pool.on("error", function (err, client) {
-	console.error("pg pool error: ", err)
+	debug("pg pool error: ", err)
 	process.exit(-1)
 })
 

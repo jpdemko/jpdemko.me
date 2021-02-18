@@ -1,6 +1,7 @@
 const express = require("express")
 const router = express.Router()
 const fetch = require("node-fetch")
+const debug = require("debug")("server:weather")
 
 router.get("/sun", function (req, res, next) {
 	const { lat, lng, locDate } = req.query
@@ -12,7 +13,7 @@ router.get("/sun", function (req, res, next) {
 		.then((apiRes) => apiRes.json())
 		.then((data) => res.json(data))
 		.catch((err) => {
-			console.error("GET /sun error: ", err)
+			debug("GET /sun error: ", err)
 			next(err)
 		})
 })
@@ -27,7 +28,7 @@ router.get("/forecast", function (req, res, next) {
 		.then((apiRes) => apiRes.json())
 		.then((data) => res.json(data))
 		.catch((err) => {
-			console.error("GET /forecast error: ", err)
+			debug("GET /forecast error: ", err)
 			next(err)
 		})
 })
