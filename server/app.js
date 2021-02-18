@@ -17,7 +17,7 @@ const cors = require("cors")
 const helmet = require("helmet")
 const debug = require("debug")("server:app")
 const passport = require("passport")
-// const compression = require("compression")
+const compression = require("compression")
 // const rateLimiter = require("express-rate-limit")
 
 // Heroku packages for optimization?
