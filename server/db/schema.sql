@@ -19,11 +19,14 @@ EXCEPTION
 	WHEN duplicate_object THEN null;
 END $$;
 
+CREATE TYPE user_access AS ENUM ('admin', 'user', 'banned');
+
 CREATE TABLE users (
 	uid SERIAL PRIMARY KEY,
 	pid VARCHAR(40) UNIQUE,
 	uname VARCHAR(50) NOT NULL,
 	email valid_email,
+	access user_access NOT NULL DEFAULT 'user',
 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -124,13 +127,13 @@ CREATE TABLE dms_history (
 -- Every user should automatically join the General chatroom.
 INSERT INTO rooms(rname) VALUES ('General');
 
-CREATE OR REPLACE FUNCTION join_default_room()
-	RETURNS trigger AS
-		$$ BEGIN
-			INSERT INTO users_rooms(uid, rid) VALUES (NEW.uid, 1);
-			RETURN NEW;
-		END; $$
-LANGUAGE 'plpgsql';
+CREATE OR REPLACE FUNCTION join_default_room() RETURNS TRIGGER AS
+$$
+BEGIN
+	INSERT INTO users_rooms(uid, rid) VALUES (NEW.uid, 1);
+	RETURN NEW;
+END;
+$$ LANGUAGE 'plpgsql';
 
 CREATE TRIGGER join_default_room_trigger AFTER INSERT ON users
 FOR EACH ROW EXECUTE PROCEDURE join_default_room();
@@ -139,26 +142,26 @@ FOR EACH ROW EXECUTE PROCEDURE join_default_room();
 
 -- Every time a user sends a room msg, make that msg their last sent msg in table users_rooms.
 -- I use this to retrieve their participating rooms and sort by their last activity.
-	CREATE OR REPLACE FUNCTION set_last_room_msg()
-		RETURNS trigger AS
-			$$ BEGIN
-				INSERT INTO users_rooms(uid, rid, users_last_msg) VALUES (NEW.uid, NEW.rid, NEW.mid)
-				ON CONFLICT (uid, rid) DO UPDATE SET users_last_msg = NEW.mid;
-				RETURN NEW;
-			END; $$
-	LANGUAGE 'plpgsql';
+CREATE OR REPLACE FUNCTION set_last_room_msg() RETURNS TRIGGER AS
+$$
+BEGIN
+	INSERT INTO users_rooms(uid, rid, users_last_msg) VALUES (NEW.uid, NEW.rid, NEW.mid)
+	ON CONFLICT (uid, rid) DO UPDATE SET users_last_msg = NEW.mid;
+	RETURN NEW;
+END;
+$$ LANGUAGE 'plpgsql';
 
-	CREATE TRIGGER set_last_room_msg_trigger AFTER INSERT ON msgs
-	FOR EACH ROW EXECUTE PROCEDURE set_last_room_msg();
+CREATE TRIGGER set_last_room_msg_trigger AFTER INSERT ON msgs
+FOR EACH ROW EXECUTE PROCEDURE set_last_room_msg();
 
 -- **************************************************************** --
 
-CREATE OR REPLACE FUNCTION update_latest_dm()
-RETURNS trigger AS $$
-	DECLARE
-		low INT := NEW.uid;
-		high INT := NEW.recip;
-	BEGIN
+CREATE OR REPLACE FUNCTION update_latest_dm() RETURNS TRIGGER AS
+$$
+DECLARE
+	low INT := NEW.uid;
+	high INT := NEW.recip;
+BEGIN
 	IF high < low THEN
 		low := NEW.recip;
 		high := NEW.uid;
@@ -166,11 +169,26 @@ RETURNS trigger AS $$
 	INSERT INTO dms_history(user1, user2, last_dm_between) VALUES (low, high, NEW.dmid)
 	ON CONFLICT (user1, user2) DO UPDATE SET last_dm_between = NEW.dmid;
 	RETURN NEW;
-END; $$
-LANGUAGE 'plpgsql';
+END;
+$$ LANGUAGE 'plpgsql';
 
 CREATE TRIGGER update_latest_dm_trigger AFTER INSERT ON dms
 FOR EACH ROW EXECUTE PROCEDURE update_latest_dm();
+
+-- **************************************************************** --
+
+CREATE OR REPLACE FUNCTION banned_user_cleanup() RETURNS TRIGGER AS
+$$
+BEGIN
+	IF NEW.access = 'banned' THEN
+		DELETE FROM session WHERE sess -> 'passport' ->> 'user' = NEW.pid;
+	END IF;
+	RETURN NEW;
+END;
+$$ LANGUAGE 'plpgsql';
+
+CREATE TRIGGER banned_user_cleanup_trigger AFTER UPDATE ON users
+FOR EACH ROW EXECUTE PROCEDURE banned_user_cleanup();
 
 -- **************************************************************** --
 

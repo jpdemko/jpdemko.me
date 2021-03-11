@@ -4,87 +4,119 @@ const debug = require("debug")("server:socketapi")
 
 module.exports = function (io) {
 	var User = {
-		setup: function ({ uid, uname, socketID }) {
-			if (!uid || !uname) throw Error("User.create() bad params")
-			var self = Object.create(this)
+		setup: function ({ uid, pid, uname, curRoomRID, access }) {
+			if (!uid || !pid || !uname || !curRoomRID || !access) throw Error("User.setup() bad params")
+			const self = Object.create(this)
 			self.uid = uid
+			self.pid = pid
 			self.uname = uname
-			self.socketID = socketID
+			self.sockets = []
 			self.myRooms = []
-			self.curRoomRID = null
+			self.curRoomRID = curRoomRID
+			self.access = access
 			return self
 		},
-		clientCopy: function () {
-			const { uid, uname, socketID, myRooms, curRoomRID } = this
+		copyShareable: function () {
+			const { uid, uname, pid } = this
+			return { uid, uname, pid }
+		},
+		copyDetailed: function () {
+			const { myRooms, curRoomRID, access } = this
 			return {
-				uid,
-				uname,
-				socketID,
-				myRooms,
+				...this.copyShareable(),
+				access,
 				curRoomRID,
+				myRooms: myRooms.reduce((acc, cur) => {
+					acc[cur] = Rooms.get(cur).copyShareable()
+					return acc
+				}, {}),
 			}
+		},
+		addDevice: function (sid) {
+			this.sockets.push(sid)
+			const socket = io.of("/").sockets.get(sid)
+			socket.join(`${this.pid}`)
+		},
+		syncDevices: function (event, data = {}) {
+			io.in(`${this.pid}`).emit(event, {
+				data,
+				serverUser: this.copyDetailed(),
+			})
 		},
 		leaveRoom: function (rid) {
-			if (this.myRooms.find((r) => r == rid)) {
-				const socket = io.of("/").sockets.get(this.socketID)
-				socket.leave(`${rid}`)
+			const room = Rooms.get(rid)
+			if (room && room.contains(this.uid)) {
+				this.sockets.forEach((sid) => {
+					const socket = io.of("/").sockets.get(sid)
+					socket.leave(`${rid}`)
+				})
 				this.myRooms = this.myRooms.filter((r) => r != rid)
-				const room = Rooms.get(rid)
-				return room ? room.removeUser(this.uid) : false
+				if (this.curRoomRID == rid) this.curRoomRID = 1
+				return room.removeUser(this.uid)
 			}
+			return false
 		},
-		joinRoom: function (rid, makeCur = true) {
-			if (!rid) {
-				return false
-			}
-			const socket = io.of("/").sockets.get(this.socketID)
+		joinRoom: function ({ rid, makeCur = true, sid }) {
+			if (!rid || !sid) throw Error("User.joinRoom() bad params")
 			const curRoom = Rooms.get(this.curRoomRID)
 			const nextRoom = Rooms.get(rid)
 			if (nextRoom) {
 				if (makeCur) this.curRoomRID = nextRoom.rid
-				if (nextRoom.addUser(this.uid)) {
-					socket.join(`${rid}`)
-					this.myRooms.push(`${rid}`)
+				if (nextRoom.addUser({ uid: this.uid, sid })) {
+					this.sockets.forEach((s) => {
+						const socket = io.of("/").sockets.get(s)
+						socket.join(`${rid}`)
+					})
+					if (!this.myRooms.some((r) => r == rid)) this.myRooms.push(`${rid}`)
 				}
-				if (curRoom) socket.to(`${curRoom.rid}`).emit("updateRoom", curRoom.clientCopy())
-				socket.to(`${nextRoom.rid}`).emit("updateRoom", nextRoom.clientCopy())
+				if (curRoom) io.in(`${curRoom.rid}`).emit("updateRoom", { data: curRoom.copyShareable() })
 				return true
 			}
 			return false
 		},
-		disconnect: function () {
-			const rooms = [...this.myRooms]
-			rooms.forEach((rid) => this.leaveRoom(rid))
+		disconnect: function (sid) {
+			if (this.sockets.length === 1) {
+				const rooms = [...this.myRooms]
+				rooms.forEach((rid) => this.leaveRoom(rid))
+			}
+			this.sockets = this.sockets.filter((s) => s != sid)
 		},
 	}
 
 	var Users = {
 		active: {},
 		setup: function (userData) {
-			if (!userData || (userData && !userData.uid)) return
-			this.active[userData.uid] = User.setup(userData)
+			const newUser = User.setup(userData)
+			newUser.addDevice(userData.sid)
+			this.active[userData.uid] = newUser
 			return this.active[userData.uid]
 		},
-		get: function (val) {
-			let output = this.active[val]
-			if (!output) {
-				Object.keys(this.active).find((id) => {
-					const curUser = this.active[id]
-					const match = Object.keys(curUser).find((key) => curUser[key] == val)
-					if (match) output = curUser
-					return match
-				})
-			}
-			return output
+		get: function (uid) {
+			return this.active[uid]
+		},
+		getBySID: function (sid) {
+			const id = Object.keys(this.active).find((uid) => this.active[uid].sockets.some((s) => s == sid))
+			return this.active[id]
 		},
 		disconnect: function (sid) {
-			const user = this.get(sid)
+			const user = this.getBySID(sid)
 			if (user) {
-				user.disconnect()
-				delete this.active[user.uid]
-				return true
+				user.disconnect(sid)
+				if (user.sockets.length < 1) delete this.active[user.uid]
 			}
-			return false
+		},
+		ban: function (uid) {
+			const user = this.get(uid)
+			if (user) {
+				;[...user.sockets].forEach((sid) => {
+					const socket = io.of("/").sockets.get(sid)
+					if (socket.request && socket.request.session) {
+						socket.request.session.destroy()
+					}
+					user.disconnect(sid)
+				})
+				if (user.sockets.length < 1) delete this.active[user.uid]
+			}
 		},
 		log: function () {
 			debug("### USERS ###")
@@ -103,12 +135,14 @@ module.exports = function (io) {
 			return self
 		},
 		contains: function (uid) {
-			return !!this.activeUsers.find((id) => id == uid)
+			return this.activeUsers.some((id) => id == uid)
 		},
-		addUser: function (uid) {
+		addUser: function ({ uid, sid }) {
 			const user = Users.get(uid)
-			if (!user || this.contains(uid)) return false
-			this.activeUsers.push(uid)
+			if (!user) return false
+			if (!this.contains(uid)) this.activeUsers.push(uid)
+			const socket = io.of("/").sockets.get(sid)
+			socket.to(`${this.rid}`).emit("updateRoom", { data: this.copyShareable() })
 			return true
 		},
 		removeUser: function (uid) {
@@ -117,10 +151,10 @@ module.exports = function (io) {
 			}
 			this.activeUsers = this.activeUsers.filter((u) => u != uid)
 			if (this.activeUsers.length < 1) Rooms.destroy(this.rid)
-			else io.in(`${this.rid}`).emit("updateRoom", this.clientCopy())
+			else io.in(`${this.rid}`).emit("updateRoom", { data: this.copyShareable() })
 			return true
 		},
-		clientCopy: function () {
+		copyShareable: function () {
 			const { rid, rname, password, activeUsers } = this
 			return {
 				rid,
@@ -128,7 +162,7 @@ module.exports = function (io) {
 				password,
 				activeUsers: activeUsers.reduce((acc, uid) => {
 					const user = Users.get(uid)
-					if (user.curRoomRID == this.rid) acc[uid] = user.clientCopy()
+					if (user.curRoomRID == this.rid) acc[uid] = user.copyShareable()
 					return acc
 				}, {}),
 			}
@@ -158,78 +192,74 @@ module.exports = function (io) {
 		},
 	}
 
-	// Precaution to trim any rooms/users that shouldn't be there due to my coding or weird network issues.
-	const trimIntervalHours = 12
-	setInterval(() => {
-		// debug(`socketAPI trim interval called.`)
-		Object.keys(Rooms.active).forEach((rid) => {
-			const room = Rooms.get(rid)
-			if (room.activeUsers.length < 1) Rooms.destroy(rid)
-		})
-		Object.keys(Users.active).forEach((uid) => {
-			const user = Users.get(uid)
-			const socket = io.of("/").sockets.get(user.socketID)
-			if (!socket.connected) {
-				socket.disconnect(true)
-				Users.disconnect(user.socketID)
+	io.use((socket, next) => {
+		const { request } = socket
+		try {
+			if (request.isAuthenticated() && request.user.access !== "banned") {
+				return next()
+			} else {
+				next(new Error("You are banned!"))
 			}
-		})
-	}, 1000 * 60 * 60 * trimIntervalHours)
+		} catch (error) {
+			debug("io.use() MW error: ", error)
+			next(new Error(error))
+		}
+	})
 
 	io.on("connection", function (socket) {
-		socket.on("setupUser", async function (passedUser, clientCB) {
-			if (!passedUser) return clientCB({ error: "server error - setupUser() - bad params" })
+		socket.on("setupUser", async function ({ user: passedUser, curRoomRID }, clientCB) {
+			if (!passedUser) return clientCB({ error: "server error - socket setupUser() - bad params" })
 
 			// Check if user is already active.
-			let user = Users.get(passedUser.uid || passedUser.uname)
+			let user = Users.get(passedUser.uid)
 			if (user) {
-				if (user.socketID === socket.id) {
-					return clientCB({ success: "server success - setupUser() - you're already setup", user })
-				} else if (user.socketID !== socket.id) {
-					return clientCB({ error: "server error - setupUser() - socket taken" })
-				}
-			} else {
-				try {
-					const dbData = await queries.chat.setup(user || passedUser)
-					user = Users.setup({ ...dbData.user, socketID: socket.id })
-
-					clientCB({
-						success: "server success - setupUser()",
-						data: {
-							...dbData,
-							user: { ...user.clientCopy() },
-						},
+				if (user.sockets.some((sid) => sid == socket.id)) {
+					return clientCB({
+						success: "server success - socket setupUser() - you're already connected from that socket",
 					})
-				} catch (error) {
-					debug("socket setupUser() error: ", error)
-					clientCB({ error: `server error - setupUser() - ${error}` })
-				}
+				} else user.addDevice(socket.id)
+			}
+			try {
+				const dbData = await queries.chat.setup(user || passedUser)
+				if (!user) user = Users.setup({ ...dbData.user, sid: socket.id, curRoomRID })
+
+				debug(`socket#${socket.id} setupUser(${user.uid}) "${user.uname}"`)
+				clientCB({
+					success: "server success - socket setupUser()",
+					data: {
+						...dbData,
+						user: user.copyDetailed(),
+					},
+				})
+			} catch (error) {
+				debug("socket setupUser() error: ", error)
+				clientCB({ error: `server error - socket setupUser() - ${error}` })
 			}
 		})
 
 		socket.on("createRoom", async function ({ uid, rname, password = null }, clientCB) {
-			let user = Users.get(uid)
-			// Make sure password is null or a string with at least 6 char.
-			const okPass = password === null || (typeof password === "string" && password.length > 5)
 			try {
+				let user = Users.get(uid)
+				// Make sure password is null or a string with at least 6 char.
+				const okPass = password === null || (typeof password === "string" && password.length > 5)
 				if (!user || !rname || !okPass) throw Error("bad params")
+
 				const nextRoom = await queries.chat.createRoom({ uid, rname, password })
 				const room = Rooms.create(nextRoom)
-				user.joinRoom(room.rid)
-
-				clientCB({ success: "server success - createRoom()", room: room.clientCopy() })
+				user.joinRoom({ rid: room.rid, sid: socket.id, makeCur: true })
+				user.syncDevices("updateRoom", room.copyShareable())
+				clientCB({ success: "server success - socket createRoom()" })
 			} catch (error) {
 				debug("socket createRoom() error: ", error)
-				clientCB({ error: `server error - createRoom() - ${error}` })
+				clientCB({ error: `server error - socket createRoom() - ${error}` })
 			}
 		})
 
 		socket.on("joinRoom", async function ({ uid, rid, password = null, makeCur, lastMsgTS }, clientCB) {
-			let user = Users.get(uid)
-			if (!rid || !user) {
-				return clientCB({ error: "server error - joinRoom() - bad params" })
-			}
 			try {
+				let user = Users.get(uid)
+				if (!rid || !user) throw Error("bad params")
+
 				let room = Rooms.get(rid)
 				if (!room) {
 					const roomRes = await queries.chat.getRoom(rid)
@@ -237,44 +267,60 @@ module.exports = function (io) {
 						throw Error("room doesn't exist")
 					}
 					room = Rooms.create(roomRes.rows[0])
-				} else if (room && user.curRoomRID == rid) {
-					return clientCB({ success: "server success - joinRoom() - already in that room! :)" })
+				} else if (room && user.curRoomRID == rid && socket.rooms.has(`${rid}`)) {
+					return clientCB({
+						success: "server success - socket joinRoom() - you're already in that room!",
+					})
 				}
 				// Check for and deal with room password. For now not hashing/encrypting.
 				if (room.password && room.password !== password) throw Error("invalid room password")
 
 				await queries.chat.joinRoom({ uid, rid })
 				let msgs = {}
-				if (!room.contains(uid)) {
+				if (!socket.rooms.has(`${rid}`)) {
 					msgs = await queries.chat.getRoomMsgs({ uid, rid, lastMsgTS })
 				}
 
-				user.joinRoom(rid, makeCur)
-
-				clientCB({
-					success: "server success - joinRoom()",
-					room: {
-						...room.clientCopy(),
-						msgs,
-					},
+				user.joinRoom({ rid, makeCur, sid: socket.id })
+				user.syncDevices("updateRoom", {
+					...room.copyShareable(),
+					msgs,
 				})
+				clientCB({ success: "server success - socket joinRoom()" })
 			} catch (error) {
 				debug("socket joinRoom() error: ", error)
-				clientCB({ error: `server error - joinRoom() - ${error}` })
+				clientCB({ error: `server error - socket joinRoom() - ${error}` })
+			}
+		})
+
+		socket.on("deleteRoom", async function ({ uid, rid }, clientCB) {
+			try {
+				const user = Users.get(uid)
+				if (!user || !rid) throw Error("bad params")
+				else if (rid == 1) throw Error("can't leave or delete room 'General'")
+
+				await queries.chat.deleteRoom({ uid, rid })
+				user.leaveRoom(rid)
+				user.syncDevices("updateRoom", { roomDeleted: true })
+				clientCB({ success: "server success - socket deleteRoom()" })
+			} catch (error) {
+				debug("socket deleteRoom() error: ", error)
+				clientCB({ error: `server error - socket deleteRoom() - ${error}` })
 			}
 		})
 
 		socket.on("getLogsDMS", async function ({ uid, recip_id, tsLogsFetched }, clientCB) {
 			try {
 				const dms = await queries.chat.getLogsDMS({ uid, recip_id, tsLogsFetched })
-				clientCB({ success: "server success - getLogsDMS()", data: { dms, recip_id } })
+				clientCB({ success: "server success - socket getLogsDMS()", data: { dms, recip_id } })
 			} catch (error) {
 				debug("socket getLogsDMS() error: ", error)
-				clientCB({ error: `server error - getLogsDMS() - ${error}` })
+				clientCB({ error: `server error - socket getLogsDMS() - ${error}` })
 			}
 		})
 
-		socket.on("sendDM", async function ({ uid, recip_id, msg }, clientCB) {
+		socket.on("sendDM", async function ({ uid, uname, recip_id, msg }, clientCB) {
+			const sender = Users.get(uid)
 			const recip = Users.get(recip_id)
 			try {
 				let dmsRes = await queries.chat.sendDM({ uid, recip_id, msg })
@@ -283,51 +329,61 @@ module.exports = function (io) {
 				const senderDMS = shared.dataUnreadTransform(dmsRes.rows, { uid, uniqKey: "dmid" })
 				const receiverDMS = shared.dataUnreadTransform(dmsRes.rows, { uid: recip_id, uniqKey: "dmid" })
 
-				if (recip)
-					socket.to(recip.socketID).emit("receiveData", { data: { dms: receiverDMS, recip_id: uid } })
-				clientCB({ success: "server success - sendDM()", data: { dms: senderDMS, recip_id } })
+				if (recip) {
+					socket
+						.to(recip.pid)
+						.emit("receiveData", { data: { dms: receiverDMS, recip_id: uid, recip_uname: uname } })
+				}
+				sender.syncDevices("receiveData", { dms: senderDMS, recip_id, recip_uname: recip.uname })
+				clientCB({ success: "server success - socket sendDM()" })
 			} catch (error) {
 				debug("socket sendDM() error: ", error)
-				clientCB({ error: `server error - sendDM() - ${error}` })
-			}
-		})
-
-		socket.on("deleteRoom", async function ({ uid, rid }, clientCB) {
-			try {
-				const user = Users.get(uid)
-				if (!user || !rid) throw Error("bad params")
-				if (rid == 1) throw Error("can't leave or delete room 'General'")
-
-				await queries.chat.deleteRoom({ uid, rid })
-				user.leaveRoom(rid)
-
-				clientCB({ success: "server success - deleteRoom()" })
-			} catch (error) {
-				debug("socket deleteRoom() error: ", error)
-				clientCB({ error: `server error - deleteRoom() - ${error}` })
+				clientCB({ error: `server error - socket sendDM() - ${error}` })
 			}
 		})
 
 		socket.on("sendRoomMsg", async function ({ uid, rid, msg }, clientCB) {
 			try {
 				const insertMsgRes = await queries.chat.sendRoomMsg({ uid, rid, msg })
-
 				const emittedMsgs = shared.dataUnreadTransform(insertMsgRes.rows, { uniqKey: "mid" })
-				socket
-					.to(`${rid}`)
-					.emit("receiveData", { data: { ...Rooms.get(rid).clientCopy(), msgs: emittedMsgs } })
+				io.in(`${rid}`).emit("receiveData", {
+					data: { ...Rooms.get(rid).copyShareable(), msgs: emittedMsgs },
+				})
 
-				const cbMsgs = shared.dataUnreadTransform(insertMsgRes.rows, { uid, uniqKey: "mid" })
-				clientCB({ success: "server success - sendMsg()", msgs: cbMsgs })
+				clientCB({ success: "server success - socket sendRoomMsg()" })
 			} catch (error) {
 				debug("socket sendRoomMsg() error: ", error)
-				clientCB({ error: `server error - sendMsg() - ${error}` })
+				clientCB({ error: `server error - socket sendRoomMsg() - ${error}` })
 			}
 		})
 
 		socket.on("log", function () {
 			Rooms.log()
 			Users.log()
+		})
+
+		socket.on("ban", async function ({ uid, pid }, clientCB) {
+			try {
+				if (socket.user && socket.user.access !== "admin") throw Error("You are not an admin!")
+				const bannedUserRes = await queries.users.ban(pid)
+				const serverBannedUser = Users.get(uid)
+				if (serverBannedUser) {
+					serverBannedUser.access = "banned"
+					serverBannedUser.syncDevices("receiveData")
+					Users.ban(uid)
+				}
+				// Go ahead and kick user above, but double check if the user returned from DB res has been marked 'banned'.
+				if (bannedUserRes.rows.length > 0) {
+					const dbBannedUser = bannedUserRes.rows[0]
+					if (dbBannedUser && dbBannedUser.access != "banned")
+						throw Error(`user returned from queries.users.ban(${pid}) should be banned, but wasn't...`)
+				} else throw Error(`queries.users.ban(${pid}) should have returned a user but didn't...`)
+
+				clientCB({ success: "server success - socket ban()" })
+			} catch (error) {
+				debug("socket ban() error: ", error)
+				clientCB({ error: `server error - socket ban() - ${error}` })
+			}
 		})
 
 		socket.on("disconnecting", function () {

@@ -1,11 +1,10 @@
 import { useState, useEffect, useMemo } from "react"
 
-import { Contexts, Debug } from "../../shared/shared"
-
-const debug = new Debug("AuthProvider: ", true)
+import { Contexts } from "../../shared/shared"
 
 function AuthProvider({ children }) {
 	const [isAuthed, setIsAuthed] = useState(false)
+	const [isBanned, setIsBanned] = useState(false)
 	const [user, setUser] = useState(null)
 
 	function getUser() {
@@ -13,19 +12,37 @@ function AuthProvider({ children }) {
 			credentials: "include",
 			withCredentials: true,
 		})
-			.then((res) => res.json())
-			.then((data) => {
-				debug.log("Auth getUser() init data: ", data)
-				if (data?.error && isAuthed) {
-					setIsAuthed(false)
-					debug.log("setIsAuthed(FALSE) parsedData: ", data)
-				} else if (data?.pid && !isAuthed) {
-					setIsAuthed(true)
-					setUser(data)
-					debug.log("setIsAuthed(TRUE) parsedData: ", data)
+			.then((res) => res.json().then((data) => ({ status: res.status, data })))
+			.then((res) => {
+				const { status, data } = res
+				console.log("getUser() res: ", res)
+				if (data?.user) console.log("<AuthProvider /> getUser() user: ", data.user)
+				switch (status) {
+					case 401:
+						setUser(null)
+						setIsBanned(false)
+						setIsAuthed(false)
+						break
+					case 403:
+						setUser(data?.user)
+						setIsBanned(true)
+						setIsAuthed(true)
+						break
+					default:
+						setUser(data?.user)
+						setIsBanned(false)
+						setIsAuthed(true)
+						break
 				}
+				if (data?.error) throw Error(data?.error)
 			})
 			.catch((error) => console.error("<AuthProvider /> getUser() error: ", error))
+	}
+
+	function resetAuth() {
+		setUser(null)
+		setIsAuthed(false)
+		getUser()
 	}
 
 	useEffect(() => {
@@ -33,7 +50,8 @@ function AuthProvider({ children }) {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [])
 
-	const authContext = useMemo(() => ({ isAuthed, user }), [isAuthed, user])
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	const authContext = useMemo(() => ({ isAuthed, isBanned, user, resetAuth }), [isAuthed, isBanned, user])
 
 	return <Contexts.Auth.Provider value={authContext}>{children}</Contexts.Auth.Provider>
 }

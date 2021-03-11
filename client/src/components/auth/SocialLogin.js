@@ -1,8 +1,10 @@
-import styled from "styled-components/macro"
+import { useContext } from "react"
+import styled, { css } from "styled-components/macro"
 
 import { ReactComponent as SvgGoogle } from "../../shared/assets/brands-icons/google.svg"
 import { ReactComponent as SvgGitHub } from "../../shared/assets/brands-icons/github.svg"
 import Button from "../ui/Button"
+import { Contexts } from "../../shared/shared"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -21,7 +23,7 @@ const Info = styled.div`
 `
 
 const Why = styled.div`
-	font-size: 1.1.em;
+	font-size: 1.1em;
 `
 
 const Reasoning = styled.div``
@@ -31,39 +33,47 @@ const LinkGroup = styled.div``
 /* -------------------------------- COMPONENT ------------------------------- */
 
 function SocialLogin({ reason, ...props }) {
+	const { isBanned } = useContext(Contexts.Auth)
+
 	return (
 		<Root {...props}>
-			<MainSection>
-				<Info>This app requires a quick sign-in to use!</Info>
-				{reason && (
-					<>
-						<Why className="enpha">Why?</Why>
-						<Reasoning>{reason}</Reasoning>
-					</>
-				)}
-				<LinkGroup>
-					<OAuthLink
-						tag="a"
-						href="/auth/google"
-						svg={SvgGoogle}
-						variant="fancy"
-						setTheme="red"
-						setColor="highlight"
-					>
-						Fast login w/ Google
-					</OAuthLink>
-					<OAuthLink
-						tag="a"
-						href="/auth/github"
-						svg={SvgGitHub}
-						variant="fancy"
-						setTheme="green"
-						setColor="highlight"
-					>
-						Fast login w/ GitHub
-					</OAuthLink>
-				</LinkGroup>
-			</MainSection>
+			{isBanned ? (
+				<MainSection>
+					<div>YOU ARE BANNED :)</div>
+				</MainSection>
+			) : (
+				<MainSection>
+					<Info>This app requires a quick sign-in to use!</Info>
+					{reason && (
+						<>
+							<Why className="enpha">Why?</Why>
+							<Reasoning>{reason}</Reasoning>
+						</>
+					)}
+					<LinkGroup>
+						<OAuthLink
+							tag="a"
+							href="/auth/google"
+							svg={SvgGoogle}
+							variant="fancy"
+							setTheme="red"
+							setColor="highlight"
+						>
+							Fast login w/ Google
+						</OAuthLink>
+						<OAuthLink
+							tag="a"
+							href="/auth/github"
+							svg={SvgGitHub}
+							variant="fancy"
+							setTheme="green"
+							setColor="highlight"
+						>
+							Fast login w/ GitHub
+						</OAuthLink>
+					</LinkGroup>
+				</MainSection>
+			)}
 		</Root>
 	)
 }

@@ -3,7 +3,7 @@
 	"version": "1.0.0",
 	"private": true,
 	"scripts": {
-		"dev": "cross-env NODE_ENV=development nodemon ./server/app",
+		"dev": "nodemon ./server/app",
 		"start": "node ./server/app",
 		"dev-build": "cd client/ && cross-env INLINE_RUNTIME_CHUNK=false npm run build",
 		"build": "cd client/ && npm install && INLINE_RUNTIME_CHUNK=false npm run build"
@@ -28,7 +28,7 @@
 		"cors": "^2.8.5",
 		"debug": "^4.3.1",
 		"express": "^4.17.1",
-		"express-rate-limit": "^5.2.5",
+		"express-rate-limit": "^5.2.6",
 		"express-session": "^1.17.1",
 		"helmet": "^4.4.1",
 		"morgan": "^1.10.0",
@@ -37,12 +37,12 @@
 		"passport-github2": "^0.1.12",
 		"passport-google-oauth20": "^2.0.0",
 		"pg": "^8.5.1",
-		"socket.io": "^3.1.1"
+		"socket.io": "^3.1.2"
 	},
 	"devDependencies": {
 		"cross-env": "^7.0.3",
 		"dotenv": "^8.2.0",
-		"eslint": "^7.19.0",
+		"eslint": "^7.21.0",
 		"find-config": "^1.0.0"
 	},
 	"cacheDirectories": [

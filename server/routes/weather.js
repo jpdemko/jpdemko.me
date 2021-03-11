@@ -1,7 +1,7 @@
 const express = require("express")
 const router = express.Router()
 const fetch = require("node-fetch")
-const debug = require("debug")("server:weather")
+const debug = require("debug")("server:routes-weather")
 
 router.get("/sun", function (req, res, next) {
 	const { lat, lng, locDate } = req.query

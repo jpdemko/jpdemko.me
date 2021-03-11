@@ -12,17 +12,17 @@ function App({ title, isFocused, tabHidden }) {
 	const appActive = !tabHidden && isFocused
 
 	// Some apps require the user to be logged in. I check this per 'app' config and the Auth context.
-	const { isAuthed, user } = useContext(Contexts.Auth)
+	const { isAuthed, isBanned, user, resetAuth } = useContext(Contexts.Auth)
 
 	// Prevent renders for apps from frequent Display and Window component updates.
 	const App = mountableApps[title]
-	const memoApp = useMemo(() => <App appActive={appActive} title={title} user={user} />, [
-		appActive,
-		title,
-		user,
-	])
+	const memoApp = useMemo(
+		() => <App appActive={appActive} title={title} user={user} resetAuth={resetAuth} />,
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		[appActive, title, user]
+	)
 
-	if (App && (!App.shared.authRequired || (App.shared.authRequired && isAuthed && user))) {
+	if (App && (!App.shared.authRequired || (App.shared.authRequired && isAuthed && !isBanned && user))) {
 		return memoApp
 	} else {
 		return <SocialLogin reason={App?.shared.authReasoning} />

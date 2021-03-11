@@ -13,10 +13,11 @@ module.exports = function (passport) {
 	passport.deserializeUser(async function (pid, done) {
 		try {
 			const res = await queries.users.getUserByPID(pid)
-			debug("passport deserializeUser(): ", res.rows[0])
-			done(null, res.rows[0])
+			const user = res.rows[0]
+			debug("passport.deserializeUser(): ", user)
+			done(null, user)
 		} catch (error) {
-			debug("passport deserializeUser() error: ", error)
+			debug("passport.deserializeUser() error: ", error)
 			done(error)
 		}
 	})

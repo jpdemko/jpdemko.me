@@ -1,3 +1,6 @@
+/* eslint-disable no-fallthrough */
+/* eslint-disable no-inner-declarations */
+
 const path = require("path")
 
 const isProd = process.env.NODE_ENV === "production"
@@ -24,7 +27,7 @@ const compression = require("compression")
 const cluster = require("cluster")
 const numCPUs = require("os").cpus().length
 
-if (!isProd) debug(`HELLO!!! isProd: ${isProd}, isHerokuLocal: ${isHerokuLocal}`)
+if (!isProd) console.log(`HELLO!!! isProd: ${isProd}, isHerokuLocal: ${isHerokuLocal}`)
 
 let app = null
 
@@ -43,11 +46,6 @@ if (isProd && cluster.isMaster) {
 
 	if (isProd || isHerokuLocal) app.use(express.static(path.resolve(__dirname, "../client/build")))
 
-	// const limiter = rateLimiter({
-	// 	windowMs: 1 * 60 * 1000, // time
-	// 	max: 10, // requests,
-	// })
-	// app.use(limiter)
 	if (isProd) {
 		app.use(compression())
 		app.set("trust proxy", 1)
@@ -106,24 +104,22 @@ if (isProd && cluster.isMaster) {
 	app.use(express.json())
 	app.use(express.urlencoded({ extended: false }))
 	app.use(cookieParser(process.env.SESSION_SECRET))
-	app.use(
-		session({
-			name: "sessionID",
-			store: new pgSession({ pool: db }),
-			secret: process.env.SESSION_SECRET,
-			resave: true,
-			saveUninitialized: false, // If you want all the sessions to be saved in store, even if they don't have any modifications?
-			cookie: {
-				maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-				secure: isProd,
-			},
-		})
-	)
+	const sessionMW = session({
+		name: "jpd.sid",
+		store: new pgSession({ pool: db }),
+		secret: process.env.SESSION_SECRET,
+		resave: true,
+		saveUninitialized: true,
+		cookie: {
+			maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+			secure: isProd,
+		},
+	})
+	app.use(sessionMW)
 	app.use(passport.initialize())
 	app.use(passport.session())
 
-	require("./passport")(passport)
-
+	// ROUTES
 	app.use("/auth", require("./routes/auth")(passport))
 	app.use("/weather", require("./routes/weather"))
 	if (isProd || isHerokuLocal) {
@@ -132,12 +128,29 @@ if (isProd && cluster.isMaster) {
 		})
 	} else app.use("/", require("./routes/index"))
 
+	// GENERIC ERROR HANDLER
+	app.use(function (err, req, res, next) {
+		console.error(err)
+		res.status(err.status || 500).send({
+			error: {
+				status: err.status || 500,
+				message: err.message || "Internal Server Error",
+			},
+		})
+	})
+
+	require("./passport")(passport)
+
 	const server = require("http").createServer(app)
 	const port = process.env.PORT || 5000
 	app.set("port", port)
 
-	// @ts-ignore
 	const io = require("socket.io")(server, { cors: corsOptions })
+	// https://socket.io/docs/v3/middlewares/
+	const wrap = (middleware) => (socket, next) => middleware(socket.request, {}, next)
+	io.use(wrap(sessionMW))
+	io.use(wrap(passport.initialize()))
+	io.use(wrap(passport.session()))
 	require("./socketAPI")(io)
 
 	server.listen(port)

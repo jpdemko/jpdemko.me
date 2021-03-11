@@ -9,6 +9,7 @@ import { ReactComponent as SvgUser } from "../../shared/assets/material-icons/us
 import { ReactComponent as SvgGroupAdd } from "../../shared/assets/material-icons/group-add.svg"
 import { ReactComponent as SvgAdd } from "../../shared/assets/material-icons/add.svg"
 import { ReactComponent as SvgChat } from "../../shared/assets/material-icons/chat.svg"
+import { ReactComponent as SvgBlock } from "../../shared/assets/material-icons/block.svg"
 import { Contexts } from "../../shared/shared"
 import Button from "../ui/Button"
 import Modal from "../ui/Modal"
@@ -90,7 +91,9 @@ const RoomDataBtn = styled(Button)`
 	`}
 `
 
-const User = styled(Button)`
+const UserRow = styled.div``
+
+const UserBtn = styled(Button)`
 	margin-left: calc(var(--chatnav-padding) * 6);
 `
 
@@ -181,6 +184,7 @@ function ChatNav({
 	deleteRoom,
 	openDM,
 	user,
+	ban,
 	...props
 }) {
 	const { setAppDrawerContent, isMobileWindow } = useContext(Contexts.Window)
@@ -244,8 +248,11 @@ function ChatNav({
 	const sortedRIDS = useMemo(() => {
 		return myRooms
 			? Object.keys(myRooms).sort((rid1, rid2) => {
-					const ts1 = myRooms?.[rid1]?.users_last_msg_ts
-					const ts2 = myRooms?.[rid2]?.users_last_msg_ts
+					const lastMID1 = myRooms?.[rid1]?.users_last
+					const ts1 = myRooms?.[rid1]?.msgs?.[lastMID1]?.created_at
+					const lastMID2 = myRooms?.[rid2]?.users_last
+					const ts2 = myRooms?.[rid2]?.msgs?.[lastMID2]?.created_at
+					// console.log(`${ts1} < ${ts2} = ${ts1 < ts2}`)
 					return ts1 < ts2 ? 1 : ts1 > ts2 ? -1 : 0
 			  })
 			: []
@@ -298,7 +305,7 @@ function ChatNav({
 										svg={SvgArrowRight}
 										isFocused={rid == curRoomRID}
 										onClick={() => joinPrevRoom(myRooms?.[rid])}
-										badge={myRooms?.[rid]?.msgs?.unread > 0 ? "!" : null}
+										badge={myRooms?.[rid]?.msgs?.totalUnread > 0 ? "!" : null}
 									>
 										<Data className="chLimit">
 											<span>{myRooms?.[rid]?.rname}</span>
@@ -317,16 +324,24 @@ function ChatNav({
 									Object.keys(myRooms[curRoomRID]?.activeUsers)?.map((uid) => {
 										const actUser = myRooms[curRoomRID].activeUsers[uid]
 										return (
-											<div key={uid}>
-												<User
+											<UserRow key={uid}>
+												<UserBtn
 													svg={SvgUser}
 													isFocused={actUser.uid == user.uid}
 													onClick={() => openDM(actUser)}
 													className="chLimit"
 												>
 													{actUser.uname}
-												</User>
-											</div>
+												</UserBtn>
+												{user?.access === "admin" && user?.uid != actUser?.uid && (
+													<Button
+														svg={SvgBlock}
+														onClick={() => ban(actUser)}
+														setTheme="red"
+														setColor="primary"
+													/>
+												)}
+											</UserRow>
 										)
 									})}
 							</Room>
@@ -355,7 +370,7 @@ function ChatNav({
 									key={recip_id}
 									isFocused={recip_id == curDMUID}
 									onClick={() => openDM(recipUser)}
-									badge={myDMS[recip_id]?.dms?.unread > 0 ? "!" : null}
+									badge={myDMS[recip_id]?.dms?.totalUnread > 0 ? "!" : null}
 									column
 								>
 									<div className="latest-dm-row chLimit">
@@ -375,7 +390,7 @@ function ChatNav({
 	]
 
 	const drawerContent = (
-		<DrawerRoot>
+		<DrawerRoot {...props}>
 			<Accordion data={accordionData} />
 		</DrawerRoot>
 	)

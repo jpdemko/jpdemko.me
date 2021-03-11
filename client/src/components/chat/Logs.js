@@ -9,6 +9,7 @@ import HorizLine from "../ui/HorizLine"
 import Link from "../ui/Link"
 import { ReactComponent as SvgUser } from "../../shared/assets/material-icons/user.svg"
 import { ReactComponent as SvgArrowDownCircle } from "../../shared/assets/material-icons/arrow-down-circle.svg"
+import { ReactComponent as SvgBlock } from "../../shared/assets/material-icons/block.svg"
 import { useEventListener, usePrevious } from "../../shared/hooks"
 import { Debug } from "../../shared/shared"
 
@@ -47,6 +48,12 @@ const Info = styled.div`
 	> * {
 		flex: 0 0 auto;
 	}
+	button {
+		height: 1.2em;
+		svg {
+			height: 100%;
+		}
+	}
 	${({ authored }) => css`
 		flex-direction: ${authored ? "row-reverse" : "row"};
 	`}
@@ -63,19 +70,12 @@ const Content = styled.div`
 	padding: var(--chat-padding) calc(var(--chat-padding) * 2);
 `
 
-const UserBtn = styled(Button)`
-	height: 1.2em;
-	svg {
-		height: 100%;
-	}
-`
+const UserBtn = styled(Button)``
 
 const Lessen = styled.span`
 	opacity: 0.55;
 	font-style: italic;
-	${({ authored }) => css`
-		margin: 0 var(--chat-padding);
-	`}
+	margin: 0 var(--chat-padding);
 `
 
 const CenterChildrenDiv = styled.div`
@@ -114,7 +114,7 @@ const linkifyCompDec = (href, text, key) => (
 	</Link>
 )
 
-const Log = memo(({ data, authored, openDM, id, children }) => {
+const Log = memo(({ user, ban, data, authored, openDM, id, children }) => {
 	const { uid, uname, mid, dmid, created_at } = data
 	if (!mid && !dmid) return null
 
@@ -129,6 +129,9 @@ const Log = memo(({ data, authored, openDM, id, children }) => {
 				</Content>
 			</ContentBG>
 			<Info authored={authored}>
+				{user?.access === "admin" && user?.uid != uid && (
+					<Button svg={SvgBlock} onClick={() => ban(data)} setTheme="red" setColor="primary" />
+				)}
 				<UserBtn
 					svg={SvgUser}
 					isFocused={authored}
@@ -145,9 +148,13 @@ const Log = memo(({ data, authored, openDM, id, children }) => {
 	)
 })
 
-function Logs({ data, user, openDM, roomsShown, inputSent, ...props }) {
+function Logs({ data, user, openDM, roomsShown, inputSent, ban, ...props }) {
 	const rootRef = useRef()
 	const [followLast, setFollowLast] = useState(null)
+
+	const logType = roomsShown ? "msgs" : "dms"
+	const logsLength = data?.[logType] ? Object.keys(data[logType]).length : 0
+	const totalUnread = data?.[logType]?.totalUnread
 
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	const handleScrolling = useCallback(
@@ -172,10 +179,7 @@ function Logs({ data, user, openDM, roomsShown, inputSent, ...props }) {
 		if (!followLast) setFollowLast(true)
 	}, [followLast, handleScrolling])
 
-	const logType = roomsShown ? "msgs" : "dms"
-
 	// Determine where to scroll on fresh start or following updates.
-	const logsLength = data?.[logType] ? Object.keys(data[logType]).length : 0
 	useEffect(() => {
 		if (followLast === null) {
 			const horizLine = document.getElementById("chat-unread-start")
@@ -196,7 +200,7 @@ function Logs({ data, user, openDM, roomsShown, inputSent, ...props }) {
 		if (logsLength < 1) return null
 
 		// Remove non id keys like { unread: true } instead of { 12: {} }
-		const ids = Object.keys(data[logType]).filter((id) => isNaN(data[logType][id]))
+		const ids = Object.keys(data[logType]).filter((id) => !isNaN(id))
 
 		// Need to quickly find, copy, and add properties of logs for returned data.
 		function getLog(i) {
@@ -237,7 +241,7 @@ function Logs({ data, user, openDM, roomsShown, inputSent, ...props }) {
 				foundUnread = true
 				HL = <HorizLine id="chat-unread-start">NEW MESSAGES BELOW</HorizLine>
 			}
-			return (
+			return !lastLog ? null : (
 				<Fragment key={`${lastLog.uid}-${i}`}>
 					{HL}
 					<Log
@@ -245,6 +249,8 @@ function Logs({ data, user, openDM, roomsShown, inputSent, ...props }) {
 						authored={user.uid == lastLog.uid}
 						id={i === allLogs.length - 1 ? "logs-end" : null}
 						openDM={openDM}
+						user={user}
+						ban={ban}
 					>
 						{logGroup.map((log, i) => (
 							<div key={log?.dmid || log?.mid}>{log.msg}</div>
@@ -254,7 +260,7 @@ function Logs({ data, user, openDM, roomsShown, inputSent, ...props }) {
 			)
 		})
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [logsLength, roomsShown, data])
+	}, [data, logType, logsLength, totalUnread])
 
 	return (
 		<>
