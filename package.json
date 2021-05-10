@@ -19,8 +19,7 @@
 	},
 	"homepage": "https://github.com/jpdemko/jpdemko.me#readme",
 	"engines": {
-		"node": "14.x",
-		"npm": "16.x"
+		"node": "14.x"
 	},
 	"dependencies": {
 		"compression": "^1.7.4",
