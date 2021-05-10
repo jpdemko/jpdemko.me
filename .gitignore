@@ -27,3 +27,4 @@ TODO
 *.pem
 *.crt
 *.key
+package-lock.json
