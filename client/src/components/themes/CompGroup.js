@@ -1,6 +1,6 @@
 import styled, { css } from "styled-components/macro"
 
-import { Banner } from "../ui/Misc"
+import { Banner } from "../ui/Banner"
 
 /* --------------------------------- STYLES --------------------------------- */
 
