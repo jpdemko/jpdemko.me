@@ -11,9 +11,9 @@ import { ReactComponent as SvgAdd } from "../../shared/assets/material-icons/add
 import { ReactComponent as SvgChat } from "../../shared/assets/material-icons/chat.svg"
 import { ReactComponent as SvgBlock } from "../../shared/assets/material-icons/block.svg"
 import { Contexts } from "../../shared/shared"
+import { Input } from "../ui/IO"
 import Button from "../ui/Button"
 import Modal from "../ui/Modal"
-import { Input } from "../ui/io"
 import Accordion from "../ui/Accordion"
 
 /* --------------------------------- STYLES --------------------------------- */

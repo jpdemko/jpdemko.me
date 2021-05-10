@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react"
 import styled from "styled-components/macro"
 
-import { MsgBox } from "../ui/io"
 import filter from "./filter"
+import { MsgBox } from "../ui/IO"
 
 /* --------------------------------- STYLES --------------------------------- */
 

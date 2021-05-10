@@ -8,9 +8,9 @@ import imgWeather from "../../shared/assets/images/Weather.jpg"
 import imgChat from "../../shared/assets/images/Chat.jpg"
 import { ReactComponent as SvgGithub } from "../../shared/assets/brands-icons/github.svg"
 import { ReactComponent as SvgEmail } from "../../shared/assets/material-icons/email.svg"
+import { Banner } from "../ui/Misc"
 import Link from "../ui/Link"
 import Project from "./Project"
-import { Banner } from "../ui/misc"
 
 /* --------------------------------- STYLES --------------------------------- */
 

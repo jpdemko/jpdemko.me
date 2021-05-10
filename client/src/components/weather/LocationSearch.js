@@ -5,9 +5,9 @@ import styled, { css } from "styled-components/macro"
 
 import { useUpdatedValRef } from "../../shared/hooks"
 import { ReactComponent as SvgLocation } from "../../shared/assets/material-icons/location.svg"
-import Button from "../ui/Button"
 import { opac } from "../../shared/shared"
-import { Input } from "../ui/io"
+import Button from "../ui/Button"
+import { Input } from "../ui/IO"
 
 /* --------------------------------- STYLES --------------------------------- */
 
