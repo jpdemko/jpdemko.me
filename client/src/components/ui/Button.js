@@ -1,4 +1,5 @@
 import { lighten, saturate } from "polished"
+import { forwardRef } from "react"
 import styled, { css, keyframes } from "styled-components/macro"
 
 import { opac } from "../../shared/shared"
@@ -243,7 +244,7 @@ const Badge = styled.span`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function Button({ tag, variant, badge, gleam, children, ...props }) {
+const Button = forwardRef(({ tag, variant, badge, gleam, children, ...props }, ref) => {
 	let ButtonVariant = BasicButton
 	if (variant) {
 		if (variant.includes("outline")) ButtonVariant = OutlinedButton
@@ -255,7 +256,7 @@ function Button({ tag, variant, badge, gleam, children, ...props }) {
 
 	return (
 		<ThemeCheck {...props}>
-			<ButtonVariant {...props} as={tag}>
+			<ButtonVariant {...props} as={tag} ref={ref}>
 				{badge && <Badge className="chLimit">{badge}</Badge>}
 				{gleam && <Gleam />}
 				{props.svg && <props.svg />}
@@ -263,6 +264,6 @@ function Button({ tag, variant, badge, gleam, children, ...props }) {
 			</ButtonVariant>
 		</ThemeCheck>
 	)
-}
+})
 
 export default Button

@@ -9,7 +9,7 @@ import imgChat from "../../shared/assets/images/Chat.jpg"
 import { ReactComponent as SvgGithub } from "../../shared/assets/brands-icons/github.svg"
 import { ReactComponent as SvgEmail } from "../../shared/assets/material-icons/email.svg"
 import Link from "../ui/Link"
-import { Banner } from "../ui/Banner"
+import { Banner } from "../ui/Misc"
 import Project from "./Project"
 
 /* --------------------------------- STYLES --------------------------------- */

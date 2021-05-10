@@ -39,6 +39,9 @@ const MenuTitleBtn = styled(Button)`
 	padding: 0;
 	flex: 0 0 auto;
 	justify-content: flex-start;
+	> div:last-child {
+		flex: 1 1;
+	}
 	${({ opened, animDuration }) => css`
 		> svg {
 			transition: transform ${animDuration}s;
@@ -69,22 +72,25 @@ function Menu({ data, startOpened = true, animDuration }) {
 	const prevOpened = usePrevious(opened)
 
 	const contentRef = useRef()
+	const btnRef = useRef()
 	const [heights, setHeights] = useState({ content: "100vmax", btn: "auto" })
 	useLayoutEffect(() => {
-		if (prevOpened === opened) return
 		const cnt = contentRef.current
-		const btn = document.getElementById(`btn-${id}`)
-		setHeights({
-			content: `${cnt.scrollHeight}px`,
-			btn: `${btn.scrollHeight}px`,
-		})
-	}, [prevOpened, opened, content, id])
+		const btn = btnRef.current
+		if (`${cnt.scrollHeight}px` !== heights.content || `${btn.scrollHeight}px` !== heights.btn) {
+			setHeights({
+				content: `${cnt.scrollHeight}px`,
+				btn: `${btn.scrollHeight}px`,
+			})
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [content, heights])
 
 	return !data ? null : (
 		<MenuRoot opened={opened} animDuration={animDuration} heights={heights}>
 			<MenuTitleBtn
+				ref={btnRef}
 				tag="div"
-				id={`btn-${id}`}
 				variant="solid"
 				onClick={() => setOpened((prev) => !prev)}
 				svg={SvgArrowRight}

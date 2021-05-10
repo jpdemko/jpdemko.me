@@ -41,7 +41,7 @@ const Header = styled.div`
 
 const RoomsSubHeader = styled.div`
 	height: 1.5em;
-	margin-left: var(--chatnav-padding);
+	margin-left: auto;
 	display: flex;
 `
 
@@ -383,11 +383,6 @@ function ChatNav({
 								</LatestDM>
 							)
 						})}
-					{new Array(10).fill(null).map((e, i) => (
-						<div style={{ padding: ".5em" }} key={i}>
-							Lorem ipsum dolor sit amet consectetur, adipisicing elit. Ullam, voluptatem!
-						</div>
-					))}
 				</DMs>
 			),
 		},
