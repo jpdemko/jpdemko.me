@@ -25,7 +25,7 @@ export const ls = {
 			if (typeof value !== "string") value = stringify(value)
 			localStorage.setItem(key, value)
 		} catch (error) {
-			console.error("ls.set() error: ", error)
+			console.error(`ls.set(${key}) error: `, error)
 			return null
 		}
 	},
@@ -45,10 +45,9 @@ export const flags = {
 /* -------------------------------------------------------------------------- */
 
 export const Contexts = {
-	PortfolioOS: createContext(),
+	Index: createContext(),
 	Window: createContext(),
 	Auth: createContext(),
-	Themes: createContext(),
 }
 
 /* -------------------------------------------------------------------------- */
@@ -56,43 +55,94 @@ export const Contexts = {
 const baseThemes = {
 	light: {
 		name: "light",
+		type: "light",
+		public: true,
 		primary: "#F5F8FA",
 		primaryContrast: "#1C2B36",
 		background: "#F5F8FA",
-		bgContrast: "#1C2B36",
-		altBackground: "#E4EBF1",
+		backgroundContrast: "#1C2B36",
+		backgroundAlt: "#E4EBF1",
 		highlight: "#3BA4FF",
+		highlightContrast: "#F5F8FA",
 		accent: "#9abfe0",
 	},
 	dark: {
 		name: "dark",
+		type: "dark",
+		public: true,
 		primary: "#222121",
 		primaryContrast: "#FAF5F5",
 		background: "#222121",
-		bgContrast: "#FAF5F5",
-		altBackground: "#343232",
+		backgroundContrast: "#FAF5F5",
+		backgroundAlt: "#343232",
 		highlight: "#CA3131",
-		accent: "#654141",
+		highlightContrast: "#FAF5F5",
+		accent: "#993333",
 	},
 	blue: {
 		name: "blue",
+		type: "dark",
+		public: true,
 		primary: "#1DA1F2",
 		primaryContrast: "#F5F8FA",
 		background: "#061E2C",
-		bgContrast: "#F5F8FA",
-		altBackground: "#082C42",
+		backgroundContrast: "#F5F8FA",
+		backgroundAlt: "#082C42",
 		highlight: "#1DA1F2",
+		highlightContrast: "#F5F8FA",
 		accent: "#007CC9",
+	},
+	purple: {
+		name: "purple",
+		type: "light",
+		public: true,
+		backgroundAlt: "#EAE6F0",
+		background: "#F7F5FA",
+		backgroundContrast: "#312653",
+		highlight: "#6637D6",
+		highlightContrast: "#F7F5FA",
+		primary: "#6637D6",
+		primaryContrast: "#F7F5FA",
+		accent: "#A238FF",
 	},
 	red: {
 		name: "red",
+		type: "light",
+		public: true,
 		primary: "#DB1A4A",
 		primaryContrast: "#F9F4F6",
-		altBackground: "#F1E5E9",
-		bgContrast: "#3C0815",
+		backgroundAlt: "#F1E5E9",
+		backgroundContrast: "#3C0815",
 		background: "#F9F4F6",
 		highlight: "#DB1A4A",
+		highlightContrast: "#F9F4F6",
 		accent: "#AE1C41",
+	},
+	green: {
+		name: "green",
+		type: "light",
+		public: false,
+		backgroundAlt: "#E4EEEB",
+		background: "#F4F9F7",
+		backgroundContrast: "#204234",
+		highlight: "#1BDC8C",
+		highlightContrast: "#204234",
+		primary: "#1BDC8C",
+		primaryContrast: "#204234",
+		accent: "#17B573",
+	},
+	yellow: {
+		name: "yellow",
+		type: "light",
+		public: false,
+		backgroundAlt: "#E4EEEB",
+		background: "#FAF9F5",
+		backgroundContrast: "#332F15",
+		highlight: "#f5e46e",
+		highlightContrast: "#332F15",
+		primary: "#f5e46e",
+		primaryContrast: "#332F15",
+		accent: "#C6B545",
 	},
 }
 
@@ -107,13 +157,18 @@ const baseThemes = {
 /**
  * @typedef {Object} Theme
  * @property {string} name
+ * @property {string} type
+ * @property {boolean} public
  * @property {string} background Should be very light or dark.
- * @property {string} altBackground Slight offset of the regular background.
- * @property {string} bgContrast Text color readable on both backgrounds.
- * @property {string} highlight Color used to highlight/emphasis text.
+ * @property {string} backgroundAlt Slight offset of the regular background.
+ * @property {string} backgroundContrast Color readable on both backgrounds.
+ * @property {string} highlight Color used to highlight/emphasis something.
+ * @property {string} highlightContrast
  * @property {string} primary The primary color of the theme.
- * @property {string} primaryContrast Text color readable on the main theme's color.
- * @property {string} accent Slight offset of primary theme color.
+ * @property {string} primaryContrast
+ * @property {string} accent Slight offset of the primary theme color.
+ * @property {string} darkestColor Darkest color automatically selected from previous properties.
+ * @property {string} lightestColor Lightest color automatically selected from previous properties.
  * @property {ThemeReadableColor} [readableColor]
  */
 
@@ -123,14 +178,18 @@ const baseThemes = {
  */
 function createTheme(theme) {
 	let sortedLumin = Object.entries(theme)
-		.map(([name, hex]) => (typeof hex === "string" && hex.includes("#") ? [name, getLuminance(hex)] : null))
-		.filter((arr) => arr !== null)
+		.filter(([k, v]) => typeof v === "string" && v.includes("#"))
+		.map(([name, hex]) => [name, getLuminance(hex)])
 		.sort(([, lumi1], [, lumi2]) => (lumi1 > lumi2 ? 1 : lumi1 < lumi2 ? -1 : 0))
 	const darkKV = sortedLumin.shift()
 	const lightKV = sortedLumin.pop()
+	const darkHex = darkKV?.[0] ? theme[darkKV[0]] : "#222121"
+	const lightHex = lightKV?.[0] ? theme[lightKV[0]] : "#F5F8FA"
 	return {
 		...theme,
-		readableColor: (bgColor) => readableColor(bgColor, theme?.[darkKV?.[0]], theme?.[lightKV?.[0]], false),
+		darkestColor: darkHex,
+		lightestColor: lightHex,
+		readableColor: (bgColor) => readableColor(bgColor, darkHex, lightHex, false),
 	}
 }
 
@@ -214,6 +273,11 @@ export class Styles {
 			return null
 		}
 	}
+
+	set(ele) {
+		if (!ele) return
+		this.ele = window.getComputedStyle(ele)
+	}
 }
 
 /* -------------------------------------------------------------------------- */
@@ -287,3 +351,23 @@ export function Debug(prefix, localEnabled) {
 	this.log = localEnabled && DEBUG_ENABLED ? console.log.bind(window.console, prefix) : function () {}
 	return this
 }
+
+/* -------------------------------------------------------------------------- */
+
+export class GenSeqID {
+	constructor(startNum) {
+		this.curNum = startNum ?? 0
+	}
+
+	get(skipN = 3) {
+		this.curNum -= skipN
+		return this.curNum
+	}
+
+	set(newNum) {
+		this.curNum = newNum
+		return this.curNum
+	}
+}
+
+export const zOverlayGen = new GenSeqID(300000)

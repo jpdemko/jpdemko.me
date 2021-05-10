@@ -1,7 +1,7 @@
 import styled, { css } from "styled-components/macro"
 import { useContext } from "react"
 
-import { Contexts, setupAppSharedOptions } from "../../shared/shared"
+import { Contexts, setupAppSharedOptions, themes } from "../../shared/shared"
 import { ReactComponent as SvgSmile } from "../../shared/assets/material-icons/smile.svg"
 import imgPortfolioOS from "../../shared/assets/images/PortfolioOS.jpg"
 import imgWeather from "../../shared/assets/images/Weather.jpg"
@@ -10,31 +10,20 @@ import { ReactComponent as SvgGithub } from "../../shared/assets/brands-icons/gi
 import { ReactComponent as SvgEmail } from "../../shared/assets/material-icons/email.svg"
 import Link from "../ui/Link"
 import Project from "./Project"
+import { Banner } from "../ui/misc"
 
 /* --------------------------------- STYLES --------------------------------- */
 
 const ProjList = styled.div`
+	> * {
+		margin-bottom: var(--content-spacing);
+	}
 	> div:nth-child(even) {
 		flex-direction: row-reverse;
-	}
-	> * {
-		margin: var(--content-spacing) 0;
 	}
 `
 
 const ContactFooter = styled.div``
-
-const Banner = styled.div`
-	line-height: 1;
-	text-transform: uppercase;
-	font-weight: bold;
-	font-size: 2em;
-	padding: 0.1em 0.2em;
-	${({ theme }) => css`
-		background: ${theme.highlight};
-		color: ${theme.background};
-	`}
-`
 
 const Root = styled.div``
 
@@ -55,8 +44,13 @@ const IntroLinks = styled.div`
 export const LogoLink = styled(Link)`
 	background: none;
 	${({ theme }) => css`
-		color: ${theme.bgContrast};
-		&:hover {
+		color: ${theme.backgroundContrast};
+		@media (hover) {
+			&:hover {
+				color: ${theme.highlight};
+			}
+		}
+		&:active {
 			color: ${theme.highlight};
 		}
 	`}
@@ -71,20 +65,22 @@ function About({ title, ...props }) {
 		<Root {...props} isMobileWindow={isMobileWindow}>
 			<MainSection>
 				<Intro>
-					<NameRow>
-						Hello, my name is <span className="enpha">Preston Demko</span>.
-					</NameRow>
 					<div>
-						I'm a <span className="enpha">full-stack</span> developer based in San Antonio.
+						<NameRow>
+							Hello, my name is <span className="enpha">Preston Demko</span>.
+						</NameRow>
+						<div>
+							I'm a <span className="enpha">full-stack</span> developer based in San Antonio.
+						</div>
+						<IntroLinks>
+							<LogoLink href="https://github.com/jpdemko">
+								<SvgGithub />
+							</LogoLink>
+							<LogoLink href="mailto:prestondemko@gmail.com">
+								<SvgEmail />
+							</LogoLink>
+						</IntroLinks>
 					</div>
-					<IntroLinks>
-						<LogoLink href="https://github.com/jpdemko">
-							<SvgGithub />
-						</LogoLink>
-						<LogoLink href="mailto:prestondemko@gmail.com">
-							<SvgEmail />
-						</LogoLink>
-					</IntroLinks>
 				</Intro>
 				<Banner>Projects</Banner>
 				<ProjList>
@@ -192,16 +188,7 @@ function About({ title, ...props }) {
 About.shared = setupAppSharedOptions({
 	title: "About",
 	logo: SvgSmile,
-	theme: {
-		name: "green",
-		altBackground: "#E4EEEB",
-		background: "#F4F9F7",
-		bgContrast: "#204234",
-		highlight: "#1BDC8C",
-		primary: "#1BDC8C",
-		primaryContrast: "#F4F9F7",
-		accent: "#17B573",
-	},
+	theme: themes.blue,
 })
 
 export default About

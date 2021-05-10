@@ -6,23 +6,47 @@ import ThemeCheck from "./ThemeCheck"
 
 /* --------------------------------- STYLES --------------------------------- */
 
+const Gleam = styled.div`
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	top: 0;
+	left: 0;
+	overflow: hidden;
+	&::before {
+		content: "";
+		position: absolute;
+		transform: skewX(20deg) translate(-6%, 0);
+		transform-origin: top left;
+		z-index: 9999;
+		background: white;
+		opacity: 0.1;
+		top: 0;
+		right: -23%;
+		width: 80%;
+		height: 100%;
+		transition: 0.225s;
+		pointer-events: none;
+	}
+`
+
+const BtnContent = styled.div`
+	flex: 0 0 auto;
+`
+
 export const ButtonBase = styled.button.attrs(({ svg, column, reverse, ...props }) => {
-	reverse = reverse ? "" : "-reverse"
+	reverse = reverse ? "-reverse" : ""
 	let varCSS = {
 		...props,
 		column,
-		fontSize: "1em",
 		horizPad: "0.6em",
 		vertPad: "0.4em",
 		flexDirection: column ? `column${reverse}` : `row${reverse}`,
 		alignItems: column ? "stretch" : "center",
 	}
-	if (svg) {
-		varCSS.horizPad = `calc(${varCSS.horizPad} * 0.75)`
-		varCSS.vertPad = `calc(${varCSS.vertPad} * 0.75)`
-	}
 	return varCSS
 })`
+	position: relative;
 	display: inline-flex;
 	justify-content: center;
 	border: none;
@@ -32,42 +56,74 @@ export const ButtonBase = styled.button.attrs(({ svg, column, reverse, ...props 
 	position: relative;
 	border-radius: 0;
 	padding: 0;
-	${({ flexDirection, alignItems, fontSize, theme, disabled, column, vertPad, horizPad }) => css`
+	${({ flexDirection, alignItems, theme, disabled, column, vertPad, horizPad, gleam }) => css`
 		flex-direction: ${flexDirection};
 		align-items: ${alignItems};
-		font-size: ${fontSize};
 		box-shadow: 0 0 0 0 ${theme.accent};
 		opacity: ${disabled ? 0.33 : 1};
 		cursor: ${disabled ? "default" : "pointer"};
-		> * {
+		> svg,
+		> ${BtnContent} {
 			margin-top: ${vertPad};
 			margin-right: ${column ? horizPad : 0};
-			margin-bottom: ${column ? 0 : vertPad};
+			margin-bottom: ${vertPad};
 			margin-left: ${horizPad};
 		}
-		> *:first-child {
+		> *:last-child {
 			margin-right: ${horizPad};
 			margin-bottom: ${vertPad};
 		}
-		svg {
+		> svg {
 			flex: ${column ? 1 : 0} 1 auto;
+		}
+		svg + ${BtnContent} {
+			margin-right: ${!column && `calc(${horizPad} * 1.5) !important`};
+			margin-top: ${column && 0};
+		}
+		@media (hover) {
+			&:hover ${Gleam}::before {
+				transform: skewX(20deg) translate(4%, 0);
+				opacity: 0.2;
+			}
+		}
+		&:active ${Gleam}::before {
+			transform: skewX(20deg) translate(10%, 0);
+			opacity: 0.2;
 		}
 	`}
 `
 
 const BasicButton = styled(ButtonBase).attrs(({ color, theme, ...props }) => ({
 	...props,
-	color: color ?? theme.bgContrast,
+	color: color ?? theme.backgroundContrast,
 	theme,
 }))`
 	${(props) => css`
 		color: ${props.color};
 		background: ${opac(props.isFocused ? 0.15 : 0, props.color)};
+		box-shadow: 0 0 0 1px ${opac(props.isFocused ? 0.2 : 0, props.color)};
 		&:focus {
-			box-shadow: 0 0 0 1px ${props.color};
+			background: ${opac(0.1, props.color)};
+		}
+		@media (hover) {
+			&:hover {
+				box-shadow: 0 0 0 1px ${opac(0.4, props.color)};
+				background: ${opac(0.2, props.color)};
+			}
 		}
 		&:active {
-			background: ${opac(0.25, props.color)};
+			box-shadow: 0 0 0 1px ${props.color};
+			background: ${opac(0.4, props.color)};
+		}
+	`}
+`
+
+const OutlinedButton = styled(BasicButton)`
+	${(props) => css`
+		box-shadow: 0 0 0 1px ${opac(0.6, props.color)};
+		&:focus {
+			box-shadow: 0 0 0 1px ${opac(0.7, props.color)};
+			background: ${opac(0.15, props.color)};
 		}
 		@media (hover) {
 			&:hover {
@@ -75,94 +131,135 @@ const BasicButton = styled(ButtonBase).attrs(({ color, theme, ...props }) => ({
 				background: ${opac(0.2, props.color)};
 			}
 		}
+		&:active {
+			box-shadow: 0 0 0 1px ${props.color}, 0 0 0 3px ${opac(0.75, props.color)};
+			background: ${opac(0.3, props.color)};
+		}
 	`}
 `
 
-const OutlinedButton = styled(BasicButton)`
-	${(props) => css`
-		box-shadow: 0 0 0 1px ${props.color};
-		&:active {
-			box-shadow: 0 0 0 3px ${props.color};
+const SolidButton = styled(ButtonBase).attrs(({ color, colorContrast, theme, gleam, ...props }) => ({
+	...props,
+	color: color ?? theme.highlight,
+	colorContrast: colorContrast ?? theme.highlightContrast,
+	theme,
+}))`
+	${({ theme, color, colorContrast }) => css`
+		background: ${color};
+		color: ${colorContrast};
+		box-shadow: 0 1px 8px 1px ${opac(0.5, theme.accent)}, 0 0 0 1px ${opac(0.7, theme.accent)};
+		&:focus {
+			box-shadow: 0 1px 8px 2px ${opac(0.55, theme.accent)}, 0 0 0 1px ${theme.accent};
+			background: ${color ? lighten(0.02, saturate(0.05, color)) : "none"};
 		}
 		@media (hover) {
 			&:hover {
-				box-shadow: 0 0 0 2px ${props.color};
+				box-shadow: 0 1px 8px 3px ${opac(0.55, theme.accent)}, 0 0 0 2px ${theme.accent};
+				background: ${color ? lighten(0.04, saturate(0.1, color)) : "none"};
 			}
-		}
-	`}
-`
-
-const FancyButton = styled(ButtonBase).attrs(({ color, theme, ...props }) => ({
-	...props,
-	color: color ?? theme.highlight,
-	theme,
-}))`
-	${({ theme, color }) => css`
-		background: ${color ?? "none"};
-		color: ${theme.primaryContrast};
-		box-shadow: 0 1px 8px 1px ${opac(0.5, theme.accent)}, 0 0 0 1px ${opac(0.7, theme.accent)};
-		&:focus {
-			box-shadow: 0 1px 8px 3px ${opac(0.5, theme.accent)}, 0 0 0 2px ${theme.accent};
-			background: ${color ? saturate(0.04, lighten(0.04, color)) : "none"};
 		}
 		&:active {
 			box-shadow: 0 1px 8px 2px ${opac(0.7, theme.accent)}, 0 0 0 3px ${theme.accent};
 			opacity: 1;
 		}
+	`}
+`
+
+const ComboButton = styled(SolidButton)`
+	opacity: 1;
+	${({ theme, color, colorContrast }) => css`
+		svg {
+			max-height: 3rem;
+		}
+		svg,
+		> ${BtnContent} {
+			transition: -webkit-filter 0.4s;
+			color: ${opac(0.9, colorContrast)};
+			filter: drop-shadow(2px 0px 1px ${opac(0.8, theme.accent)})
+				drop-shadow(0px -1px 1px ${opac(0.9, theme.accent)})
+				drop-shadow(0px 2px 1px ${opac(0, theme.accent)})
+				drop-shadow(-1px 0px 1px ${opac(0, theme.accent)});
+		}
+		background: ${opac(0.9, color)};
+		color: ${colorContrast};
+		border: 2px solid ${opac(0.7, theme.accent)};
+		box-shadow: 0 1px 8px 1px ${opac(0.5, theme.accent)};
+		&:focus {
+			box-shadow: 0 1px 8px 2px ${opac(0.4, theme.accent)};
+			background: ${color ? lighten(0.01, saturate(0.04, opac(0.9, color))) : "none"};
+		}
 		@media (hover) {
 			&:hover {
-				box-shadow: 0 1px 8px 3px ${opac(0.5, theme.accent)}, 0 0 0 2px ${theme.accent};
-				background: ${color ? saturate(0.04, lighten(0.04, color)) : "none"};
+				box-shadow: 0 1px 8px 3px ${opac(0.3, theme.accent)}, 0 0 0 1px ${theme.accent};
+				background: ${color ? lighten(0.03, saturate(0.1, opac(0.9, color))) : "none"};
+				svg,
+				> ${BtnContent} {
+					filter: drop-shadow(2px 0px 1px ${opac(0, theme.accent)})
+						drop-shadow(0px -1px 1px ${opac(0, theme.accent)})
+						drop-shadow(0px 2px 1px ${opac(0.8, theme.accent)})
+						drop-shadow(-1px 0px 1px ${opac(0.9, theme.accent)});
+				}
+			}
+		}
+		&:active {
+			box-shadow: 0 1px 8px 2px ${opac(0.6, theme.accent)}, 0 0 0 3px ${theme.accent};
+			svg,
+			> ${BtnContent} {
+				filter: drop-shadow(2px 0px 1px ${opac(0, theme.accent)})
+					drop-shadow(0px -1px 1px ${opac(0, theme.accent)})
+					drop-shadow(0px 2px 1px ${opac(0.8, theme.accent)})
+					drop-shadow(-1px 0px 1px ${opac(0.9, theme.accent)});
 			}
 		}
 	`}
 `
 
-const BtnContent = styled.div`
-	flex: 0 0 auto;
+const BadgeAnim = (theme) => keyframes`
+	0% { box-shadow: 0 0 0 2px ${theme.highlightContrast}; }
+	25% { box-shadow: 0 0 0 2px ${theme.background}; }
+	50% { box-shadow: 0 0 0 2px ${theme.accent}; }
+	75% { box-shadow: 0 0 0 2px ${theme.backgroundAlt}; }
+	100% { box-shadow: 0 0 0 2px ${theme.highlightContrast}; }
 `
 
-const BadgeAnim = (props) => keyframes`
-	0% { box-shadow: 0 0 0 1px ${props.theme.primaryContrast}; }
-	25% { box-shadow: 0 0 0 1px ${props.theme.background}; }
-	50% { box-shadow: 0 0 0 1px ${props.theme.accent}; }
-	75% { box-shadow: 0 0 0 1px ${props.theme.altBackground}; }
-	100% { box-shadow: 0 0 0 1px ${props.theme.primaryContrast}; }
-`
-
-const Badge = styled.div`
+const Badge = styled.span`
+	font-size: 0.8em;
 	position: absolute;
+	z-index: 10000;
 	top: 0;
 	left: 100%;
 	transform: translate3d(-70%, -30%, 0);
-	width: max-content;
 	padding: 0 0.4em;
-	${(props) => css`
-		animation: ${BadgeAnim(props)} 2s linear infinite;
-		background: ${props.theme.highlight};
-		color: ${props.theme.primaryContrast};
-		${FancyButton} & {
-			background: ${props.theme.altBackground};
-			border: 1px solid ${props.theme.accent};
+	font-weight: bold;
+	${({ theme }) => css`
+		animation: ${BadgeAnim(theme)} 2s linear infinite;
+		background: ${theme.highlight};
+		color: ${theme.highlightContrast};
+		${SolidButton} & {
+			background: ${theme.accent};
 		}
 	`}
 `
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function Button({ tag, variant, badge, children, ...props }) {
+function Button({ tag, variant, badge, gleam, children, ...props }) {
 	let ButtonVariant = BasicButton
 	if (variant) {
 		if (variant.includes("outline")) ButtonVariant = OutlinedButton
-		else if (variant === "fancy") ButtonVariant = FancyButton
+		else if (variant === "solid") ButtonVariant = SolidButton
+		else if (variant === "combo") ButtonVariant = ComboButton
+		if ((variant === "solid" || variant === "combo") && typeof gleam !== "boolean") gleam = true
 	}
+	if (typeof gleam !== "boolean") gleam = false
 
 	return (
 		<ThemeCheck {...props}>
 			<ButtonVariant {...props} as={tag}>
-				{children && <BtnContent>{children}</BtnContent>}
+				{badge && <Badge className="chLimit">{badge}</Badge>}
+				{gleam && <Gleam />}
 				{props.svg && <props.svg />}
-				{badge && <Badge>{badge}</Badge>}
+				{children && <BtnContent>{children}</BtnContent>}
 			</ButtonVariant>
 		</ThemeCheck>
 	)

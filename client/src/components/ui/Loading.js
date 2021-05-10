@@ -2,17 +2,26 @@ import styled, { css } from "styled-components/macro"
 import { Transition } from "react-transition-group"
 
 import Backdrop from "./Backdrop"
+import { useOverlayZ } from "../../shared/hooks"
+import { useMemo } from "react"
+import { zOverlayGen } from "../../shared/shared"
 
 /* --------------------------------- STYLES --------------------------------- */
 
+const WrapSVG = styled.div`
+	flex: 1 1 auto;
+	display: inline-block;
+	margin: 0.5em;
+	max-width: 50vmin !important;
+	max-height: 50vmin !important;
+`
+
 const StyledSVG = styled.svg`
 	animation: rotate 1s linear infinite;
-	padding: 1em;
-	min-width: 50px;
-	max-width: 50% !important;
-	min-height: 50px;
-	max-height: 50% !important;
-	${({ theme }) => css`
+	${({ theme, animDuration, sideLength }) => css`
+		min-width: ${sideLength};
+		min-height: ${sideLength};
+		transition: ${animDuration}s;
 		& .path {
 			stroke: ${theme.highlight};
 			stroke-linecap: round;
@@ -49,24 +58,45 @@ const Center = styled.div`
 	align-items: center;
 	top: 0;
 	left: 0;
-	z-index: 270000;
+	${({ zIndex }) => css`
+		z-index: ${zIndex};
+	`}
 `
+
+const svgStyleStates = {
+	entering: { transform: "scale(1.2)", opacity: 1 },
+	entered: { transform: "scale(1)", opacity: 1 },
+	exiting: { transform: "scale(0)", opacity: 0 },
+	exited: { transform: "scale(0)", opacity: 0 },
+}
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function Loading({ isLoading = false, animDuration = 0.4, ...props }) {
+export function LoadingSVG({ animDuration = 0.4, sideLength = "24px", ...props }) {
+	return (
+		<WrapSVG>
+			<StyledSVG {...props} sideLength={sideLength} viewBox="0 0 50 50" animDuration={animDuration}>
+				<circle className="path" cx="25" cy="25" r="20" fill="none" strokeWidth="2" />
+			</StyledSVG>
+		</WrapSVG>
+	)
+}
+
+function LoadingScreen({ isLoading = false, animDuration = 0.4, ...props }) {
+	const zIndex = useMemo(() => zOverlayGen.get(), [])
+
 	return (
 		<>
-			<Backdrop isShown={isLoading} animDuration={animDuration} />
-			<Transition timeout={animDuration * 1000} in={isLoading} unmountOnExit>
-				<Center>
-					<StyledSVG {...props} viewBox="0 0 50 50">
-						<circle className="path" cx="25" cy="25" r="20" fill="none" strokeWidth="2" />
-					</StyledSVG>
-				</Center>
+			<Backdrop isShown={isLoading} animDuration={animDuration} zIndex={zIndex} />
+			<Transition timeout={animDuration * 1000} in={isLoading} mountOnEnter unmountOnExit>
+				{(state) => (
+					<Center zIndex={zIndex}>
+						<LoadingSVG {...props} style={{ ...svgStyleStates[state] }} animDuration={animDuration} />
+					</Center>
+				)}
 			</Transition>
 		</>
 	)
 }
 
-export default Loading
+export default LoadingScreen

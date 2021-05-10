@@ -1,9 +1,9 @@
-import { useCallback, useContext } from "react"
-
 /* --------------------------------- STYLES --------------------------------- */
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function MinesweeperNav({ setAppDrawerContent, ...props }) {}
+function MinesweeperNav({ setAppDrawerContent, ...props }) {
+	return <div></div>
+}
 
 export default MinesweeperNav

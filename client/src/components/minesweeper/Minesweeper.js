@@ -1,8 +1,7 @@
-import { useCallback, useContext } from "react"
+import { useContext } from "react"
 
 import { setupAppSharedOptions, themes, Contexts } from "../../shared/shared"
 import { ReactComponent as SvgFlag } from "../../shared/assets/material-icons/flag.svg"
-import { useResizeObserver } from "../../shared/hooks"
 
 import MinesweeperNav from "./MinesweeperNav"
 
@@ -43,14 +42,8 @@ import MinesweeperNav from "./MinesweeperNav"
 function Minesweeper() {
 	const { setAppDrawerContent, isMobileWindow } = useContext(Contexts.Window)
 
-	const checkIfLandscape = useCallback(
-		(resizeEleRect) => resizeEleRect.width > resizeEleRect.height * 1.25,
-		[]
-	)
-	const [dataRef, isLandscape] = useResizeObserver(checkIfLandscape)
-
 	return (
-		<div ref={dataRef}>
+		<div>
 			<MinesweeperNav setAppDrawerContent={setAppDrawerContent} isMobileWindow={isMobileWindow} />
 		</div>
 	)

@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import throttle from "lodash/throttle"
 
-import { ls } from "./shared"
+import { Debug, ls } from "./shared"
+
+const debug = new Debug("hooks.js - ", false)
 
 /* -------------------------------------------------------------------------- */
 
@@ -36,11 +38,9 @@ export function useLocalStorage(key, initValue, skipParse = false) {
 /* -------------------------------------------------------------------------- */
 
 /**
- * Use if you need to do something in JS based on media-queries. (make sure they don't overlap)
- * @param {string[]} queries - eg: ['(min-width: 480px)', '(min-width: 1024px)']
- * @param {Array} values - what to return on query match, ex: [true, { name: John Doe }]
- * @param {*} [defaultValue=null] - what to return if no queries match
- * @return {*} - returns value in values array based on the same index of matching query
+ * If media query matches return true, otherwise false.
+ * @param {string} queries EG: '(min-width: 480px)' or '(min-width: 1024px)'
+ * @return {boolean}
  */
 export function useMediaQuery(query) {
 	const mq = window.matchMedia(query)
@@ -137,6 +137,20 @@ export function useUpdatedValRef(value) {
 
 /* -------------------------------------------------------------------------- */
 
+export function useThrottle(cb, throttleMS = 200, depArr = []) {
+	const cbRef = useUpdatedValRef(cb)
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	return useCallback(
+		throttle((...args) => {
+			debug.log(`useThrottle()`, ...args)
+			cbRef.current(...args)
+		}, throttleMS),
+		[...depArr, throttleMS]
+	)
+}
+
+/* -------------------------------------------------------------------------- */
+
 /**
  * @callback useResizeObserverCallback
  * @param {DOMRectReadOnly} resizeEleRect
@@ -144,80 +158,71 @@ export function useUpdatedValRef(value) {
  */
 
 /**
- * @param {useResizeObserverCallback} callback
+ * @param {useResizeObserverCallback} cb
  * @param {number} throttleMS=number
  */
-export function useResizeObserver(callback, throttleMS = 200) {
+export function useResizeObserver(cb, throttleMS = 200, depArr = []) {
 	const eleRef = useRef()
-	const callbackRef = useRef(callback)
+	const cbRef = useUpdatedValRef(cb)
 	const isLoadedRef = useRef(true)
 
-	const [callbackOutput, setCallbackOutput] = useState()
-	const callbackOutputRef = useUpdatedValRef(callbackOutput)
+	const [cbOutput, setCbOutput] = useState()
+	const cbOutputRef = useUpdatedValRef(cbOutput)
 
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	const throttledCallback = useCallback(
-		throttle((rect) => {
-			const prevOutput = callbackOutputRef.current
-			const nextOutput = callbackRef.current(rect)
-			if (prevOutput !== nextOutput) {
-				callbackOutputRef.current = nextOutput
-				setCallbackOutput(nextOutput)
-			}
-		}, throttleMS),
-		[callbackRef, callbackOutputRef]
+	const cbThrottled = useThrottle(
+		(rect) => {
+			const prevOutput = cbOutputRef.current
+			const nextOutput = cbRef.current(rect)
+			if (prevOutput !== nextOutput) setCbOutput(nextOutput)
+		},
+		throttleMS,
+		depArr
 	)
 
 	useEffect(() => {
-		const element = eleRef.current
+		const ele = eleRef.current
 		const resizeObserver = new ResizeObserver((entries) => {
 			if (!Array.isArray(entries) || !entries.length || !isLoadedRef.current) return
-
 			const entry = entries[0]
-			throttledCallback(entry.contentRect)
+			cbThrottled(entry.contentRect)
 		})
-		resizeObserver.observe(element)
+		resizeObserver.observe(ele)
 
 		return () => {
+			cbThrottled?.cancel?.()
 			isLoadedRef.current = false
-			resizeObserver.unobserve(element)
+			resizeObserver.unobserve(ele)
 		}
-	}, [throttledCallback])
+	}, [cbThrottled])
 
-	return [eleRef, callbackOutput]
+	return [eleRef, cbOutput]
 }
 
 /* -------------------------------------------------------------------------- */
 
-export function useEventListener(eventName, handler, eleRef) {
-	const savedHandler = useRef()
-
-	// Update ref.current value if handler changes. This allows our effect below to always get latest
-	// handler without us needing to pass it in effect deps array and potentially cause effect to
-	// re-run every render.
+export function useEventListener(eleRef, eventName, cb) {
+	const cbRef = useRef(cb)
 	useEffect(() => {
-		savedHandler.current = handler
-	}, [handler])
+		cbRef.current?.cancel?.()
+		cbRef.current = cb
+	}, [cb])
 
 	useEffect(
 		() => {
-			// Create event listener that calls handler function stored in ref.
-			const eventListener = (event) => savedHandler.current(event)
-			// Add event listener
-			if (eleRef.current?.addEventListener) eleRef.current.addEventListener(eventName, eventListener)
-
-			// Remove event listener and possible throttle/debounce w/ cancel() on cleanup.
 			const ele = eleRef.current
+			const curCb = cbRef.current
+			// Wrap cb for easy
+			const handler = (...args) => curCb(...args)
+			// Add event listener.
+			ele?.addEventListener?.(eventName, handler)
+			// Remove event listener and possible throttle/debounce w/ cancel() on cleanup.
 			return () => {
-				// Check if handler is a throttle/debounce related, if so then I need to cancel it.
-				if (savedHandler.current?.cancel) {
-					savedHandler.current.cancel()
-				}
-				if (ele?.removeEventListener) {
-					ele.removeEventListener(eventName, eventListener)
-				}
+				curCb?.cancel?.()
+				ele?.removeEventListener?.(eventName, handler)
 			}
 		},
-		[eventName, eleRef] // Re-run if eventName or element changes
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		[eleRef.current, eventName]
 	)
 }

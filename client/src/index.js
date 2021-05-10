@@ -2,9 +2,9 @@ import "sanitize.css"
 import "sanitize.css/typography.css"
 import "sanitize.css/forms.css"
 
-import { useState, useEffect } from "react"
+import { useMemo } from "react"
 import ReactDOM from "react-dom"
-import { createGlobalStyle, ThemeProvider } from "styled-components/macro"
+import { createGlobalStyle, ThemeProvider, css } from "styled-components/macro"
 
 import { useLocalStorage, useMediaQuery } from "./shared/hooks"
 import { themes, mediaBreakpoints, Contexts } from "./shared/shared"
@@ -66,10 +66,6 @@ const GlobalStyle = createGlobalStyle`
 		box-sizing: border-box;
 	}
 
-	body {
-		font-family: 'Roboto', sans-serif;
-	}
-
 	svg:not(:root) {
 		max-width: 100%;
 		max-height: 100%;
@@ -88,12 +84,18 @@ const GlobalStyle = createGlobalStyle`
 		overflow: hidden;
 
 		.chLimit {
-			max-width: 35ch;
 			white-space: nowrap;
 			overflow: hidden;
 			text-overflow: ellipsis;
 		}
 	}
+
+	${({ theme }) => css`
+		body {
+			color: ${theme.backgroundContrast};
+			font-family: "Roboto", sans-serif;
+		}
+	`}
 `
 
 /* -------------------------------- COMPONENT ------------------------------- */
@@ -101,30 +103,21 @@ const GlobalStyle = createGlobalStyle`
 function PortfolioOS() {
 	const isDesktop = useMediaQuery(`(min-width: ${mediaBreakpoints.desktop}px)`)
 
-	const [theme, setTheme] = useLocalStorage("PortfolioOS-Theme", "blue", true)
+	const [tName, setTheme] = useLocalStorage("PortfolioOS-Theme", "dark", true)
 
-	const [tabHidden, setTabHidden] = useState(document.hidden)
+	const curTheme = useMemo(() => themes[tName], [tName])
 
-	function handleVisibChange() {
-		setTabHidden(document.hidden)
-	}
-
-	useEffect(() => {
-		document.addEventListener("visibilitychange", handleVisibChange, false)
-		return () => document.removeEventListener("visibilitychange", handleVisibChange, false)
-	}, [])
+	const contextVal = useMemo(() => ({ curTheme, setTheme }), [curTheme, setTheme])
 
 	return (
-		<>
+		<ThemeProvider theme={curTheme}>
 			<GlobalStyle />
-			<ThemeProvider theme={themes[theme]}>
-				<AuthProvider>
-					<Contexts.PortfolioOS.Provider value={{ tabHidden, setTheme }}>
-						<Display isMobileSite={!isDesktop} tabHidden={tabHidden} />
-					</Contexts.PortfolioOS.Provider>
-				</AuthProvider>
-			</ThemeProvider>
-		</>
+			<AuthProvider>
+				<Contexts.Index.Provider value={contextVal}>
+					<Display isMobileSite={!isDesktop} />
+				</Contexts.Index.Provider>
+			</AuthProvider>
+		</ThemeProvider>
 	)
 }
 

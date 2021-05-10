@@ -12,13 +12,6 @@ import TempHue from "./TempHue"
 
 /* --------------------------------- STYLES --------------------------------- */
 
-const DesktopNav = styled.div`
-	flex: 0 0 auto;
-	${({ theme }) => css`
-		border-right: 1px solid ${theme.accent};
-	`}
-`
-
 const Root = styled.div`
 	--wnav-padding: 0.5em;
 	display: flex;
@@ -26,11 +19,8 @@ const Root = styled.div`
 	position: relative;
 	height: 100%;
 	${({ theme }) => css`
-		background-color: ${theme.altBackground};
+		background-color: ${theme.backgroundAlt};
 	`}
-	&& svg {
-		height: 1.5em;
-	}
 `
 
 const LocationsList = styled.div`
@@ -158,7 +148,7 @@ function WeatherNav({
 				})}
 			</LocationsList>
 			<Footer>
-				<Button variant="fancy" onClick={() => setIsMetric((prev) => !prev)}>
+				<Button variant="solid" onClick={() => setIsMetric((prev) => !prev)}>
 					{isMetric ? "Switch to Fahrenheit" : "Switch to Celsius"}
 				</Button>
 			</Footer>
@@ -166,8 +156,7 @@ function WeatherNav({
 	)
 	// Can't update during an existing state transition. So defer it.
 	useEffect(() => setAppDrawerContent(navContent))
-
-	return !isMobileWindow && <DesktopNav>{navContent}</DesktopNav>
+	return null
 }
 
 export default WeatherNav

@@ -7,7 +7,7 @@ import { gsap } from "gsap/all"
 
 import { getCurWeatherBG } from "./WeatherIcon"
 import { ReactComponent as SvgSunny } from "../../shared/assets/weather-icons/wi-day-sunny.svg"
-import { setupAppSharedOptions, Contexts } from "../../shared/shared"
+import { setupAppSharedOptions, Contexts, themes } from "../../shared/shared"
 import { useLocalStorage, useInterval, useResizeObserver } from "../../shared/hooks"
 import WeatherNav from "./WeatherNav"
 import CurrentWeather from "./CurrentWeather"
@@ -22,7 +22,7 @@ const Root = styled.div`
 	${({ theme, weatherBG }) => css`
 		background-color: ${theme.background};
 		background-image: ${weatherBG};
-		color: ${theme.bgContrast};
+		color: ${theme.backgroundContrast};
 	`}
 `
 
@@ -255,10 +255,7 @@ function Weather({ title, ...props }) {
 		isMetric,
 	])
 
-	const checkIfLandscape = useCallback(
-		(resizeEleRect) => resizeEleRect.width > resizeEleRect.height * 1.25,
-		[]
-	)
+	const checkIfLandscape = (eleRect) => eleRect.width > eleRect.height * 1.25
 	const [dataRef, isLandscape] = useResizeObserver(checkIfLandscape)
 
 	return (
@@ -284,6 +281,7 @@ function Weather({ title, ...props }) {
 Weather.shared = setupAppSharedOptions({
 	title: "Weather",
 	logo: SvgSunny,
+	theme: themes.yellow,
 })
 
 export default Weather

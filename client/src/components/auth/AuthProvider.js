@@ -15,8 +15,7 @@ function AuthProvider({ children }) {
 			.then((res) => res.json().then((data) => ({ status: res.status, data })))
 			.then((res) => {
 				const { status, data } = res
-				console.log("getUser() res: ", res)
-				if (data?.user) console.log("<AuthProvider /> getUser() user: ", data.user)
+				console.log("getUser() res: ", res.status, res.data?.user)
 				switch (status) {
 					case 401:
 						setUser(null)

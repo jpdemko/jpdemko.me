@@ -13,28 +13,38 @@ const Root = styled.div`
 	z-index: -1;
 	opacity: 0;
 	${({ animDuration, theme }) => css`
-		background: ${theme.background};
-		transition: ${animDuration}s;
+		background: ${theme.darkestColor};
+		transition: opacity ${animDuration}s;
 	`};
 `
 
-const tranStyles = {
-	entering: { opacity: 0.75, zIndex: 250000 },
-	entered: { opacity: 0.75, zIndex: 250000 },
-	exiting: { opacity: 0, zIndex: -1 },
-	exited: { opacity: 0, zIndex: -1 },
+const bdStyleStates = (zIndex, state) => {
+	const styles = {
+		entering: { opacity: 0.4, zIndex },
+		entered: { opacity: 0.4, zIndex },
+		exiting: { opacity: 0, zIndex },
+		exited: { opacity: 0, zIndex: -1 },
+	}
+	return { ...styles[state] }
 }
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-const Backdrop = forwardRef(({ isShown = false, animDuration = 0.4, interactFn, ...props }, ref) => {
-	return (
-		<Transition timeout={animDuration * 1000} in={isShown}>
-			{(state) => (
-				<Root {...props} ref={ref} animDuration={animDuration} style={{ ...tranStyles[state] }} />
-			)}
-		</Transition>
-	)
-})
+const Backdrop = forwardRef(
+	({ isShown = false, animDuration = 0.4, interactFn, zIndex = 250000, ...props }, ref) => {
+		return (
+			<Transition timeout={animDuration * 1000} in={isShown} mountOnEnter unmountOnExit>
+				{(state) => (
+					<Root
+						{...props}
+						ref={ref}
+						animDuration={animDuration}
+						style={bdStyleStates(zIndex - 1, state)}
+					/>
+				)}
+			</Transition>
+		)
+	}
+)
 
 export default Backdrop

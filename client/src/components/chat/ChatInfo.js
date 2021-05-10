@@ -1,4 +1,4 @@
-import styled, { css } from "styled-components"
+import styled, { css } from "styled-components/macro"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -8,7 +8,7 @@ const Root = styled.div`
 	text-align: center;
 	${({ theme }) => css`
 		background: ${theme.background};
-		color: ${theme.bgContrast};
+		color: ${theme.backgroundContrast};
 		border-bottom: 1px solid ${theme.accent};
 	`}
 `
@@ -35,7 +35,7 @@ const Preposition = styled.span`
 const DisplayData = styled.span`
 	font-weight: bold;
 	${({ theme }) => css`
-		color: ${theme.bgContrast};
+		color: ${theme.backgroundContrast};
 		> span {
 			font-weight: 400;
 		}

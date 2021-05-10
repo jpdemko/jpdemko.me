@@ -1,5 +1,7 @@
 import styled, { css } from "styled-components/macro"
 
+/* --------------------------------- STYLES --------------------------------- */
+
 const Anchor = styled.a`
 	text-decoration: none;
 	cursor: pointer;
@@ -10,12 +12,20 @@ const Anchor = styled.a`
 		background-position: 0% 100%;
 		background-repeat: no-repeat;
 		background-size: 100% 2px;
-		&:hover {
-			color: ${theme.primaryContrast};
+		@media (hover) {
+			&:hover {
+				color: ${theme.highlightContrast};
+				background-size: 100% 100%;
+			}
+		}
+		&:active {
+			color: ${theme.highlightContrast};
 			background-size: 100% 100%;
 		}
 	`}
 `
+
+/* -------------------------------- COMPONENT ------------------------------- */
 
 function Link({ children, openNewTab = true, trustedLink = false, href, ...props }) {
 	const attrs = {

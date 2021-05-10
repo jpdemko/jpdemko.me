@@ -1,83 +1,177 @@
-import { useContext } from "react"
-import styled from "styled-components/macro"
+import { useContext, useRef, useState } from "react"
+import styled, { css } from "styled-components/macro"
 
-import { themes, setupAppSharedOptions, Contexts } from "../../shared/shared"
+import { themes, setupAppSharedOptions, Contexts, Debug } from "../../shared/shared"
 import { ReactComponent as SvgPalette } from "../../shared/assets/material-icons/palette.svg"
-import { ReactComponent as SvgWrench } from "../../shared/assets/material-icons/wrench.svg"
 import Button from "../ui/Button"
+import ListOfCGs from "./ListOfCGs"
+import CompGroup from "./CompGroup"
+import SubCompGroup from "./SubCompGroup"
+import ThemeNav from "./ThemeNav"
+import { useEventListener, useThrottle, useUpdatedValRef } from "../../shared/hooks"
 
 /* --------------------------------- STYLES --------------------------------- */
 
-const Root = styled.div``
-
-const MainSection = styled.section``
-
-const Construction = styled.div`
-	svg {
-		margin: 0 1em;
-		&:first-child {
-			margin-left: 0;
+const Root = styled.div`
+	--theme-spacing: calc(var(--content-spacing) / 2);
+	display: flex;
+	${({ theme }) => css`
+		background: ${theme.backgroundAlt} !important;
+		pre {
+			background: ${theme.backgroundAlt};
+			padding: calc(var(--theme-spacing) * 0.9) var(--theme-spacing);
+			border: 1px solid ${theme.accent};
 		}
-	}
+		code,
+		pre {
+			word-break: normal;
+			word-wrap: normal;
+			overflow: auto;
+			overflow-wrap: normal;
+		}
+	`}
 `
 
-const BtnGroup = styled.div`
-	display: flex;
-	flex-wrap: wrap;
+const SectionWrap = styled.div`
+	flex: 1 1 auto;
+	overflow: auto;
+`
+
+const CompGroupsSection = styled.section`
+	padding: 0 var(--theme-spacing) !important;
+	> div {
+		margin: var(--theme-spacing) 0 !important;
+	}
+	> div:last-child {
+		margin-bottom: var(--theme-spacing) !important;
+	}
 `
 
 const ThemeBtn = styled(Button)`
 	text-transform: uppercase;
 	font-size: 1.2em;
-	margin: 0 var(--content-spacing) var(--content-spacing) 0;
 `
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
+const debug = new Debug("Themes: ", true)
+
 function Themes({ title, ...props }) {
-	const { setTheme } = useContext(Contexts.PortfolioOS)
-	const { isMobileWindow } = useContext(Contexts.Window)
+	const { curTheme, setTheme } = useContext(Contexts.Index)
+	const [focusedID, setFocusedID] = useState("themes")
+
+	function setID(id) {
+		if (id !== focusedID) {
+			document.activeElement.blur()
+			setFocusedID(id)
+		}
+	}
+	const setRef = useUpdatedValRef(setID)
+
+	const cgSectRef = useRef()
+	const handleScrollThrottled = useThrottle(
+		() => {
+			const wrap = cgSectRef.current
+			if (!wrap) return
+
+			const cgs = wrap.getElementsByClassName("comp-group")
+			for (let i = 0; i < cgs.length; i++) {
+				const cg = cgs[i]
+				const nearBottom =
+					wrap.scrollHeight - wrap.scrollTop < wrap.clientHeight + cgs[cgs.length - 1].scrollHeight / 3
+				const offset = Math.round(cg.scrollHeight / 2.5)
+				const rMin = cg.offsetTop - offset
+				const rMax = cg.offsetTop + cg.scrollHeight - offset
+				const inRange = wrap.scrollTop > rMin && wrap.scrollTop < rMax
+				if (nearBottom) {
+					setRef.current?.(cgs[cgs.length - 1].id)
+					break
+				} else if (inRange) {
+					setRef.current?.(cg.id)
+					break
+				}
+			}
+		},
+		250,
+		[setRef, cgSectRef]
+	)
+	useEventListener(cgSectRef, "scroll", handleScrollThrottled)
+
+	const availThemes = Object.keys(themes).filter((name) => themes[name].public)
+	const lightNames = availThemes.filter((name) => themes[name].type === "light")
+	const darkNames = availThemes.filter((name) => themes[name].type === "dark")
+
+	let themeJSON = JSON.stringify(curTheme, null, 3)
+		.split(/(#\w+)/gm)
+		.map((str, i) =>
+			str.includes("#") ? (
+				<span key={i}>
+					{str} <input type="color" value={str} disabled />
+				</span>
+			) : (
+				str
+			)
+		)
+
+	const cgTitles = {
+		themes: "Decide Theme",
+		buttons: "Buttons",
+		io: "IO",
+		dataDisplay: "Data Display",
+		misc: "Misc",
+	}
 
 	return (
-		<Root {...props} isMobileWindow={isMobileWindow}>
-			<MainSection>
-				<Construction className="enpha">
-					<SvgWrench /> Under construction! <SvgWrench />
-				</Construction>
-				<div className="enpha">Pre-made themes: </div>
-				<BtnGroup>
-					{Object.keys(themes).map((title) => {
-						return (
-							<ThemeBtn
-								key={title}
-								variant="fancy"
-								setTheme={title}
-								onClick={() => setTheme(title)}
-								setColor="primary"
-							>
-								{title}
-							</ThemeBtn>
-						)
-					})}
-				</BtnGroup>
-			</MainSection>
-		</Root>
+		<>
+			<Root {...props}>
+				<ThemeNav cgTitles={cgTitles} focusedID={focusedID} setFocusedID={setFocusedID} />
+				<SectionWrap ref={cgSectRef}>
+					<CompGroupsSection>
+						<CompGroup title={cgTitles.themes}>
+							<SubCompGroup title="Light themes">
+								{lightNames.map((name) => (
+									<ThemeBtn
+										key={name}
+										variant="solid"
+										setTheme={name}
+										onClick={() => setTheme(name)}
+										setColor="primary"
+									>
+										{name}
+									</ThemeBtn>
+								))}
+							</SubCompGroup>
+							<SubCompGroup title="Dark themes">
+								{darkNames.map((name) => (
+									<ThemeBtn
+										key={name}
+										variant="solid"
+										setTheme={name}
+										onClick={() => setTheme(name)}
+										setColor="primary"
+									>
+										{name}
+									</ThemeBtn>
+								))}
+							</SubCompGroup>
+							<SubCompGroup title="Currently selected theme">
+								<pre>
+									<code>{themeJSON}</code>
+								</pre>
+							</SubCompGroup>
+						</CompGroup>
+						<ListOfCGs curTheme={curTheme} cgTitles={cgTitles} />
+					</CompGroupsSection>
+				</SectionWrap>
+			</Root>
+		</>
 	)
 }
 
 Themes.shared = setupAppSharedOptions({
 	title: "Themes",
 	logo: SvgPalette,
-	theme: {
-		name: "purple",
-		altBackground: "#EDE9F2",
-		background: "#F7F5FA",
-		bgContrast: "#312653",
-		highlight: "#6637D6",
-		primary: "#6637D6",
-		primaryContrast: "#F7F5FA",
-		accent: "#8956FF",
-	},
+	theme: themes.purple,
 })
 
 export default Themes

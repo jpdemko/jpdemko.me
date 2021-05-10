@@ -1,8 +1,8 @@
-import { forwardRef, useCallback, useRef } from "react"
+import { forwardRef, useCallback, useMemo } from "react"
 import styled, { css } from "styled-components/macro"
 import { Transition } from "react-transition-group"
 
-import { safeTranslate } from "../../shared/shared"
+import { safeTranslate, zOverlayGen } from "../../shared/shared"
 import { useOnClick } from "../../shared/hooks"
 import Backdrop from "./Backdrop"
 
@@ -10,29 +10,32 @@ import Backdrop from "./Backdrop"
 
 const Root = styled.div`
 	position: absolute;
-	z-index: 260000;
 	top: 0;
 	bottom: 0;
-	max-width: 85%;
+	min-width: 20ch;
+	max-width: 90%;
 	height: 100%;
+	overflow: hidden;
 	> div {
 		height: 100%;
-		overflow-x: hidden;
-		overflow-y: hidden;
+		overflow: auto;
 	}
-	${({ isShown, animDuration, side, theme }) => css`
+	${({ isShown, animDuration, side, theme, zIndex }) => css`
 		${side === "left" ? "left: 0;" : "right: 0;"}
 		border-${side === "left" ? "right" : "left"}: 1px solid ${theme.accent};
+		z-index: ${zIndex};
 		background-color: ${theme.background};
-		color: ${theme.bgContrast};
+		color: ${theme.backgroundContrast};
 		transition: transform ${animDuration}s ${isShown ? "ease-out" : "ease-in"};
 		transform: ${isShown ? safeTranslate("0, 0") : safeTranslate(`${side === "left" ? "-" : ""}100%, 0`)};
 	`}
 `
 
-const tranStyles = {
-	entering: { visibility: "visible", contentVisibility: "visible" },
-	exited: { visibility: "hidden", contentVisibility: "hidden" },
+const drawerStyleStates = {
+	entering: { visibility: "visible" },
+	entered: { visibility: "visible" },
+	exiting: { visibility: "visible" },
+	exited: { visibility: "hidden" },
 }
 
 /* -------------------------------- COMPONENT ------------------------------- */
@@ -42,8 +45,11 @@ const Drawer = forwardRef(
 		const memoizedCloseDrawer = useCallback(() => isShown && onClose(), [isShown, onClose])
 		const bdRef = useOnClick(memoizedCloseDrawer)
 
+		const zIndex = useMemo(() => zOverlayGen.get(), [])
+
 		return (
 			<>
+				<Backdrop ref={bdRef} isShown={isShown} animDuration={animDuration} zIndex={zIndex} />
 				<Transition timeout={animDuration * 1000} in={isShown}>
 					{(state) => (
 						<Root
@@ -52,13 +58,13 @@ const Drawer = forwardRef(
 							isShown={isShown}
 							animDuration={animDuration}
 							side={side}
-							style={{ ...tranStyles[state] }}
+							zIndex={zIndex}
+							style={{ ...drawerStyleStates[state] }}
 						>
 							{children}
 						</Root>
 					)}
 				</Transition>
-				<Backdrop ref={bdRef} isShown={isShown} animDuration={animDuration} />
 			</>
 		)
 	}

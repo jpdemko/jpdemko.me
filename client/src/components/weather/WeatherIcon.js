@@ -1,4 +1,3 @@
-import React from "react"
 import { DateTime, Interval } from "luxon"
 import { desaturate, shade } from "polished"
 

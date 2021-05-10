@@ -4,6 +4,7 @@ import styled, { css } from "styled-components/macro"
 import { Transition } from "react-transition-group"
 import throttle from "lodash/throttle"
 import merge from "lodash/merge"
+import { desaturate } from "polished"
 
 import { ReactComponent as SvgClose } from "../../shared/assets/material-icons/close.svg"
 import { ReactComponent as SvgMinimize } from "../../shared/assets/material-icons/minimize.svg"
@@ -22,21 +23,34 @@ import {
 } from "../../shared/shared"
 import Button from "../ui/Button"
 import Drawer from "../ui/Drawer"
-import Loading from "../ui/Loading"
+import LoadingScreen from "../ui/Loading"
 
 gsap.registerPlugin(Draggable)
 
 /* --------------------------------- STYLES --------------------------------- */
 
+const WindowDesktopDrawer = styled.div`
+	min-width: 20ch;
+	max-width: 45ch;
+	height: 100%;
+	overflow: hidden;
+	> div {
+		height: 100%;
+		overflow: auto;
+	}
+	${({ theme }) => css`
+		border-right: 1px solid ${theme.accent};
+	`}
+`
+
 const Root = styled.div`
 	position: absolute;
-	display: flex;
-	flex-direction: column;
 	max-width: 100vw;
 	max-height: 100vh;
 	visibility: hidden;
 	backface-visibility: hidden;
 	${({ minWindowCSS, zIndex, isFocused, isMobileSite, isMaximized, theme }) => css`
+		background: ${theme.background};
 		z-index: ${zIndex};
 		${!isMobileSite &&
 		css`
@@ -50,53 +64,88 @@ const Root = styled.div`
 			: `1px solid ${opac(0.6, theme.accent)}`};
 		${isFocused &&
 		css`
-			filter: drop-shadow(0 1px 12px ${opac(0.5, theme.accent)});
+			filter: drop-shadow(0px -1px 5px ${opac(0.6, desaturate(0.1, theme.accent))});
 		`}
 	`}
 `
 
+const OverflowGuard = styled.div`
+	overflow: hidden;
+	height: 100%;
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+`
+
+const Interactables = styled.div`
+	height: 0;
+	width: 0;
+	${({ isMaximized }) => css`
+		> * {
+			z-index: 15000;
+			pointer-events: ${isMaximized ? "none" : null};
+		}
+	`}
+`
+
 const TitleBar = styled.div`
+	position: relative;
+	z-index: 10000;
 	flex: 0 0 auto;
-	padding: 0 2px;
 	font-weight: bold;
 	align-items: center;
-	height: var(--nav-height);
+	min-height: var(--nav-height);
+	backface-visibility: hidden;
+	cursor: pointer;
 	button {
-		margin: 1px 0;
+		margin: 1px;
 	}
 	button + button {
 		margin-left: 2px;
 	}
 	${({ isMobileSite, theme, isFocused }) => css`
-		color: ${isFocused ? theme.primaryContrast : theme.bgContrast};
-		border-bottom: 1px solid ${isFocused ? theme.accent : opac(0.6, theme.accent)};
+		${isFocused
+			? css`
+					filter: drop-shadow(0px -1px 6px ${opac(0.6, desaturate(0.1, theme.accent))});
+			  `
+			: css`
+					filter: grayscale(0.3) saturate(0.8) brightness(0.9);
+			  `}
+		color: ${theme.highlightContrast};
+		border-bottom: 1px solid ${theme.accent};
 		display: ${isMobileSite ? "none" : "flex"};
-		background: ${isFocused ? theme.highlight : theme.background};
+		background: ${theme.highlight};
 	`}
 `
 
-const Content = styled.div`
+const WindowName = styled.div`
+	padding-left: 0.25em;
+	font-size: 1.1em;
+`
+
+const TitleBarBtn = styled(Button).attrs((props) => ({
+	...props,
+	setColor: "highlightContrast",
+}))``
+
+const TitleBarCloseBtn = styled(Button).attrs(({ theme, setColor, winFocused, ...props }) => {
+	if (theme.name == "red" || theme.name == "dark") setColor = "backgroundContrast"
+	return { ...props, theme, setColor, winFocused }
+})``
+
+const AppContainer = styled.div`
 	flex: 1 1;
+	display: flex;
 	position: relative;
 	overflow: hidden;
 	${({ theme, isMobileWindow }) => css`
-		--content-spacing: ${isMobileWindow ? 1 : 2}rem;
-		> div:last-child {
-			overflow-x: hidden;
-			overflow-y: auto;
-			position: absolute;
-			top: 0;
-			left: 0;
-			height: 100%;
-			width: 100%;
-			background: ${theme.background};
-			color: ${theme.bgContrast};
-		}
+		--content-spacing: ${isMobileWindow ? 1.25 : 2}rem;
 		section {
+			overflow: auto;
 			max-width: 1024px;
 			margin: 0 auto;
 			padding: 0 var(--content-spacing);
-			> * {
+			> div {
 				margin: var(--content-spacing) 0;
 			}
 		}
@@ -115,8 +164,21 @@ const Content = styled.div`
 	`}
 `
 
+const AppContent = styled.div`
+	overflow-x: hidden;
+	overflow-y: auto;
+	position: relative;
+	flex: 3 1;
+	${({ theme }) => css`
+		color: ${theme.backgroundContrast};
+		> div {
+			height: 100%;
+		}
+	`}
+`
+
 // Change these to control the sizes for the interactive parts of the component.
-const sideSize = "0.5em"
+const sideSize = "0.75em"
 const sideOffset = `calc(${sideSize} / 2 * -1)`
 const Side = styled.div.attrs(({ position }) => ({
 	style: {
@@ -170,20 +232,8 @@ const CornerSW = styled(Corner)`
 
 const DragRef = styled.div`
 	visibility: hidden;
-	content-visibility: hidden;
 	position: absolute;
 `
-
-const TitleBarBtn = styled(Button).attrs((props) => {
-	return { ...props, setColor: props.winFocused ? "primaryContrast" : "bgContrast" }
-})``
-
-const TitleBarCloseBtn = styled(Button).attrs(({ theme, setColor, winFocused, ...props }) => {
-	if (theme.name == "red" || theme.name == "dark") {
-		setColor = winFocused ? "bgContrast" : "primary"
-	}
-	return { ...props, theme, setColor, winFocused }
-})``
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
@@ -196,7 +246,7 @@ export default class Window extends Component {
 		this.rootRef = createRef()
 		this.handleResizeThrottled = throttle(this.handleResize, 200)
 
-		this.wireframe = getRect("window-wireframe")
+		const wireframe = getRect("window-wireframe")
 		const prevData = ls.get(`Window-${props.title}`) ?? {}
 		const { window: loadedWdow } = prevData
 		this.data = loadedWdow?.data ?? {
@@ -209,10 +259,10 @@ export default class Window extends Component {
 					autoAlpha: 0,
 				},
 				windowed: {
-					top: this.wireframe?.top,
-					left: this.wireframe?.left,
-					width: this.wireframe?.width,
-					height: this.wireframe?.height,
+					top: wireframe?.top,
+					left: wireframe?.left,
+					width: wireframe?.width,
+					height: wireframe?.height,
 					scale: 1,
 					x: 0,
 					y: 0,
@@ -237,6 +287,8 @@ export default class Window extends Component {
 		this.state = merge(
 			{
 				context: {
+					isFocused: props.isFocused,
+					isMobileSite: props.isMobileSite,
 					isMobileWindow: props.isMobileSite,
 					setAppDrawerContent: this.setAppDrawerContent,
 					setAppLoading: this.setAppLoading,
@@ -253,7 +305,7 @@ export default class Window extends Component {
 	componentDidMount() {
 		this.genDraggables()
 		this.enterAnim()
-		window.addEventListener("beforeunload", this.save)
+		document.addEventListener("visibilitychange", this.save)
 		window.addEventListener("resize", this.handleResizeThrottled)
 		this.handleResizeThrottled()
 		this.determineMainNavBurgerCB()
@@ -261,14 +313,14 @@ export default class Window extends Component {
 
 	componentWillUnmount() {
 		this.handleExit()
-		window.removeEventListener("beforeunload", this.save)
+		document.removeEventListener("visibilitychange", this.save)
 		window.removeEventListener("resize", this.handleResizeThrottled)
 		this.handleResizeThrottled.cancel()
 		if (this.dragInstances) this.dragInstances.forEach((i) => i[0].kill())
 	}
 
 	componentDidUpdate(prevProps, prevState) {
-		const { isMinimized, isMaximized, isFocused } = this.props
+		const { isMobileSite, isMinimized, isMaximized, isFocused } = this.props
 
 		// Determine if any animations need to occur.
 		if (prevProps.isMinimized !== isMinimized) {
@@ -282,18 +334,29 @@ export default class Window extends Component {
 			else this.animWindowed()
 		}
 
-		// If app focused and isMobileSite 'setMainNavBurgerCB' from Display to this app's Drawer open/close toggle.
+		// If app is focused and isMobileSite 'setMainNavBurgerCB' from Display to this app's Drawer open/close toggle.
 		if (!prevProps.isFocused && isFocused) {
 			this.determineMainNavBurgerCB()
 		}
 
-		// Resize listener isn't sufficient for all cases if window instantly resizes
-		this.handleResizeThrottled()
+		// Instead of having separate contexts, I'm combining them here so I can use them easier in class components.
+		const stateChanges = {}
+		if (prevProps.isFocused !== isFocused) stateChanges.isFocused = isFocused
+		if (prevProps.isMobileSite !== isMobileSite) stateChanges.isMobileSite = isMobileSite
+		if (Object.keys(stateChanges).length > 0)
+			this.setState((prev) => ({ context: { ...prev.context, ...stateChanges } }))
+
+		// Resize listener isn't sufficient for all cases if window instantly resizes.
+		if (prevProps.isMobileSite !== isMobileSite) this.handleResizeThrottled()
 	}
 
 	determineMainNavBurgerCB = () => {
-		const { isMobileSite, isFocused, setMainNavBurgerCB } = this.props
-		if (isMobileSite && isFocused) {
+		const { isMobileSite, isFocused, mainNavBurgerCB, setMainNavBurgerCB } = this.props
+		const { isMobileWindow } = this.state.context
+
+		const mobile = isMobileWindow || isMobileSite
+		const difFn = mainNavBurgerCB !== this.setAppDrawerShown
+		if (isFocused && mobile && difFn) {
 			const cb = this.state.appDrawerContent ? this.setAppDrawerShown : null
 			setMainNavBurgerCB(cb)
 		}
@@ -305,8 +368,7 @@ export default class Window extends Component {
 	}
 
 	setAppDrawerContent = (appDrawerContent) => {
-		this.setState({ appDrawerContent })
-		if (!this.props.mainNavBurgerCB) this.determineMainNavBurgerCB()
+		this.setState({ appDrawerContent }, () => this.determineMainNavBurgerCB())
 	}
 
 	setAppLoading = (bool) => {
@@ -439,7 +501,6 @@ export default class Window extends Component {
 		this.setLastWindowedCSS()
 		const { title } = this.props
 		const { appDrawerContent, context, ...otherState } = this.state
-		const { isMobileWindow } = context
 		const prevData = ls.get(`Window-${title}`) ?? {}
 		const nextData = {
 			title,
@@ -447,9 +508,6 @@ export default class Window extends Component {
 			window: {
 				state: {
 					...otherState,
-					context: {
-						isMobileWindow,
-					},
 				},
 				data: { ...this.data },
 			},
@@ -537,9 +595,6 @@ export default class Window extends Component {
 		if (this.curAnim?.isActive()) this.curAnim.kill()
 		this.curAnim = gsap.to(wdow.rootRef.current, {
 			...tweenVars,
-			startAt: {
-				contentVisibility: "visible",
-			},
 			onStart: () => {
 				wdow.draggableWindow[0].disable()
 				wdow.dragInstances.forEach((i) => i[0].disable())
@@ -552,7 +607,6 @@ export default class Window extends Component {
 				if (!wdow.props.isMinimized && !wdow.props.isMaximized) {
 					wdow.dragInstances.forEach((i) => i[0].enable())
 				}
-				wdow.gsapQS({ contentVisibility: wdow.props.isMinimized ? "hidden" : "visible" })
 				wdow.preventSubpixelValues()
 			},
 			onUpdate: function () {
@@ -584,12 +638,15 @@ export default class Window extends Component {
 		const { css } = this.data
 		const { width: wdowWidth, height: wdowHeight } = css.windowed
 		if (wdowWidth > this.dragArea?.clientWidth || wdowHeight > this.dragArea?.clientHeight) {
-			css.windowed = {
-				...css.windowed,
-				top: this.wireframe?.top,
-				left: this.wireframe?.left,
-				width: this.wireframe?.width,
-				height: this.wireframe?.height,
+			const wireframe = getRect("window-wireframe")
+			if (wireframe?.top) {
+				css.windowed = {
+					...css.windowed,
+					top: Math.round(wireframe?.top),
+					left: Math.round(wireframe?.left),
+					width: Math.round(wireframe?.width),
+					height: Math.round(wireframe?.height),
+				}
 			}
 		}
 	}
@@ -624,6 +681,21 @@ export default class Window extends Component {
 			context: { isMobileWindow },
 		} = this.state
 
+		let drawer = null
+		if (appDrawerContent) {
+			drawer = isMobileWindow ? (
+				<Drawer
+					side={this.props.isMobileSite ? "right" : "left"}
+					isShown={appDrawerShown}
+					onClose={this.setAppDrawerShown}
+				>
+					{appDrawerContent}
+				</Drawer>
+			) : (
+				<WindowDesktopDrawer>{appDrawerContent}</WindowDesktopDrawer>
+			)
+		}
+
 		return (
 			<Transition
 				{...props}
@@ -643,29 +715,30 @@ export default class Window extends Component {
 					minWindowCSS={this.props.minWindowCSS}
 					zIndex={this.props.zIndex}
 				>
-					<TitleBar
-						id={`title-bar-${title}`}
-						isFocused={isFocused}
-						isMobileSite={this.props.isMobileSite}
-						onClick={() => this.props.focusApp(title)}
-						onDoubleClick={() => this.props.toggleMaximize(title)}
-						onTouchEnd={(e) => {
-							// 'onDoubleClick' doesn't work w/ touch events even though the normal 'onClick' does?
-							if (isDoubleTouch(e)) this.props.toggleMaximize(title)
-						}}
-					>
-						<TitleBarBtn
-							onClick={this.setAppDrawerShown}
-							svg={SvgMenu}
-							disabled={appDrawerContent === null || !isMobileWindow}
-							winFocused={isFocused}
-						/>
-						<div style={{ paddingLeft: ".25em " }}>{title}</div>
-						<div style={{ display: "flex", marginLeft: "auto" }}>
+					<OverflowGuard>
+						<TitleBar
+							id={`title-bar-${title}`}
+							isFocused={isFocused}
+							isMobileSite={this.props.isMobileSite}
+							onClick={() => this.props.focusApp(title)}
+							onDoubleClick={() => this.props.toggleMaximize(title)}
+							onTouchEnd={(e) => {
+								// 'onDoubleClick' doesn't work w/ touch events even though the normal 'onClick' does?
+								if (isDoubleTouch(e)) this.props.toggleMaximize(title)
+							}}
+						>
+							<TitleBarBtn
+								onClick={this.setAppDrawerShown}
+								svg={SvgMenu}
+								disabled={appDrawerContent === null || !isMobileWindow}
+								winFocused={isFocused}
+							/>
+							<WindowName>{title}</WindowName>
 							<TitleBarBtn
 								onClick={() => this.props.toggleMinimize(title)}
 								svg={SvgMinimize}
 								winFocused={isFocused}
+								style={{ marginLeft: "auto" }}
 							/>
 							<TitleBarBtn
 								onClick={() => this.props.toggleMaximize(title)}
@@ -679,35 +752,29 @@ export default class Window extends Component {
 								setTheme="red"
 								setColor="primary"
 							/>
-						</div>
-					</TitleBar>
-					<Content onClick={() => this.props.focusApp(title)} isMobileWindow={isMobileWindow}>
-						<Loading isLoading={this.state.appLoading} />
-						{appDrawerContent !== null && isMobileWindow && (
-							<Drawer
-								side={this.props.isMobileSite ? "right" : "left"}
-								isShown={appDrawerShown}
-								onClose={this.setAppDrawerShown}
-							>
-								{appDrawerContent}
-							</Drawer>
-						)}
-						<Contexts.Window.Provider value={this.state.context}>
-							{this.props.children}
-						</Contexts.Window.Provider>
-					</Content>
-					<Side position="top" id={`side-top-${title}`} />
-					<Side position="right" id={`side-right-${title}`} />
-					<Side position="bottom" id={`side-bottom-${title}`} />
-					<Side position="left" id={`side-left-${title}`} />
-					<DragRef id={`dragRef-top-${title}`} />
-					<DragRef id={`dragRef-right-${title}`} />
-					<DragRef id={`dragRef-bottom-${title}`} />
-					<DragRef id={`dragRef-left-${title}`} />
-					<CornerNW id={`corner-nw-${title}`} />
-					<CornerNE id={`corner-ne-${title}`} />
-					<CornerSE id={`corner-se-${title}`} />
-					<CornerSW id={`corner-sw-${title}`} />
+						</TitleBar>
+						<AppContainer onClick={() => this.props.focusApp(title)} isMobileWindow={isMobileWindow}>
+							<Contexts.Window.Provider value={this.state.context}>
+								{drawer}
+								<AppContent>{this.props.children}</AppContent>
+								<LoadingScreen isLoading={this.state.appLoading} />
+							</Contexts.Window.Provider>
+						</AppContainer>
+					</OverflowGuard>
+					<Interactables isMaximized={isMaximized}>
+						<Side position="top" id={`side-top-${title}`} />
+						<Side position="right" id={`side-right-${title}`} />
+						<Side position="bottom" id={`side-bottom-${title}`} />
+						<Side position="left" id={`side-left-${title}`} />
+						<DragRef id={`dragRef-top-${title}`} />
+						<DragRef id={`dragRef-right-${title}`} />
+						<DragRef id={`dragRef-bottom-${title}`} />
+						<DragRef id={`dragRef-left-${title}`} />
+						<CornerNW id={`corner-nw-${title}`} />
+						<CornerNE id={`corner-ne-${title}`} />
+						<CornerSE id={`corner-se-${title}`} />
+						<CornerSW id={`corner-sw-${title}`} />
+					</Interactables>
 				</Root>
 			</Transition>
 		)

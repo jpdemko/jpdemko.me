@@ -13,7 +13,7 @@ import { ReactComponent as SvgBlock } from "../../shared/assets/material-icons/b
 import { Contexts } from "../../shared/shared"
 import Button from "../ui/Button"
 import Modal from "../ui/Modal"
-import { Input } from "../ui/IO"
+import { Input } from "../ui/io"
 import Accordion from "../ui/Accordion"
 
 /* --------------------------------- STYLES --------------------------------- */
@@ -24,9 +24,12 @@ const DrawerRoot = styled.div`
 	display: flex;
 	flex-direction: column;
 	font-size: 0.9em;
+`
 
-	${({ theme, isMobileWindow }) => css`
-		border-right: ${isMobileWindow ? "none" : `1px solid ${theme.accent}`};
+const ChatNavAccord = styled(Accordion)`
+	${({ theme }) => css`
+		border: none;
+		border-right: 1px solid ${theme.accent};
 	`}
 `
 
@@ -73,7 +76,7 @@ const Room = styled.div`
 		padding-top: 0;
 	}
 	${({ theme }) => css`
-		background: ${theme.altBackground};
+		background: ${theme.backgroundAlt};
 	`}
 `
 
@@ -115,7 +118,7 @@ const LatestDM = styled(Button)`
 		margin-bottom: 0;
 	}
 	${({ theme, isFocused }) => css`
-		color: ${theme.bgContrast};
+		color: ${theme.backgroundContrast};
 		border: ${isFocused ? 1 : 0}px solid ${theme.accent};
 		> div {
 			margin: 0 !important;
@@ -127,7 +130,7 @@ const LatestDM = styled(Button)`
 			}
 		}
 		.latest-dm-row:first-child {
-			background: ${theme.altBackground};
+			background: ${theme.backgroundAlt};
 		}
 	`}
 `
@@ -137,7 +140,6 @@ const ModalRoot = styled.div`
 	min-width: max-content;
 	padding: var(--modal-padding);
 	form {
-		background: inherit;
 		display: flex;
 		flex-direction: column;
 		> * {
@@ -145,9 +147,7 @@ const ModalRoot = styled.div`
 		}
 	}
 	${({ theme }) => css`
-		background: ${theme.altBackground};
-		border: 1px solid ${theme.accent};
-		color: ${theme.bgContrast};
+		color: ${theme.backgroundContrast};
 	`}
 `
 
@@ -252,7 +252,6 @@ function ChatNav({
 					const ts1 = myRooms?.[rid1]?.msgs?.[lastMID1]?.created_at
 					const lastMID2 = myRooms?.[rid2]?.users_last
 					const ts2 = myRooms?.[rid2]?.msgs?.[lastMID2]?.created_at
-					// console.log(`${ts1} < ${ts2} = ${ts1 < ts2}`)
 					return ts1 < ts2 ? 1 : ts1 > ts2 ? -1 : 0
 			  })
 			: []
@@ -271,7 +270,7 @@ function ChatNav({
 	const accordionData = [
 		{
 			id: 1,
-			title: (
+			header: (
 				<Header>
 					<Title>Rooms</Title>
 					<RoomsSubHeader>
@@ -351,7 +350,7 @@ function ChatNav({
 		},
 		{
 			id: 2,
-			title: (
+			header: (
 				<Header>
 					<Title>DMs</Title>
 				</Header>
@@ -384,6 +383,11 @@ function ChatNav({
 								</LatestDM>
 							)
 						})}
+					{new Array(10).fill(null).map((e, i) => (
+						<div style={{ padding: ".5em" }} key={i}>
+							Lorem ipsum dolor sit amet consectetur, adipisicing elit. Ullam, voluptatem!
+						</div>
+					))}
 				</DMs>
 			),
 		},
@@ -391,7 +395,7 @@ function ChatNav({
 
 	const drawerContent = (
 		<DrawerRoot {...props}>
-			<Accordion data={accordionData} />
+			<ChatNavAccord data={accordionData} />
 		</DrawerRoot>
 	)
 	// Can't update during an existing state transition. So defer it.
@@ -422,7 +426,7 @@ function ChatNav({
 					minLength="6"
 				/>
 				<div>
-					<Button type="submit" variant="fancy">
+					<Button type="submit" variant="solid">
 						Submit
 					</Button>
 				</div>
@@ -454,7 +458,7 @@ function ChatNav({
 					minLength="6"
 				/>
 				<div>
-					<Button type="submit" variant="fancy">
+					<Button type="submit" variant="solid">
 						Submit
 					</Button>
 				</div>
@@ -463,12 +467,9 @@ function ChatNav({
 	)
 
 	return (
-		<>
-			<Modal isShown={modalShown} onClose={() => setModalShown(false)}>
-				{createConfig ? createRoomModal : joinRoomModal}
-			</Modal>
-			{!isMobileWindow && drawerContent}
-		</>
+		<Modal isShown={modalShown} onClose={() => setModalShown(false)}>
+			{createConfig ? createRoomModal : joinRoomModal}
+		</Modal>
 	)
 }
 

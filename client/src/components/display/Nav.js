@@ -9,6 +9,7 @@ import { ReactComponent as SvgClose } from "../../shared/assets/material-icons/c
 import Button from "../ui/Button"
 import Drawer from "../ui/Drawer"
 import { mountableApps } from "./Display"
+import { opac } from "../../shared/shared"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -21,54 +22,21 @@ const OpenedApp = styled.div`
 	}
 `
 
-const TaskbarBtn = styled(Button)`
-	justify-content: flex-start;
+const NavBtn = styled(Button)`
+	${({ origTheme }) =>
+		origTheme &&
+		css`
+			svg {
+				color: ${origTheme.highlight};
+				filter: drop-shadow(1px 0px 0px ${opac(0.4, origTheme.darkestColor)})
+					drop-shadow(0px -1px 0px ${opac(0.4, origTheme.darkestColor)})
+					drop-shadow(0px 1px 0px ${opac(0.2, origTheme.lightestColor)})
+					drop-shadow(-1px 0px 0px ${opac(0.2, origTheme.lightestColor)});
+			}
+		`}
 `
 
-const AppTaskbarBtn = styled(TaskbarBtn)`
-	position: relative;
-	${({ theme, isFocused }) => css`
-		&::before {
-			content: "";
-			position: absolute;
-			bottom: 0;
-			left: ${isFocused ? 0 : "7%"};
-			background: ${theme.highlight};
-			height: ${isFocused ? 2 : 1}px;
-			transition: all 0.175s;
-			width: ${isFocused ? "100%" : "86%"};
-		}
-		&:hover::before {
-			left: 0;
-			width: 100%;
-			height: 2px;
-		}
-	`}
-`
-
-const DrawerDescrip = styled.div`
-	padding: var(--drawer-padding);
-	font-weight: bold;
-	${({ theme }) => css`
-		background: ${theme.highlight};
-		color: ${theme.primaryContrast};
-	`}
-`
-
-const DrawerRow = styled.div`
-	display: flex;
-	${({ theme }) => css`
-		border-top: 1px solid ${theme.altBackground};
-	`}
-`
-
-const DrawerAppOpenBtn = styled(Button)`
-	justify-content: flex-end;
-	flex: 1;
-`
-const DrawerAppCloseBtn = styled(Button)`
-	margin: 1px;
-`
+/* -------------------------------------------------------------------------- */
 
 const Taskbar = styled.div`
 	height: var(--nav-height);
@@ -83,6 +51,68 @@ const Taskbar = styled.div`
 		background: ${theme.background};
 		border-top: 1px solid ${theme.accent};
 	`}
+`
+
+const TbarBtn = styled(NavBtn)`
+	justify-content: flex-start;
+`
+
+const TbarBtnOpenedApp = styled(TbarBtn)`
+	position: relative;
+	${({ theme, isFocused }) => css`
+		&::after {
+			content: "";
+			position: absolute;
+			bottom: 0;
+			left: ${isFocused ? 0 : "7%"};
+			background: ${theme.highlight};
+			height: ${isFocused ? 2 : 1}px;
+			transition: all 0.175s;
+			width: ${isFocused ? "100%" : "86%"};
+		}
+		@media (hover) {
+			&:hover::after {
+				left: 0;
+				width: 100%;
+				height: 2px;
+			}
+		}
+		&:active::after {
+			left: 0;
+			width: 100%;
+			height: 2px;
+		}
+	`}
+`
+
+const TbarBtnCloseApp = styled(Button)`
+	font-size: 0.5em;
+`
+
+/* -------------------------------------------------------------------------- */
+
+const DrawerDescrip = styled.div`
+	padding: var(--drawer-padding);
+	font-weight: bold;
+	${({ theme }) => css`
+		background: ${theme.highlight};
+		color: ${theme.highlightContrast};
+	`}
+`
+
+const DrawerRow = styled.div`
+	display: flex;
+	${({ theme }) => css`
+		border-top: 1px solid ${theme.backgroundAlt};
+	`}
+`
+
+const DrawerBtn = styled(NavBtn)`
+	justify-content: flex-start;
+	flex: 1;
+`
+const DrawerCloseBtn = styled(NavBtn)`
+	margin: 1px;
 `
 
 const DrawerBtnsCont = styled.div`
@@ -111,25 +141,26 @@ function Nav({ apps, isMobileSite, handleHomeButton, openApp, closeApp, mainNavB
 
 	const taskbarButtons = Object.keys(apps).map((t) => {
 		const app = apps[t]
+		const shared = mountableApps[app.title].shared
 		return app.isClosed ? null : (
 			<OpenedApp key={app.title} isFocused={app.isFocused}>
 				<ContextMenuTrigger id={`nav-tb-button-${app.title}`} holdToDisplay={-1}>
-					<AppTaskbarBtn
+					<TbarBtnOpenedApp
 						onClick={() => handleOpen(app.title)}
-						svg={mountableApps[app.title].shared.logo}
+						svg={shared.logo}
 						isFocused={app.isFocused}
+						origTheme={shared.theme}
 					>
-						{mountableApps[app.title].shared.title}
-					</AppTaskbarBtn>
+						{shared.title}
+					</TbarBtnOpenedApp>
 				</ContextMenuTrigger>
 				<ContextMenu id={`nav-tb-button-${app.title}`}>
 					<MenuItem>
-						<Button
+						<TbarBtnCloseApp
 							onClick={() => handleClose(app.title)}
 							svg={SvgClose}
-							variant="fancy"
+							variant="solid"
 							setTheme="red"
-							setColor="primary"
 						/>
 					</MenuItem>
 				</ContextMenu>
@@ -143,15 +174,16 @@ function Nav({ apps, isMobileSite, handleHomeButton, openApp, closeApp, mainNavB
 		const app = apps[title]
 		return (
 			<DrawerRow key={title}>
-				<DrawerAppOpenBtn
+				<DrawerBtn
 					onClick={() => handleOpen(title)}
 					svg={mApp.shared.logo}
 					isFocused={app?.isFocused}
+					origTheme={mApp.shared.theme}
 				>
 					{title}
-				</DrawerAppOpenBtn>
+				</DrawerBtn>
 				{app && !app?.isClosed && (
-					<DrawerAppCloseBtn
+					<DrawerCloseBtn
 						onClick={() => handleClose(title)}
 						svg={SvgClose}
 						setTheme="red"
@@ -166,10 +198,10 @@ function Nav({ apps, isMobileSite, handleHomeButton, openApp, closeApp, mainNavB
 	return (
 		<>
 			<Taskbar {...props} isMobileSite={isMobileSite}>
-				<TaskbarBtn svg={SvgApps} onClick={() => setMainDrawerOpened(true)} />
-				<TaskbarBtn svg={SvgHome} onClick={handleHomeButton} disabled={!oneAppNotMinimized} />
+				<TbarBtn svg={SvgApps} onClick={() => setMainDrawerOpened(true)} />
+				<TbarBtn svg={SvgHome} onClick={handleHomeButton} disabled={!oneAppNotMinimized} />
 				{isMobileSite ? (
-					<TaskbarBtn
+					<TbarBtn
 						style={{ marginLeft: "auto" }}
 						svg={SvgMenu}
 						onClick={mainNavBurgerCB}

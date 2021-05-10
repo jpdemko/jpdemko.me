@@ -36,6 +36,7 @@ class Chat extends Component {
 
 		const isProd = process.env.NODE_ENV === "production"
 		this.state = {
+			appActive: true,
 			curRoomRID: 1,
 			curDMUID: null,
 			myRooms: null,
@@ -72,8 +73,8 @@ class Chat extends Component {
 		socket.on("connect_error", (err) => {
 			console.error("socket connect_error due to: ", err)
 		})
-		// Setup data save on exit.
-		window.addEventListener("beforeunload", this.saveUserData)
+		// Save data and document visibility when document hidden.
+		document.addEventListener("visibilitychange", this.handleVisibChange)
 		// Attempt to load prev. save data if any.
 		this.loadUser()
 		// Auto focus username input field if available.
@@ -83,31 +84,43 @@ class Chat extends Component {
 		this.intervalHandleUnread = setInterval(this.handleUnread, this.msTimeCheckUnread)
 	}
 
-	componentDidUpdate(prevProps, prevState) {
-		const activityChange = prevProps.appActive !== this.props.appActive
-		const viewChange = prevState.roomsShown !== this.state.roomsShown
-		const roomChange = prevState.curRoomRID != this.state.curRoomRID
-		const convoChange = prevState.curDMUID != this.state.curDMUID
+	componentWillUnmount() {
+		const { socket } = this.state
 
+		if (socket) socket.disconnect()
+		this.saveUserData()
+		// Remove events & unread handler interval.
+		document.removeEventListener("visibilitychange", this.handleVisibChange)
+		clearInterval(this.intervalHandleUnread)
+	}
+
+	componentDidUpdate(prevProps, prevState) {
+		const { appActive, docHidden, roomsShown, curRoomRID, curDMUID, finSetup } = this.state
+		const focused = this.context.isFocused
+
+		const activityChange = prevState.appActive !== appActive
+		const viewChange = prevState.roomsShown !== roomsShown
+		const roomChange = prevState.curRoomRID != curRoomRID
+		const convoChange = prevState.curDMUID != curDMUID
+
+		// Track if app is being used actively because certain actions get skipped if user is active or not.
+		if ((docHidden || !focused) && appActive) this.setState({ appActive: false })
+		else if (!docHidden && focused && !appActive) this.setState({ appActive: true })
+
+		// Reset unread handler interval when certain things occur.
 		if (activityChange || viewChange || roomChange || convoChange) {
-			// Reset unread handler interval when certain things occur.
 			clearInterval(this.intervalHandleUnread)
 			this.intervalHandleUnread = setInterval(this.handleUnread, this.msTimeCheckUnread)
 			// Prune temp DM convo rooms where no DMS were exchanged.
 			this.pruneTempDMS()
 		}
 		// After init. fast/trimmed user setup 'finSetup' flag will be set so we can load the rest of their data.
-		if (!prevState.finSetup && this.state.finSetup) this.bgSetup()
+		if (!prevState.finSetup && finSetup) this.bgSetup()
 	}
 
-	componentWillUnmount() {
-		const { socket } = this.state
-		// All of these are precautions if they fail to occur in other places.
-		if (socket) socket.disconnect()
+	handleVisibChange = () => {
 		this.saveUserData()
-		// Remove events & unread handler interval.
-		window.removeEventListener("beforeunload", this.saveUserData)
-		clearInterval(this.intervalHandleUnread)
+		this.setState({ docHidden: document.hidden })
 	}
 
 	saveUserData = () => {
@@ -185,8 +198,8 @@ class Chat extends Component {
 	}
 
 	handleUnread = (data) => {
-		const { curRoomRID, myRooms, myDMS, curDMUID, roomsShown } = this.state
-		const { appActive } = this.props
+		const { curRoomRID, myRooms, myDMS, curDMUID, roomsShown, appActive } = this.state
+		if (!appActive) return
 
 		function makeUnread(d) {
 			const isRoom = !!d?.msgs
@@ -545,7 +558,7 @@ class Chat extends Component {
 			<Root>
 				{process.env.NODE_ENV !== "production" && (
 					<div style={{ position: "absolute", left: "35%", top: "1%" }}>
-						<Button onClick={this.log} variant="fancy">
+						<Button onClick={this.log} variant="solid">
 							SERVER LOG
 						</Button>
 					</div>
@@ -583,7 +596,7 @@ Chat.contextType = Contexts.Window
 Chat.shared = setupAppSharedOptions({
 	title: "Chat",
 	logo: SvgChat,
-	theme: themes.red,
+	theme: themes.green,
 	authRequired: true,
 	authReasoning:
 		"To showcase user authentication as well as chat logs being persisted onto a PostreSQL database so user's won't lose their data.",

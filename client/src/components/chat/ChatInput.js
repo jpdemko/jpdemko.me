@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from "react"
 import styled from "styled-components/macro"
 
-import { MsgBox } from "../ui/IO"
+import { MsgBox } from "../ui/io"
 import filter from "./filter"
 
 /* --------------------------------- STYLES --------------------------------- */
 
 const InputArea = styled(MsgBox)`
-	border-left: none;
-	border-right: none;
-	border-bottom: none;
+	border-left: none !important;
+	border-right: none !important;
+	border-bottom: none !important;
+	width: 100%;
+	height: 100%;
 `
 
 const InputForm = styled.form`
@@ -80,22 +82,17 @@ function ChatInput({ data, roomsShown, send, ...props }) {
 		if (e.keyCode === 13 && !e.shiftKey) submit(e)
 	}
 
-	useEffect(() => {
-		if (!error) return
-		const timer = setTimeout(() => setError(null), 5000)
-		return () => clearTimeout(timer)
-	}, [error])
-
 	return (
 		<InputForm onSubmit={submit} {...props}>
 			<InputArea
 				minLength="1"
 				required
-				value={error ? error : text}
+				error={error}
+				value={text}
 				onChange={handleTextChange}
 				onKeyDown={checkKeys}
 				placeholder="Send a message."
-				error={error}
+				clearError={setError}
 				inset
 				maxLength="1000"
 			/>

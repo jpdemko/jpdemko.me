@@ -39,7 +39,7 @@ const DiagonalBG = styled.div`
 		> div {
 			height: 200%;
 			width: 200%;
-			background: ${theme.bgContrast};
+			background: ${theme.backgroundContrast};
 			transform: translateY(20%) rotate(-10deg);
 		}
 	`}
@@ -61,10 +61,13 @@ const WindowWireframe = styled.div`
 		top: 50%;
 		left: 50%;
 		transform: translate(-50%, -50%);
-		min-width: ${isMobileSite ? 120 : minWindowCSS.width}px;
-		min-height: ${isMobileSite ? 80 : minWindowCSS.height}px;
-		width: ${isMobileSite ? 100 : 65}%;
-		height: ${isMobileSite ? 100 : 60}%;
+		${!isMobileSite &&
+		css`
+			min-height: ${minWindowCSS.height};
+			min-width: ${minWindowCSS.width};
+		`}
+		width: ${isMobileSite ? 100 : 60}%;
+		height: ${isMobileSite ? 100 : 80}%;
 	`}
 `
 
@@ -72,9 +75,11 @@ const Shortcuts = styled.div`
 	height: 100%;
 	position: relative;
 	z-index: 10; /* Need this because of absolute positioned background div. */
-	--sc-padding: 1rem;
+	--sc-padding: 1.25rem;
 	padding: var(--sc-padding);
 	display: grid;
+	min-height: 0;
+	min-width: 0;
 	${({ grid }) => css`
 		grid-template-columns: repeat(${grid.cols}, 1fr);
 		grid-template-rows: repeat(${grid.rows}, 1fr);
@@ -86,9 +91,18 @@ const Shortcuts = styled.div`
 const ShortcutButton = styled(Button)`
 	font-size: 1.1rem;
 	font-weight: bold;
-	svg {
-		height: 3rem;
+	overflow: hidden;
+	min-width: 0;
+	> div {
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
+	${({ theme }) => css`
+		* {
+			color: ${theme.lightestColor} !important;
+		}
+	`}
 `
 
 /* -------------------------------- COMPONENT ------------------------------- */
@@ -118,12 +132,13 @@ class Display extends Component {
 
 	componentDidMount() {
 		this.setGridDims()
-		window.addEventListener("beforeunload", this.save)
+		document.addEventListener("visibilitychange", this.save)
 		window.addEventListener("resize", this.setGridDimsThrottled)
 	}
 
 	componentWillUnmount() {
-		window.removeEventListener("beforeunload", this.save)
+		this.save()
+		document.removeEventListener("visibilitychange", this.save)
 		window.removeEventListener("resize", this.setGridDimsThrottled)
 		this.setGridDimsThrottled.cancel()
 	}
@@ -178,13 +193,15 @@ class Display extends Component {
 		const { apps } = this.state
 		const app = apps[title]
 		if (app && !app?.isClosed) return this.toggleMinimize(title)
-		else if (!app) this.genApp(title)
-		else
+		else if (!app) {
+			this.genApp(title)
+		} else {
 			this.focusApp(title, {
 				isClosed: false,
 				isMinimized: false,
 				...(this.props.isMobileSite && { isMaximized: true }),
 			})
+		}
 	}
 
 	toggleMinimize = (title) => {
@@ -258,17 +275,14 @@ class Display extends Component {
 	}
 
 	focusApp = (title, changes = {}) => {
-		const { apps } = this.state
-		const app = apps[title]
+		const nextApps = { ...this.state.apps }
+		const app = nextApps[title]
 		if (app?.isFocused && Object.keys(changes) < 1) return
 
-		const nextApps = { ...apps }
 		let noMatches = true
-		Object.keys(apps).forEach((t) => {
+		Object.keys(nextApps).forEach((t) => {
 			const appFound = t === title
-			if (appFound) {
-				noMatches = false
-			}
+			if (appFound) noMatches = false
 			nextApps[t] = {
 				...nextApps[t],
 				...(appFound && {
@@ -299,10 +313,11 @@ class Display extends Component {
 								<ShortcutButton
 									key={title}
 									onClick={() => this.openApp(title)}
-									variant="fancy"
 									svg={logo}
 									column
+									theme={theme}
 									setTheme={theme.name}
+									variant="combo"
 								>
 									{title}
 								</ShortcutButton>
@@ -331,11 +346,7 @@ class Display extends Component {
 									mainNavBurgerCB={this.state.mainNavBurgerCB}
 									setMainNavBurgerCB={this.setMainNavBurgerCB}
 								>
-									<App
-										isFocused={app.isFocused}
-										tabHidden={this.props.tabHidden}
-										title={app.title}
-									/>
+									<App title={app.title} />
 								</Window>
 							)
 						})}

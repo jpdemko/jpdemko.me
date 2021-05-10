@@ -29,7 +29,7 @@ const InfoMessage = styled.div`
 	transition: opacity 0.5s;
 	${({ theme, isValidZone }) => css`
 		background-color: ${opac(0.8, theme.background)};
-		color: ${theme.bgContrast};
+		color: ${theme.backgroundContrast};
 		opacity: ${isValidZone ? 0 : 1};
 		> span {
 			font-weight: bold;
@@ -83,7 +83,7 @@ const Table = styled.table`
 	text-align: center;
 	${({ theme }) => css`
 		th {
-			background: ${theme.altBackground};
+			background: ${theme.backgroundAlt};
 			position: sticky;
 			z-index: 1000;
 			top: 0;
@@ -272,7 +272,7 @@ const Forecast = memo(({ curLocation, getTemp }) => {
 	const bingMapRadar = useMemo(
 		() => ({
 			id: "bingMapRadar",
-			tabHeader: (
+			header: (
 				<Card>
 					<div>
 						<SvgRadar />
@@ -280,7 +280,7 @@ const Forecast = memo(({ curLocation, getTemp }) => {
 					<div>Radar</div>
 				</Card>
 			),
-			tabContent: (
+			content: (
 				<MapEntry id="BingMapRadar">
 					<InfoMessage isValidZone={isValidZone}>
 						- <span>INFO</span> - Radar loop overlay is only for the USA. I don't have international
@@ -292,7 +292,7 @@ const Forecast = memo(({ curLocation, getTemp }) => {
 		[isValidZone]
 	)
 
-	const tabsContent = useMemo(() => {
+	const tabsData = useMemo(() => {
 		if (!curLocation) return [bingMapRadar]
 		const { daily, hourly, timezone } = curLocation.weatherData
 
@@ -331,14 +331,14 @@ const Forecast = memo(({ curLocation, getTemp }) => {
 
 		const genContent = Object.keys(sortedData).map((ordDay) => ({
 			id: ordDay,
-			tabHeader: <DaySummary data={sortedData[ordDay]} getTemp={getTemp} />,
-			tabContent: <DayDetailed data={sortedData[ordDay]} getTemp={getTemp} />,
+			header: <DaySummary data={sortedData[ordDay]} getTemp={getTemp} />,
+			content: <DayDetailed data={sortedData[ordDay]} getTemp={getTemp} />,
 		}))
 
 		return [bingMapRadar, ...genContent]
 	}, [bingMapRadar, curLocation, getTemp])
 
-	return <CustomTabs content={tabsContent} />
+	return <CustomTabs data={tabsData} />
 })
 
 export default Forecast

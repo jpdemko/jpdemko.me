@@ -1,16 +1,14 @@
 import { memo, useState, useRef, useEffect, useCallback, Fragment, useMemo } from "react"
 import styled, { css, keyframes } from "styled-components/macro"
 import { DateTime, Interval } from "luxon"
-import throttle from "lodash/throttle"
 import Linkify from "react-linkify"
 
 import Button from "../ui/Button"
-import HorizLine from "../ui/HorizLine"
 import Link from "../ui/Link"
 import { ReactComponent as SvgUser } from "../../shared/assets/material-icons/user.svg"
 import { ReactComponent as SvgArrowDownCircle } from "../../shared/assets/material-icons/arrow-down-circle.svg"
 import { ReactComponent as SvgBlock } from "../../shared/assets/material-icons/block.svg"
-import { useEventListener, usePrevious } from "../../shared/hooks"
+import { useEventListener, usePrevious, useThrottle } from "../../shared/hooks"
 import { Debug } from "../../shared/shared"
 
 /* --------------------------------- STYLES --------------------------------- */
@@ -36,7 +34,7 @@ const LogsRoot = styled.div`
 		}
 	}
 	${({ theme }) => css`
-		background: ${theme.altBackground};
+		background: ${theme.backgroundAlt};
 	`}
 `
 
@@ -101,6 +99,32 @@ const SnapEndBtn = styled(Button)`
 	}
 `
 
+const HorizLine = styled.span`
+	display: flex;
+	text-transform: uppercase;
+	font-size: 0.75em;
+	font-style: italic;
+	${({ theme, children }) => css`
+		color: ${theme.accent};
+		&::before,
+		&::after {
+			content: "";
+			flex: 1;
+			border-bottom: 1px solid ${theme.accent};
+			margin: auto;
+		}
+		${children &&
+		css`
+			&::before {
+				margin-right: 1em;
+			}
+			&::after {
+				margin-left: 1em;
+			}
+		`}
+	`}
+`
+
 /* ------------------------------- COMPONENTS ------------------------------- */
 
 // eslint-disable-next-line no-unused-vars
@@ -156,28 +180,24 @@ function Logs({ data, user, openDM, roomsShown, inputSent, ban, ...props }) {
 	const logsLength = data?.[logType] ? Object.keys(data[logType]).length : 0
 	const totalUnread = data?.[logType]?.totalUnread
 
-	// eslint-disable-next-line react-hooks/exhaustive-deps
-	const handleScrolling = useCallback(
-		throttle(() => {
-			const ele = rootRef.current
-			if (ele) {
-				const { height: rootHeight } = ele.getBoundingClientRect()
-				const pxFromBot = ele.scrollHeight % (Math.round(rootHeight) + ele.scrollTop)
-				setFollowLast(pxFromBot < 32)
-			}
-		}, 1000),
-		[rootRef.current]
-	)
-	useEventListener("scroll", handleScrolling, rootRef)
+	const throtScroll = useThrottle(() => {
+		const ele = rootRef.current
+		if (ele) {
+			const { height: rootHeight } = ele.getBoundingClientRect()
+			const pxFromBot = ele.scrollHeight % (Math.round(rootHeight) + ele.scrollTop)
+			setFollowLast(pxFromBot < 32)
+		}
+	}, 1000)
+	useEventListener(rootRef, "scroll", throtScroll)
 
 	const scroll2end = useCallback(() => {
 		const ele = rootRef.current
 		if (ele) {
 			ele.scrollTop = ele.scrollHeight
-			handleScrolling()
+			throtScroll()
 		}
 		if (!followLast) setFollowLast(true)
-	}, [followLast, handleScrolling])
+	}, [followLast, throtScroll])
 
 	// Determine where to scroll on fresh start or following updates.
 	useEffect(() => {

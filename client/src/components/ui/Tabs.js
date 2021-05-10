@@ -12,26 +12,37 @@ const Root = styled.div`
 	flex-direction: column;
 	overflow: hidden;
 	${({ theme }) => css`
-		background: ${theme.altBackground};
+		background: ${theme.backgroundAlt};
 		border: 1px solid ${theme.accent};
+	`}
+`
+
+const TabsHeader = styled.div`
+	flex: 0 0 auto;
+	display: flex;
+	${({ theme }) => css`
+		background: ${theme.background};
+	`}
+`
+
+const BtnHeaderGroup = styled.div`
+	flex: 0 1 auto;
+	display: flex;
+	overflow-x: auto;
+	font-weight: bold;
+	> * {
+		flex: 0 0 auto;
+	}
+	${({ theme }) => css`
+		background: ${theme.backgroundAlt};
 	`}
 `
 
 const TabButton = styled(Button)`
 	${({ theme }) => css`
-		color: ${theme.bgContrast};
+		color: ${theme.backgroundContrast};
 		border-right: 1px solid ${opac(0.6, theme.accent)};
 	`}
-`
-
-const TabsHeader = styled.div`
-	font-weight: bold;
-	flex: 0 0 auto;
-	display: flex;
-	overflow-x: auto;
-	> * {
-		flex: 0 0 auto;
-	}
 `
 
 const SelectedContent = styled.div`
@@ -40,10 +51,10 @@ const SelectedContent = styled.div`
 	overflow-y: auto;
 `
 
-const TabContents = styled.div`
+const TabContent = styled.div`
 	height: 100%;
 	${({ isFocused, theme }) => css`
-		color: ${theme.bgContrast};
+		color: ${theme.backgroundContrast};
 		position: ${isFocused ? "initial" : "absolute"};
 		display: ${isFocused ? "initial" : "none"};
 	`}
@@ -51,41 +62,43 @@ const TabContents = styled.div`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-const defaultContent = [{ id: 1, tabHeader: null, tabContent: null }]
+const defaultData = [{ id: 1, header: null, content: null }]
 
-function Tabs({ content = defaultContent, ...props }) {
-	const [focusedID, setFocusedID] = useState(content[0].id)
+function Tabs({ data = defaultData, ...props }) {
+	const [focusedID, setFocusedID] = useState(data[0].id)
 
-	const prevContentLength = usePrevious(content?.length)
+	const prevContentLength = usePrevious(data?.length)
 	useEffect(() => {
-		if (content?.length !== prevContentLength) {
-			if (!content.find((ele) => ele.id === focusedID)) {
-				const nextEle = content.find((ele) => ele.id !== focusedID)
+		if (data?.length !== prevContentLength) {
+			if (!data.find((ele) => ele.id === focusedID)) {
+				const nextEle = data.find((ele) => ele.id !== focusedID)
 				setFocusedID(nextEle ? nextEle.id : null)
 			}
 		}
-	}, [content, focusedID, prevContentLength])
+	}, [data, focusedID, prevContentLength])
 
 	return (
 		<Root {...props}>
 			<TabsHeader>
-				{content.map(({ id, tabHeader }) => (
-					<TabButton
-						key={`tab-header-${id}`}
-						isFocused={id === focusedID}
-						onClick={() => setFocusedID(id)}
-						setColor="highlight"
-						column
-					>
-						{tabHeader}
-					</TabButton>
-				))}
+				<BtnHeaderGroup>
+					{data.map(({ id, header }) => (
+						<TabButton
+							key={`tab-header-${id}`}
+							isFocused={id === focusedID}
+							onClick={() => setFocusedID(id)}
+							setColor="highlight"
+							column
+						>
+							{header}
+						</TabButton>
+					))}
+				</BtnHeaderGroup>
 			</TabsHeader>
 			<SelectedContent>
-				{content.map(({ id, tabContent }) => (
-					<TabContents key={`tab-content-${id}`} isFocused={id === focusedID}>
-						{tabContent}
-					</TabContents>
+				{data.map(({ id, content }) => (
+					<TabContent key={`tab-content-${id}`} isFocused={id === focusedID}>
+						{content}
+					</TabContent>
 				))}
 			</SelectedContent>
 		</Root>

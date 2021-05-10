@@ -7,7 +7,7 @@ import { useUpdatedValRef } from "../../shared/hooks"
 import { ReactComponent as SvgLocation } from "../../shared/assets/material-icons/location.svg"
 import Button from "../ui/Button"
 import { opac } from "../../shared/shared"
-import { Input } from "../ui/IO"
+import { Input } from "../ui/io"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -15,19 +15,23 @@ const Root = styled.div`
 	flex: 0 0 auto;
 	display: flex;
 	position: relative;
-	background: inherit;
 	${({ theme }) => css`
-		color: ${theme.bgContrast};
+		color: ${theme.backgroundContrast};
 		/* Fixing Bing elements; search results and children... */
 		.MicrosoftMap {
 			--ls-length: 0.8em;
 			a {
-				color: ${theme.bgContrast} !important;
-				&:hover,
+				color: ${theme.backgroundContrast} !important;
+				@media (hover) {
+					&:hover {
+						background: ${opac(0.5, theme.highlight)};
+						color: ${theme.highlightContrast};
+					}
+				}
 				&:active,
 				&::selection {
 					background: ${opac(0.5, theme.highlight)};
-					color: ${theme.primaryContrast};
+					color: ${theme.highlightContrast};
 				}
 			}
 			.as_container {
@@ -53,7 +57,7 @@ const Root = styled.div`
 				max-height: 80vh;
 				overflow-x: hidden;
 				overflow-y: auto;
-				background-color: ${theme.altBackground};
+				background-color: ${theme.backgroundAlt};
 				border-top: 1px solid ${theme.accent};
 				border-bottom: 1px solid ${theme.accent};
 				.asOuterContainer {
@@ -69,7 +73,7 @@ const Root = styled.div`
 			}
 			.suggestLink.selected {
 				background: ${opac(0.75, theme.highlight)};
-				color: ${theme.primaryContrast};
+				color: ${theme.highlightContrast};
 			}
 		}
 	`}
@@ -165,12 +169,6 @@ function LocationSearch({ map, modulesLoaded, onLocationFound }) {
 		if (error) setError(null)
 	}
 
-	useEffect(() => {
-		if (!error) return
-		const timer = setTimeout(() => setError(null), 5000)
-		return () => clearTimeout(timer)
-	}, [error])
-
 	return (
 		<Root id="searchRoot">
 			<LocSearchInput
@@ -180,6 +178,7 @@ function LocationSearch({ map, modulesLoaded, onLocationFound }) {
 				value={input}
 				onChange={handleChange}
 				error={error}
+				clearError={setError}
 			/>
 			<GeolocateBtn svg={SvgLocation} onClick={onGeolocateCurrentPosition} setColor="highlight" />
 		</Root>

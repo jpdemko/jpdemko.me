@@ -10,7 +10,9 @@ function ThemeCheck({ setTheme, setColor, children }) {
 	function getChildren() {
 		let output = children
 		if (finTheme?.[setColor]) {
-			output = Children.map(children, (child) => cloneElement(child, { color: finTheme[setColor] }))
+			output = Children.map(children, (child) =>
+				cloneElement(child, { color: finTheme[setColor], colorContrast: finTheme[`${setColor}Contrast`] })
+			)
 		}
 		return output
 	}

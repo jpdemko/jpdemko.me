@@ -26,11 +26,13 @@ const ProjImg = styled.div`
 const ProjRoot = styled.div`
 	display: flex;
 	flex-wrap: wrap;
-	&:hover ${ProjImg} {
-		transform: scale(1.05);
+	@media (hover) {
+		&:hover ${ProjImg} {
+			transform: scale(1.05);
+		}
 	}
 	${({ theme }) => css`
-		background: ${theme.altBackground};
+		background: ${theme.backgroundAlt};
 		border-top: 1px solid ${theme.accent};
 	`}
 `

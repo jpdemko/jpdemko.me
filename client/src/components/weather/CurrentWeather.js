@@ -19,7 +19,7 @@ const Root = styled.div`
 	text-align: center;
 	${({ theme, curWeatherBG, isLandscape }) => css`
 		background-image: ${curWeatherBG ? curWeatherBG.gradient : theme.background};
-		color: ${curWeatherBG ? theme.readableColor(curWeatherBG.base) : theme.bgContrast};
+		color: ${curWeatherBG ? theme.readableColor(curWeatherBG.base) : theme.backgroundContrast};
 		border-${isLandscape ? "right" : "bottom"}: 1px solid ${theme.accent};
 	`}
 	> * {

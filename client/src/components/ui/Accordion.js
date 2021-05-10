@@ -1,8 +1,9 @@
-import { useState } from "react"
+import { useLayoutEffect, useRef, useState } from "react"
 import styled, { css } from "styled-components/macro"
 
 import Button from "./Button"
 import { ReactComponent as SvgArrowRight } from "../../shared/assets/material-icons/arrow-right.svg"
+import { usePrevious } from "../../shared/hooks"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -10,63 +11,101 @@ const AccordRoot = styled.div`
 	display: flex;
 	flex-direction: column;
 	height: 100%;
+	min-width: 30ch;
+	${({ theme, animDuration }) => css`
+		@media (hover) {
+			transition: ${animDuration}s;
+		}
+		border: 1px solid ${theme.accent};
+		background: ${theme.background};
+	`}
 `
 
 const MenuRoot = styled.div`
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
-	${({ opened, theme }) => css`
-		border-top: 1px solid ${theme.altBackground};
-		flex: ${opened ? "1 0" : "0 0 auto"};
+	${({ opened, theme, animDuration, heights }) => css`
+		border-top: 1px solid ${theme.accent};
+		@media (hover) {
+			transition: ${animDuration}s;
+		}
+		min-height: ${heights.btn};
+		flex: ${opened ? `1 0` : `0 1 ${heights.btn}`};
 	`}
 `
 
-const MenuTitle = styled(Button)`
+const MenuTitleBtn = styled(Button)`
 	padding: 0;
-	justify-content: flex-end;
-	${({ opened }) => css`
+	flex: 0 0 auto;
+	justify-content: flex-start;
+	${({ opened, animDuration }) => css`
 		> svg {
-			transform: rotate(${opened ? "90deg" : 0});
+			transition: transform ${animDuration}s;
+			transform: rotate(${opened ? "90deg" : "0deg"});
 		}
 	`}
 `
 
 const MenuContent = styled.div`
-	overflow-x: hidden;
-	${({ opened }) => css`
-		height: ${opened ? "100%" : "0px"};
-		overflow-y: ${opened ? "auto" : "hidden"};
+	${({ opened, animDuration, heights }) => css`
+		overflow: ${opened ? "auto" : "hidden"};
+		> div:only-child {
+			overflow: ${opened ? "auto" : "hidden"};
+		}
+		@media (hover) {
+			transition: ${animDuration}s ease-in-out;
+		}
+		height: auto;
+		max-height: ${opened ? (heights ? `${heights.content}` : "100vmax") : "0"};
 	`}
 `
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function Menu({ data }) {
-	const [opened, setOpened] = useState(true)
-	const { title, content } = data
+function Menu({ data, startOpened = true, animDuration }) {
+	const { id, header, content } = data
+	const [opened, setOpened] = useState(startOpened)
+	const prevOpened = usePrevious(opened)
+
+	const contentRef = useRef()
+	const [heights, setHeights] = useState({ content: "100vmax", btn: "auto" })
+	useLayoutEffect(() => {
+		if (prevOpened === opened) return
+		const cnt = contentRef.current
+		const btn = document.getElementById(`btn-${id}`)
+		setHeights({
+			content: `${cnt.scrollHeight}px`,
+			btn: `${btn.scrollHeight}px`,
+		})
+	}, [prevOpened, opened, content, id])
 
 	return !data ? null : (
-		<MenuRoot opened={opened}>
-			<MenuTitle
+		<MenuRoot opened={opened} animDuration={animDuration} heights={heights}>
+			<MenuTitleBtn
 				tag="div"
-				variant="fancy"
+				id={`btn-${id}`}
+				variant="solid"
 				onClick={() => setOpened((prev) => !prev)}
 				svg={SvgArrowRight}
 				opened={opened}
+				animDuration={animDuration}
 			>
-				{title}
-			</MenuTitle>
-			<MenuContent opened={opened}>{content}</MenuContent>
+				{header}
+			</MenuTitleBtn>
+			<MenuContent opened={opened} animDuration={animDuration} heights={heights} ref={contentRef}>
+				{content}
+			</MenuContent>
 		</MenuRoot>
 	)
 }
 
-export default function Accordion({ data, ...props }) {
+export default function Accordion({ data, animDuration = 0.35, ...props }) {
+	// [{ id, header, content, startOpened }, ...n] = data
 	return !data ? null : (
-		<AccordRoot {...props}>
+		<AccordRoot {...props} animDuration={animDuration}>
 			{data.map((ele) => {
-				return <Menu key={ele.id} data={ele} />
+				return <Menu key={ele.id} animDuration={animDuration} data={ele} startOpened={ele.startOpened} />
 			})}
 		</AccordRoot>
 	)
