@@ -3,7 +3,8 @@
 		"module": "es2015",
 		"target": "es2018",
 		"jsx": "react-jsx",
-		"allowSyntheticDefaultImports": true
+		"allowSyntheticDefaultImports": true,
+		"moduleResolution": "node"
 	},
 	"exclude": ["node_modules", "**/node_modules/*", "./node_modules/**/*"],
 	"include": ["src/**/*"]

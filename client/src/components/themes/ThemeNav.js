@@ -1,4 +1,4 @@
-import { useContext, useEffect } from "react"
+import { useContext, useLayoutEffect } from "react"
 import styled, { css } from "styled-components/macro"
 
 import { Contexts, Styles } from "../../shared/shared"
@@ -50,10 +50,11 @@ function ThemeNav({ cgTitles, children, focusedID, setFocusedID, ...props }) {
 
 	function scrollTo(id) {
 		const ele = document.getElementById(id)
-		if (!ele) return
+		const par = document.getElementById("app-content-Themes")
+		if (!ele || !par) return
 		const eleStyle = new Styles(ele)
 		const eleMargins = eleStyle.get("margin")
-		ele.parentNode.parentNode.scrollTop = ele.offsetTop - (eleMargins?.[0] ?? 0)
+		par.scrollTop = ele.offsetTop - (eleMargins?.[0] ?? 0)
 		setFocusedID(id)
 		setAppDrawerShown(false)
 	}
@@ -75,7 +76,7 @@ function ThemeNav({ cgTitles, children, focusedID, setFocusedID, ...props }) {
 			</LinkList>
 		</Root>
 	)
-	useEffect(() => setAppDrawerContent(drawerContent))
+	useLayoutEffect(() => setAppDrawerContent(drawerContent))
 	return null
 }
 

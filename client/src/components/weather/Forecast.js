@@ -7,6 +7,7 @@ import { ReactComponent as SvgRadar } from "../../shared/assets/weather-icons/ra
 import WeatherIcon from "./WeatherIcon"
 import Tabs from "../ui/Tabs"
 import TempHue from "./TempHue"
+import { Table, THeader, TBody, TRow, TH, TD } from "../ui/Table"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -33,7 +34,7 @@ const InfoMessage = styled.div`
 		opacity: ${isValidZone ? 0 : 1};
 		> span {
 			font-weight: bold;
-			color: ${theme.primary};
+			color: ${theme.highlight};
 		}
 	`}
 `
@@ -74,58 +75,6 @@ const SummaryTempHue = styled(TempHue)`
 const TableTempHue = styled(TempHue)`
 	display: inline-block;
 	padding: 0em 0.3em;
-`
-
-const Table = styled.table`
-	position: relative;
-	width: 100%;
-	border-collapse: collapse;
-	text-align: center;
-	${({ theme }) => css`
-		th {
-			background: ${theme.backgroundAlt};
-			position: sticky;
-			z-index: 1000;
-			top: 0;
-		}
-	`}
-`
-
-const THeader = styled.thead`
-	white-space: nowrap;
-	background: coral;
-	${({ theme }) => css`
-		tr {
-			padding: 0;
-		}
-		div {
-			border-bottom: 1px solid ${theme.accent};
-		}
-	`}
-`
-
-const TBody = styled.tbody`
-	overflow: auto;
-	font-weight: bold;
-	${({ theme }) => css`
-		tr:nth-child(odd) {
-			background: ${opac(0.5, theme.background)};
-		}
-	`}
-`
-
-const TRow = styled.tr`
-	> * {
-		padding: 0.15em 0.3em;
-	}
-`
-
-const SummaryCell = styled.div`
-	display: flex;
-	flex-direction: column;
-	text-align: center;
-	justify-content: center;
-	align-items: center;
 `
 
 const Subtle = styled.span`
@@ -169,21 +118,11 @@ const DayDetailed = ({ data: { timezone, hours }, getTemp }) => (
 			<Table>
 				<THeader>
 					<TRow>
-						<th>
-							<div>Time</div>
-						</th>
-						<th>
-							<div>Summary</div>
-						</th>
-						<th>
-							<div>Temp.</div>
-						</th>
-						<th>
-							<div>Rain%</div>
-						</th>
-						<th>
-							<div>Humid.%</div>
-						</th>
+						<TH>Time </TH>
+						<TH>Summary </TH>
+						<TH>Temp.</TH>
+						<TH>Rain%</TH>
+						<TH>Humid.%</TH>
 					</TRow>
 				</THeader>
 				<TBody>
@@ -193,33 +132,31 @@ const DayDetailed = ({ data: { timezone, hours }, getTemp }) => (
 						const temp = hour.apparentTemperature
 						return (
 							<TRow key={hour.time}>
-								<td>
-									<div>
+								<TD>
+									<span>
 										{h}
-										<Subtle>{period}</Subtle>
-									</div>
-								</td>
-								<td>
-									<SummaryCell>
-										<WeatherIcon iconName={hour.icon} />
-										{hour.summary}
-									</SummaryCell>
-								</td>
-								<td>
+										<Subtle> {period}</Subtle>
+									</span>
+								</TD>
+								<TD>
+									<WeatherIcon iconName={hour.icon} />
+									{hour.summary}
+								</TD>
+								<TD>
 									<TableTempHue temp={temp}>{getTemp(temp)}&deg;</TableTempHue>
-								</td>
-								<td>
-									<div>
+								</TD>
+								<TD>
+									<span>
 										{Math.round(hour.precipProbability * 100)}
-										<Subtle>%</Subtle>
-									</div>
-								</td>
-								<td>
-									<div>
+										<Subtle> %</Subtle>
+									</span>
+								</TD>
+								<TD>
+									<span>
 										{Math.round(hour.humidity * 100)}
-										<Subtle>%</Subtle>
-									</div>
-								</td>
+										<Subtle> %</Subtle>
+									</span>
+								</TD>
 							</TRow>
 						)
 					})}

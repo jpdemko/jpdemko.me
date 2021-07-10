@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, useMemo } from "react"
+import { useState, useContext, useMemo, useLayoutEffect } from "react"
 import styled, { css } from "styled-components/macro"
 import { DateTime } from "luxon"
 
@@ -122,12 +122,7 @@ function WeatherNav({
 					const temp = weatherData.currently.apparentTemperature
 					return (
 						<Row key={id} curWeatherBG={curWeatherBG}>
-							<Location
-								tag="div"
-								setColor="highlight"
-								onClick={() => onLocationFound(mapData)}
-								curWeatherBG={curWeatherBG}
-							>
+							<Location tag="div" onClick={() => onLocationFound(mapData)} curWeatherBG={curWeatherBG}>
 								<LocationAddress className="chLimit">
 									{mapData.address.formattedAddress}
 								</LocationAddress>
@@ -155,7 +150,7 @@ function WeatherNav({
 		</Root>
 	)
 	// Can't update during an existing state transition. So defer it.
-	useEffect(() => setAppDrawerContent(navContent))
+	useLayoutEffect(() => setAppDrawerContent(navContent))
 	return null
 }
 

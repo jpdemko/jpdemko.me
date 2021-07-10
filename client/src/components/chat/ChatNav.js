@@ -1,6 +1,6 @@
 /* eslint-disable jsx-a11y/label-has-associated-control */
 
-import { useState, useRef, useContext, useEffect, useMemo } from "react"
+import { useState, useRef, useContext, useEffect, useMemo, useLayoutEffect } from "react"
 import styled, { css } from "styled-components/macro"
 
 import { ReactComponent as SvgClose } from "../../shared/assets/material-icons/close.svg"
@@ -135,7 +135,7 @@ const LatestDM = styled(Button)`
 	`}
 `
 
-const ModalRoot = styled.div`
+const FormWrap = styled.div`
 	--modal-padding: 0.5em;
 	min-width: max-content;
 	padding: var(--modal-padding);
@@ -394,10 +394,10 @@ function ChatNav({
 		</DrawerRoot>
 	)
 	// Can't update during an existing state transition. So defer it.
-	useEffect(() => setAppDrawerContent(drawerContent))
+	useLayoutEffect(() => setAppDrawerContent(drawerContent))
 
 	const createRoomModal = (
-		<ModalRoot>
+		<FormWrap>
 			<form onSubmit={submitCreateRoom}>
 				<div>
 					<Empha>Create room config!</Empha>
@@ -426,10 +426,10 @@ function ChatNav({
 					</Button>
 				</div>
 			</form>
-		</ModalRoot>
+		</FormWrap>
 	)
 	const joinRoomModal = (
-		<ModalRoot>
+		<FormWrap>
 			<form onSubmit={submitJoinRoom}>
 				<div>
 					<Empha>Join room config!</Empha>
@@ -458,7 +458,7 @@ function ChatNav({
 					</Button>
 				</div>
 			</form>
-		</ModalRoot>
+		</FormWrap>
 	)
 
 	return (

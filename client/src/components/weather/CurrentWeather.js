@@ -68,9 +68,12 @@ const StyledTempHue = styled(TempHue)`
 
 const Icon = styled.div`
 	height: 4em;
-	svg {
-		height: 100%;
-	}
+	${({ theme }) => css`
+		svg {
+			height: 100%;
+			fill: ${theme.highlightContrast};
+		}
+	`}
 `
 
 const Info = styled.div`

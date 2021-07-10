@@ -1,5 +1,5 @@
 // eslint-disable-next-line no-unused-vars
-import { createContext, FunctionComponent, SVGProps } from "react"
+import { createContext } from "react"
 import { transparentize, readableColor, getLuminance } from "polished"
 import { parse, stringify } from "flatted"
 
@@ -220,11 +220,11 @@ function addTheme(t = {}) {
  * Also used for testing when I need some default app options.
  * @param {Object} options
  * @param {string} options.title
- * @param {FunctionComponent<SVGProps<SVGSVGElement>>} options.logo
+ * @param {import("react").FunctionComponent<import("react").SVGProps<SVGSVGElement>>} options.logo
  * @param {Theme} options.theme
  * @param {boolean} options.authRequired
  * @param {string} options.authReasoning
- * @return {Object}
+ * @returns {Object}
  */
 export function setupAppSharedOptions(options = {}) {
 	if (options?.theme) options.theme = addTheme(options.theme)
@@ -258,7 +258,7 @@ export class Styles {
 	 * Condensed way to get the computed style values of an element.
 	 * @param {string} attr Style property you want to get.
 	 * @param {boolean} [parse=true] Convert string|string[] into floats and return.
-	 * @return {Array|null}
+	 * @returns {Array|null}
 	 */
 	get(attr, parse = true) {
 		try {
@@ -285,7 +285,7 @@ export class Styles {
 /**
  * Condensed way to get the DOMRect of something.
  * @param {Element|string} target DOM element OR string element ID, eg: 'target' (no #)
- * @return {DOMRect|Object}
+ * @returns {DOMRect|Object}
  */
 export function getRect(target) {
 	target = typeof target === "string" ? document.getElementById(target) : target
@@ -297,7 +297,7 @@ export function getRect(target) {
 /**
  * This 'mixin' was created because of a Chrome bug which causes child elements to blur on 3D translation.
  * @param {string} adjustments Your desired translation values, eg: '0, -15%'
- * @return {string} The resultant browser translation, eg: 'translate3d(0, -15%, 0)'
+ * @returns {string} The resultant browser translation, eg: 'translate3d(0, -15%, 0)'
  */
 export function safeTranslate(adjustments) {
 	const is3D = adjustments.split(",").length > 2
@@ -355,19 +355,30 @@ export function Debug(prefix, localEnabled) {
 /* -------------------------------------------------------------------------- */
 
 export class GenSeqID {
-	constructor(startNum) {
+	constructor(startNum, prefix) {
 		this.curNum = startNum ?? 0
+		this.prefix = prefix
 	}
 
 	get(skipN = 3) {
 		this.curNum -= skipN
-		return this.curNum
+		return this.prefix ? `${this.prefix}-${this.curNum}` : this.curNum
 	}
 
-	set(newNum) {
+	set(newNum, newPrefix) {
 		this.curNum = newNum
-		return this.curNum
+		this.prefix = newPrefix
+		return this.get()
 	}
 }
 
 export const zOverlayGen = new GenSeqID(300000)
+
+/* -------------------------------------------------------------------------- */
+
+export function uuidv4() {
+	return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, (c) =>
+		// eslint-disable-next-line no-mixed-operators
+		(c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))).toString(16)
+	)
+}

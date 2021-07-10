@@ -2,7 +2,6 @@ import styled, { css } from "styled-components/macro"
 import { Transition } from "react-transition-group"
 
 import Backdrop from "./Backdrop"
-import { useOverlayZ } from "../../shared/hooks"
 import { useMemo } from "react"
 import { zOverlayGen } from "../../shared/shared"
 
@@ -72,11 +71,11 @@ const svgStyleStates = {
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-export function LoadingSVG({ animDuration = 0.4, sideLength = "24px", ...props }) {
+export function LoadingSVG({ animDuration = 0.4, sideLength = "24px", strokeWidth = 3, ...props }) {
 	return (
 		<WrapSVG>
 			<StyledSVG {...props} sideLength={sideLength} viewBox="0 0 50 50" animDuration={animDuration}>
-				<circle className="path" cx="25" cy="25" r="20" fill="none" strokeWidth="2" />
+				<circle className="path" cx="25" cy="25" r="20" fill="none" strokeWidth={`${strokeWidth}`} />
 			</StyledSVG>
 		</WrapSVG>
 	)

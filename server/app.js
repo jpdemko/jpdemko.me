@@ -121,6 +121,7 @@ if (isProd && cluster.isMaster) {
 
 	// ROUTES
 	app.use("/auth", require("./routes/auth")(passport))
+	app.use("/minesweeper", require("./routes/minesweeper"))
 	app.use("/weather", require("./routes/weather"))
 	if (isProd || isHerokuLocal) {
 		app.get("*", function (req, res) {
@@ -130,7 +131,7 @@ if (isProd && cluster.isMaster) {
 
 	// GENERIC ERROR HANDLER
 	app.use(function (err, req, res, next) {
-		console.error(err)
+		console.error(err.stack)
 		res.status(err.status || 500).send({
 			error: {
 				status: err.status || 500,

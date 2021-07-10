@@ -17,12 +17,18 @@ const Center = styled.div`
 	justify-content: center;
 	align-items: center;
 	z-index: -1;
+	left: 0;
+	top: 0;
 `
 
 const Root = styled.div`
 	pointer-events: auto;
-	transform: "scale(0)";
+	transform: scale(0);
 	opacity: 0;
+	max-width: 90%;
+	max-height: 90%;
+	overflow-x: hidden;
+	overflow-y: auto;
 	${({ animDuration, theme }) => css`
 		transition-duration: ${animDuration}s;
 		transition-property: transform, opacity;
@@ -53,15 +59,15 @@ const centeringStyleStates = (zIndex, state) => {
 function Modal({ animDuration = 0.25, isShown = false, onClose, children, ...props }) {
 	const modalRef = useRef()
 
-	const memoizedCloseModal = useCallback(() => isShown && onClose(), [isShown, onClose])
+	const memoizedCloseModal = useCallback(() => isShown && onClose?.(), [isShown, onClose])
 	const bdRef = useOnClick(memoizedCloseModal)
 
 	const zIndex = useMemo(() => zOverlayGen.get(), [])
 
 	return (
 		<>
-			<Backdrop ref={bdRef} isShown={isShown} zIndex={zIndex} />
-			<Transition timeout={animDuration * 1000} in={isShown} mountOnEnter unmountOnExit>
+			<Backdrop ref={bdRef} isShown={isShown} zIndex={zIndex} animDuration={animDuration} />
+			<Transition timeout={animDuration * 1000} in={isShown}>
 				{(state) => (
 					<Center style={centeringStyleStates(zIndex, state)}>
 						<Root

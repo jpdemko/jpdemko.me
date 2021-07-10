@@ -94,13 +94,18 @@ export const ButtonBase = styled.button.attrs(({ svg, column, reverse, ...props 
 	`}
 `
 
-const BasicButton = styled(ButtonBase).attrs(({ color, theme, ...props }) => ({
-	...props,
-	color: color ?? theme.backgroundContrast,
-	theme,
-}))`
+const BasicButton = styled(ButtonBase).attrs(({ color, theme, ...props }) => {
+	return {
+		...props,
+		color: color ?? theme.backgroundContrast,
+		theme,
+	}
+})`
 	${(props) => css`
 		color: ${props.color};
+		svg {
+			fill: ${props.color};
+		}
 		background: ${opac(props.isFocused ? 0.15 : 0, props.color)};
 		box-shadow: 0 0 0 1px ${opac(props.isFocused ? 0.2 : 0, props.color)};
 		&:focus {
@@ -139,15 +144,20 @@ const OutlinedButton = styled(BasicButton)`
 	`}
 `
 
-const SolidButton = styled(ButtonBase).attrs(({ color, colorContrast, theme, gleam, ...props }) => ({
-	...props,
-	color: color ?? theme.highlight,
-	colorContrast: colorContrast ?? theme.highlightContrast,
-	theme,
-}))`
+const SolidButton = styled(ButtonBase).attrs(({ color, colorContrast, theme, gleam, ...props }) => {
+	return {
+		...props,
+		color: color ?? theme.highlight,
+		colorContrast: colorContrast ?? theme.highlightContrast,
+		theme,
+	}
+})`
 	${({ theme, color, colorContrast }) => css`
 		background: ${color};
 		color: ${colorContrast};
+		svg {
+			fill: ${colorContrast};
+		}
 		box-shadow: 0 1px 8px 1px ${opac(0.5, theme.accent)}, 0 0 0 1px ${opac(0.7, theme.accent)};
 		&:focus {
 			box-shadow: 0 1px 8px 2px ${opac(0.55, theme.accent)}, 0 0 0 1px ${theme.accent};
@@ -215,7 +225,7 @@ const ComboButton = styled(SolidButton)`
 	`}
 `
 
-const BadgeAnim = (theme) => keyframes`
+export const BadgeAnim = (theme) => keyframes`
 	0% { box-shadow: 0 0 0 2px ${theme.highlightContrast}; }
 	25% { box-shadow: 0 0 0 2px ${theme.background}; }
 	50% { box-shadow: 0 0 0 2px ${theme.accent}; }
@@ -260,7 +270,7 @@ const Button = forwardRef(({ tag, variant, badge, gleam, children, ...props }, r
 				{badge && <Badge className="chLimit">{badge}</Badge>}
 				{gleam && <Gleam />}
 				{props.svg && <props.svg />}
-				{children && <BtnContent>{children}</BtnContent>}
+				{children && <BtnContent className="btn-content">{children}</BtnContent>}
 			</ButtonVariant>
 		</ThemeCheck>
 	)

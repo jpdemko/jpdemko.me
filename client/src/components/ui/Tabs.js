@@ -22,6 +22,7 @@ const TabsHeader = styled.div`
 	display: flex;
 	${({ theme }) => css`
 		background: ${theme.background};
+		border-bottom: 1px solid ${theme.accent};
 	`}
 `
 
@@ -39,7 +40,7 @@ const BtnHeaderGroup = styled.div`
 `
 
 const TabButton = styled(Button)`
-	${({ theme }) => css`
+	${({ theme, isFocused }) => css`
 		color: ${theme.backgroundContrast};
 		border-right: 1px solid ${opac(0.6, theme.accent)};
 	`}
@@ -55,8 +56,8 @@ const TabContent = styled.div`
 	height: 100%;
 	${({ isFocused, theme }) => css`
 		color: ${theme.backgroundContrast};
-		position: ${isFocused ? "initial" : "absolute"};
-		display: ${isFocused ? "initial" : "none"};
+		position: ${isFocused ? "static" : "absolute"};
+		display: ${isFocused ? "block" : "none"};
 	`}
 `
 
@@ -65,7 +66,7 @@ const TabContent = styled.div`
 const defaultData = [{ id: 1, header: null, content: null }]
 
 function Tabs({ data = defaultData, ...props }) {
-	const [focusedID, setFocusedID] = useState(data[0].id)
+	const [focusedID, setFocusedID] = useState(data?.[0]?.id)
 
 	const prevContentLength = usePrevious(data?.length)
 	useEffect(() => {
@@ -86,7 +87,6 @@ function Tabs({ data = defaultData, ...props }) {
 							key={`tab-header-${id}`}
 							isFocused={id === focusedID}
 							onClick={() => setFocusedID(id)}
-							setColor="highlight"
 							column
 						>
 							{header}

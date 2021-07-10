@@ -251,9 +251,10 @@ function Weather({ title, ...props }) {
 	}, 1000 * 60 * updateInterval)
 
 	const [isMetric, setIsMetric] = useState(false)
-	const getTemp = useCallback((temp) => (isMetric ? Math.round((5 / 9) * (temp - 32)) : Math.round(temp)), [
-		isMetric,
-	])
+	const getTemp = useCallback(
+		(temp) => (isMetric ? Math.round((5 / 9) * (temp - 32)) : Math.round(temp)),
+		[isMetric]
+	)
 
 	const checkIfLandscape = (eleRect) => eleRect.width > eleRect.height * 1.25
 	const [dataRef, isLandscape] = useResizeObserver(checkIfLandscape)

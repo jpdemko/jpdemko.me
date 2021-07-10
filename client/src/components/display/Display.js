@@ -3,7 +3,7 @@ import styled, { css } from "styled-components/macro"
 import { TransitionGroup } from "react-transition-group"
 import throttle from "lodash/throttle"
 
-import { ls, Debug } from "../../shared/shared"
+import { ls, Debug, opac } from "../../shared/shared"
 import About from "../about/About"
 import Weather from "../weather/Weather"
 import Chat from "../chat/Chat"
@@ -17,7 +17,7 @@ import App from "./App"
 /* --------------------------------- STYLES --------------------------------- */
 
 const Root = styled.div`
-	--nav-height: 2.25rem;
+	--nav-height: 2.35rem;
 	height: 100%;
 	overflow: hidden;
 `
@@ -101,6 +101,9 @@ const ShortcutButton = styled(Button)`
 	${({ theme }) => css`
 		* {
 			color: ${theme.lightestColor} !important;
+		}
+		svg {
+			fill: ${theme.lightestColor} !important;
 		}
 	`}
 `

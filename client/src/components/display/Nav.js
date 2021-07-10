@@ -1,6 +1,5 @@
 import { useState } from "react"
 import styled, { css } from "styled-components/macro"
-import { ContextMenuTrigger, ContextMenu, MenuItem } from "react-contextmenu"
 
 import { ReactComponent as SvgMenu } from "../../shared/assets/material-icons/menu.svg"
 import { ReactComponent as SvgApps } from "../../shared/assets/material-icons/apps.svg"
@@ -13,21 +12,13 @@ import { opac } from "../../shared/shared"
 
 /* --------------------------------- STYLES --------------------------------- */
 
-const OpenedApp = styled.div`
-	.react-contextmenu-wrapper {
-		height: 100%;
-		button {
-			height: 100%;
-		}
-	}
-`
-
 const NavBtn = styled(Button)`
 	${({ origTheme }) =>
 		origTheme &&
 		css`
-			svg {
+			> svg {
 				color: ${origTheme.highlight};
+				fill: ${origTheme.highlight};
 				filter: drop-shadow(1px 0px 0px ${opac(0.4, origTheme.darkestColor)})
 					drop-shadow(0px -1px 0px ${opac(0.4, origTheme.darkestColor)})
 					drop-shadow(0px 1px 0px ${opac(0.2, origTheme.lightestColor)})
@@ -44,13 +35,14 @@ const Taskbar = styled.div`
 	position: relative;
 	z-index: 248000;
 	opacity: 0.95;
-	> * {
-		margin: 0 1px;
-	}
 	${({ theme }) => css`
 		background: ${theme.background};
 		border-top: 1px solid ${theme.accent};
 	`}
+
+	> * {
+		margin: 0 1px;
+	}
 `
 
 const TbarBtn = styled(NavBtn)`
@@ -86,7 +78,16 @@ const TbarBtnOpenedApp = styled(TbarBtn)`
 `
 
 const TbarBtnCloseApp = styled(Button)`
+	position: absolute;
 	font-size: 0.5em;
+	right: 0;
+	top: 0;
+	transform: translate3d(50%, -50%, 0) scale(0.75);
+	display: none;
+
+	${TbarBtnOpenedApp}:hover & {
+		display: inline-flex;
+	}
 `
 
 /* -------------------------------------------------------------------------- */
@@ -143,28 +144,25 @@ function Nav({ apps, isMobileSite, handleHomeButton, openApp, closeApp, mainNavB
 		const app = apps[t]
 		const shared = mountableApps[app.title].shared
 		return app.isClosed ? null : (
-			<OpenedApp key={app.title} isFocused={app.isFocused}>
-				<ContextMenuTrigger id={`nav-tb-button-${app.title}`} holdToDisplay={-1}>
-					<TbarBtnOpenedApp
-						onClick={() => handleOpen(app.title)}
-						svg={shared.logo}
-						isFocused={app.isFocused}
-						origTheme={shared.theme}
-					>
-						{shared.title}
-					</TbarBtnOpenedApp>
-				</ContextMenuTrigger>
-				<ContextMenu id={`nav-tb-button-${app.title}`}>
-					<MenuItem>
-						<TbarBtnCloseApp
-							onClick={() => handleClose(app.title)}
-							svg={SvgClose}
-							variant="solid"
-							setTheme="red"
-						/>
-					</MenuItem>
-				</ContextMenu>
-			</OpenedApp>
+			<TbarBtnOpenedApp
+				key={app.title}
+				onClick={() => handleOpen(app.title)}
+				svg={shared.logo}
+				isFocused={app.isFocused}
+				origTheme={shared.theme}
+			>
+				{shared.title}
+				<TbarBtnCloseApp
+					tag="div"
+					onClick={(e) => {
+						e.stopPropagation()
+						handleClose(app.title)
+					}}
+					svg={SvgClose}
+					variant="solid"
+					setTheme="red"
+				/>
+			</TbarBtnOpenedApp>
 		)
 	})
 

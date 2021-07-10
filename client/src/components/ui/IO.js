@@ -307,3 +307,37 @@ export function MsgBox({ value, error, clearError, onChange, setTheme, defaultVa
 		</ThemeCheck>
 	)
 }
+
+/* ------------------------------ SELECT STYLES ----------------------------- */
+
+const SRoot = styled.select`
+	appearance: none;
+	border-radius: 0;
+	display: inline-block;
+	font: inherit;
+	line-height: 1.5em;
+	margin: 0;
+	transition: 0.2s;
+	background-repeat: no-repeat;
+	background-position: right;
+
+	${({ theme }) => css`
+		outline: 0px solid ${theme.accent};
+		border: 1px solid ${theme.backgroundContrast};
+		color: ${theme.backgroundContrast};
+
+		&:focus {
+			outline: 0px solid ${theme.accent};
+			border: 1px solid ${theme.accent};
+			outline: 0;
+		}
+	`}
+
+	&:not([multiple]) {
+		appearance: none;
+	}
+`
+
+/* ---------------------------- SELECT COMPONENT ---------------------------- */
+
+export const Select = ({ children, ...props }) => <SRoot {...props}>{children}</SRoot>

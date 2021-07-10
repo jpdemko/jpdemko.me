@@ -143,7 +143,34 @@ const chat = {
 	},
 }
 
+const minesweeper = {
+	submitScore: function ({ game_id, user_id, difficulty, time_sec, created_at }) {
+		const submitScoreSQL = `INSERT INTO minesweeper AS ms (game_id, user_id, difficulty, time_sec, created_at)
+			VALUES ($1, $2, $3, $4, $5) ON CONFLICT (user_id, difficulty)
+			DO UPDATE SET time_sec = EXCLUDED.time_sec, created_at = EXCLUDED.created_at, game_id = EXCLUDED.game_id
+			WHERE ms.time_sec > EXCLUDED.time_sec RETURNING *`
+		return db.query(submitScoreSQL, [game_id, user_id, difficulty, time_sec, created_at])
+	},
+	getUserScores: function ({ user_id }) {
+		const getUserScoresSQL = `
+			SELECT ms.game_id, ms.user_id, u.uname, ms.difficulty, ms.time_sec, ms.created_at FROM minesweeper ms
+			INNER JOIN users u ON ms.user_id = u.uid WHERE ms.user_id = $1`
+		return db.query(getUserScoresSQL, [user_id])
+	},
+	getTopScores: function ({ limit = 100 } = {}) {
+		const getTopScoresSQL = `WITH ts AS (
+				(SELECT * FROM minesweeper WHERE difficulty = 'Easy' ORDER BY time_sec ASC LIMIT $1)
+				UNION ALL (SELECT * FROM minesweeper WHERE difficulty = 'Medium' ORDER BY time_sec ASC LIMIT $1)
+				UNION ALL (SELECT * FROM minesweeper WHERE difficulty = 'Hard' ORDER BY time_sec ASC LIMIT $1)
+			)
+			SELECT ts.game_id, ts.user_id, u.uname, ts.difficulty, ts.time_sec, ts.created_at FROM ts
+			INNER JOIN users u ON ts.user_id = u.uid ORDER BY time_sec ASC`
+		return db.query(getTopScoresSQL, [limit])
+	},
+}
+
 module.exports = {
 	users,
 	chat,
+	minesweeper,
 }

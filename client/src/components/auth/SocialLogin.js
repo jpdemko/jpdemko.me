@@ -71,7 +71,7 @@ function SocialLogin({ reason, ...props }) {
 					</div>
 				) : (
 					<>
-						<Info>This app requires a quick sign-in to use!</Info>
+						<Info>This app (or feature) requires a quick sign-in to use!</Info>
 						{reason && (
 							<div>
 								<Why className="enpha">Why?</Why>

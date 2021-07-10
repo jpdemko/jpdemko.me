@@ -21,7 +21,7 @@ module.exports = function (passport) {
 		res.json({ user: req.user })
 	})
 
-	// router.put("/admin/ban-user", checkAdmin, async function (req, res) {
+	// router.put("/admin/ban-user", checkAdmin, async function (req, res, next) {
 	// 	const { banUser } = req.body
 	// 	try {
 	// 		if (!banUser) throw Error("PUT /admin/ban-user error, no banUser object in req.body!")
@@ -29,8 +29,7 @@ module.exports = function (passport) {
 	// 		if (banRes.rows.length < 1) throw Error("PUT /admin/ban-user error, couldn't retrieve user from DB!")
 	// 		res.json({ banUser: banRes.rows[0] })
 	// 	} catch (error) {
-	// 		debug(error)
-	// 		res.json({ error, reqBody: req.body })
+	// 		next(error)
 	// 	}
 	// })
 

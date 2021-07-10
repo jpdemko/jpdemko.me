@@ -10,6 +10,7 @@ import Accordion from "../ui/Accordion"
 import Tabs from "../ui/Tabs"
 import Link from "../ui/Link"
 import { LoadingSVG } from "../ui/Loading"
+import { ReactComponent as SvgSmile } from "../../shared/assets/material-icons/smile.svg"
 
 /* --------------------------------- STYLES --------------------------------- */
 

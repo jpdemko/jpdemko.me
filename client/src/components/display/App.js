@@ -1,8 +1,13 @@
 import { useMemo, useContext } from "react"
+import styled from "styled-components/macro"
 
 import { Contexts } from "../../shared/shared"
 import SocialLogin from "../auth/SocialLogin"
 import { mountableApps } from "./Display"
+
+const AppSocialLogin = styled(SocialLogin)`
+	height: 100%;
+`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
@@ -21,7 +26,7 @@ function App({ title }) {
 	if (App && (!App.shared.authRequired || (App.shared.authRequired && isAuthed && !isBanned && user))) {
 		return memoApp
 	} else {
-		return <SocialLogin reason={App?.shared.authReasoning} />
+		return <AppSocialLogin reason={App?.shared.authReasoning} />
 	}
 }
 

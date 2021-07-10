@@ -94,11 +94,12 @@ const TitleBar = styled.div`
 	flex: 0 0 auto;
 	font-weight: bold;
 	align-items: center;
-	min-height: var(--nav-height);
+	height: var(--nav-height);
 	backface-visibility: hidden;
 	cursor: pointer;
 	button {
 		margin: 1px;
+		font-size: 0.9em;
 	}
 	button + button {
 		margin-left: 2px;
@@ -123,10 +124,12 @@ const WindowName = styled.div`
 	font-size: 1.1em;
 `
 
-const TitleBarBtn = styled(Button).attrs((props) => ({
-	...props,
-	setColor: "highlightContrast",
-}))``
+const TitleBarBtn = styled(Button).attrs((props) => {
+	return {
+		...props,
+		setColor: "highlightContrast",
+	}
+})``
 
 const TitleBarCloseBtn = styled(Button).attrs(({ theme, setColor, winFocused, ...props }) => {
 	if (theme.name == "red" || theme.name == "dark") setColor = "backgroundContrast"
@@ -171,23 +174,22 @@ const AppContent = styled.div`
 	flex: 3 1;
 	${({ theme }) => css`
 		color: ${theme.backgroundContrast};
-		> div {
-			height: 100%;
-		}
 	`}
 `
 
 // Change these to control the sizes for the interactive parts of the component.
 const sideSize = "0.75em"
 const sideOffset = `calc(${sideSize} / 2 * -1)`
-const Side = styled.div.attrs(({ position }) => ({
-	style: {
-		[position]: sideOffset,
-	},
-}))`
+const Side = styled.div.attrs(({ position }) => {
+	return {
+		style: {
+			[position]: sideOffset,
+		},
+	}
+})`
 	position: absolute;
-	${({ position }) =>
-		["top", "bottom"].includes(position)
+	${({ position }) => {
+		return ["top", "bottom"].includes(position)
 			? css`
 					height: ${sideSize};
 					width: 100%;
@@ -196,7 +198,8 @@ const Side = styled.div.attrs(({ position }) => ({
 					top: 0;
 					height: 100%;
 					width: ${sideSize};
-			  `}
+			  `
+	}}
 `
 
 const cornerSize = `calc(${sideSize} * 2)`
@@ -756,7 +759,7 @@ export default class Window extends Component {
 						<AppContainer onClick={() => this.props.focusApp(title)} isMobileWindow={isMobileWindow}>
 							<Contexts.Window.Provider value={this.state.context}>
 								{drawer}
-								<AppContent>{this.props.children}</AppContent>
+								<AppContent id={`app-content-${title}`}>{this.props.children}</AppContent>
 								<LoadingScreen isLoading={this.state.appLoading} />
 							</Contexts.Window.Provider>
 						</AppContainer>

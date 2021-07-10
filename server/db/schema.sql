@@ -108,18 +108,22 @@ CREATE TABLE dms_history (
 
 -- **************************************************************** --
 
--- DO $$ BEGIN
--- 	CREATE TYPE valid_difficulty AS ENUM ('NOVICE', 'INTERMEDIATE', 'EXPERT');
--- EXCEPTION
--- 	WHEN duplicate_object THEN null;
--- END $$;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- CREATE TABLE minesweeper (
--- 	id SERIAL PRIMARY KEY,
--- 	score NUMERIC(4,3) NOT NULL,
--- 	difficulty valid_difficulty NOT NULL,
--- 	user_id INT NOT NULL REFERENCES users(id)
--- );
+DO $$ BEGIN
+	CREATE TYPE valid_difficulty AS ENUM ('Easy', 'Medium', 'Hard');
+EXCEPTION
+	WHEN duplicate_object THEN null;
+END $$;
+
+CREATE TABLE minesweeper (
+	game_id uuid NOT NULL,
+	user_id INT NOT NULL REFERENCES users(uid),
+	difficulty valid_difficulty NOT NULL,
+	time_sec REAL NOT NULL,
+	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+	PRIMARY KEY(user_id, difficulty)
+);
 
 -- **************************************************************** --
 
