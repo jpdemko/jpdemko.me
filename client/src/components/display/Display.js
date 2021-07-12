@@ -114,8 +114,7 @@ const ShortcutButton = styled(Button)`
 // eslint-disable-next-line no-unused-vars
 const debug = new Debug("Display: ", false)
 
-export const mountableApps = { About, Chat, Weather, Themes }
-if (process.env.NODE_ENV !== "production") mountableApps.Minesweeper = Minesweeper
+export const mountableApps = { About, Chat, Minesweeper, Weather, Themes }
 
 class Display extends Component {
 	constructor(props) {
