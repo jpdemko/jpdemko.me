@@ -3,7 +3,7 @@ import styled, { css } from "styled-components/macro"
 import { TransitionGroup } from "react-transition-group"
 import throttle from "lodash/throttle"
 
-import { ls, Debug, opac } from "../../shared/shared"
+import { ls, Debug } from "../../shared/shared"
 import About from "../about/About"
 import Weather from "../weather/Weather"
 import Chat from "../chat/Chat"
@@ -93,6 +93,7 @@ const ShortcutButton = styled(Button)`
 	font-weight: bold;
 	overflow: hidden;
 	min-width: 0;
+	border-radius: 12px 0 12px 0;
 	> div {
 		white-space: nowrap;
 		overflow: hidden;

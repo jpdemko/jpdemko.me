@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from "react"
 
-import { Contexts } from "../../shared/shared"
+import { Contexts, Debug } from "../../shared/shared"
+
+const debug = new Debug("<AuthProvider />", true)
 
 function AuthProvider({ children }) {
 	const [isAuthed, setIsAuthed] = useState(false)
@@ -15,7 +17,7 @@ function AuthProvider({ children }) {
 			.then((res) => res.json().then((data) => ({ status: res.status, data })))
 			.then((res) => {
 				const { status, data } = res
-				console.log("getUser() res: ", res.status, res.data?.user)
+				debug.log("getUser() res: ", res.status, res.data?.user)
 				switch (status) {
 					case 401:
 						setUser(null)

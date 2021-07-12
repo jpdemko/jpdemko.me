@@ -136,7 +136,7 @@ function Minesweeper({ title, ...props }) {
 	const [difName, setDifName] = useState("Hard")
 
 	const [gameState, setGameState] = useState(() => getGameState())
-	const prevGS = usePrevious(gameState)
+	const prevGS = usePrevious({ ...gameState })
 
 	const [timeMS, setTimeMS] = useState()
 	const [startTimer, pauseTimer, resetTimer] = useTimer((ms) => setTimeMS(ms))
@@ -145,21 +145,23 @@ function Minesweeper({ title, ...props }) {
 
 	useEffect(() => {
 		if (!gameState || !prevGS) return
-		if (!prevGS.started && gameState.started) startTimer()
-		else if (gameState.lost || gameState.won) setModalShown(true)
+		if (!prevGS.started && gameState.started) {
+			startTimer()
+		} else if (gameState.lost || gameState.won) setModalShown(true)
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [gameState])
 
+	const resetGameRef = useUpdatedValRef(resetGame)
 	function resetGame() {
 		setGameState(getGameState(difName))
 		if (modalShown) setModalShown(false)
 		resetTimer()
 	}
-	const resetGameRef = useUpdatedValRef(resetGame)
 
 	// Restart game if currently ongoing as well as switch rows/cols for better portrait UI/UX.
 	const handleResizeVert = (eleRect) => eleRect.height > eleRect.width * 1.5
-	const [rootRef, isVert] = useResizeObserver(handleResizeVert)
+	let [rootRef, isVert] = useResizeObserver(handleResizeVert)
+	if (isVert == null) isVert = isMobileSite
 
 	const prevName = usePrevious(difName)
 	const prevVert = usePrevious(isVert)
@@ -215,7 +217,6 @@ function Minesweeper({ title, ...props }) {
 					</GameEndedWrap>
 				</GameOverModal>
 				<Board
-					difName={difName}
 					isVert={isVert}
 					isDesktop={isDesktop}
 					title={title}

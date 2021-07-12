@@ -80,6 +80,7 @@ const TableTempHue = styled(TempHue)`
 const Subtle = styled.span`
 	font-size: 0.8em;
 	opacity: 0.8;
+	font-style: italic;
 `
 
 const MapEntry = styled.div`
@@ -135,7 +136,7 @@ const DayDetailed = ({ data: { timezone, hours }, getTemp }) => (
 								<TD>
 									<span>
 										{h}
-										<Subtle> {period}</Subtle>
+										<Subtle>{period}</Subtle>
 									</span>
 								</TD>
 								<TD>
@@ -148,13 +149,13 @@ const DayDetailed = ({ data: { timezone, hours }, getTemp }) => (
 								<TD>
 									<span>
 										{Math.round(hour.precipProbability * 100)}
-										<Subtle> %</Subtle>
+										<Subtle>%</Subtle>
 									</span>
 								</TD>
 								<TD>
 									<span>
 										{Math.round(hour.humidity * 100)}
-										<Subtle> %</Subtle>
+										<Subtle>%</Subtle>
 									</span>
 								</TD>
 							</TRow>

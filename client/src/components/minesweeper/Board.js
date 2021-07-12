@@ -22,14 +22,6 @@ const BRoot = styled.div`
 
 /* -------------------------------------------------------------------------- */
 
-function getCoords(e) {
-	const coords = e?.target
-		?.closest("[id]")
-		?.id?.split(",")
-		?.map((s) => parseInt(s))
-	return coords
-}
-
 function useMouse(rootRef, cbLeft, cbBoth, cbRight, stopOnAny = []) {
 	const stop = stopOnAny.some((cond) => cond)
 	const stopRef = useUpdatedValRef(stop)
@@ -80,29 +72,61 @@ function useMouse(rootRef, cbLeft, cbBoth, cbRight, stopOnAny = []) {
 	useEventListener(rootRef, "mouseup", handleMouseUp)
 }
 
+function getCoords(e) {
+	const coords = e?.target
+		?.closest("[id]")
+		?.id?.split(",")
+		?.map((s) => parseInt(s))
+	return coords
+}
+
+function getRandomIntInclusive(min, max) {
+	const randomBuffer = new Uint32Array(1)
+
+	window.crypto.getRandomValues(randomBuffer)
+
+	let randomNumber = randomBuffer[0] / (0xffffffff + 1)
+
+	min = Math.ceil(min)
+	max = Math.floor(max)
+	return Math.floor(randomNumber * (max - min + 1)) + min
+}
+
+function getGrid(dif, isVert) {
+	const grid = {
+		rows: isVert ? dif.cols : dif.rows,
+		cols: isVert ? dif.rows : dif.cols,
+	}
+	return grid
+}
+
 /* -------------------------------- COMPONENT ------------------------------- */
 
 let board = []
-let lastGS = {}
 
 function Board({
-	difName,
 	children,
 	isVert,
 	isDesktop,
 	title,
 	isMobileSite,
-	gameState,
+	gameState: gs,
 	setGameState,
 	pauseTimer,
 	...props
 }) {
-	const dif = MsDifs[difName]
-	const rows = isVert ? dif.cols : dif.rows
-	const cols = isVert ? dif.rows : dif.cols
-
-	const { game_id, started, lost, won, unopened, mines } = gameState
+	const { game_id, started, lost, won, difficulty: difName, unopened, mines, flags } = gs
+	const gsRef = useUpdatedValRef(gs)
 	const stop = lost || won
+
+	const dif = MsDifs[difName]
+
+	// const firstGrid = getGrid(dif, isVert)
+	const gridRef = useRef()
+	useEffect(() => {
+		gridRef.current = getGrid(dif, isVert)
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [dif, isVert])
 
 	const startedRef = useRef(started ?? false)
 
@@ -125,18 +149,16 @@ function Board({
 	// When to generate a new game.
 	const prevID = usePrevious(game_id)
 	useEffect(() => {
-		if (prevID !== game_id && lastGS?.game_id !== game_id) {
+		if (prevID !== game_id) {
 			setBoard(genBlankBoard())
 		}
-		return () => {
-			lastGS = { ...gameState }
-		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [gameState])
+	}, [gs])
 
 	// Whenever gameBoard gets updated go through the cells and determine current gameState in parent.
+	const checkGameStateRef = useUpdatedValRef(checkGameState)
 	function checkGameState() {
-		const gs = {
+		const ngs = {
 			unopened: 0,
 			flags: 0,
 		}
@@ -146,73 +168,82 @@ function Board({
 				const cell = board?.[i]?.[j]
 				if (!cell) return
 				if (cell.isMine) minesArr.push(cell)
-				if (cell.isFlagged) gs.flags++
-				if (!cell.isDug) gs.unopened++
+				if (cell.isFlagged) ngs.flags++
+				if (!cell.isDug) ngs.unopened++
 				else if (cell.isDug) {
-					if (cell.isMine) gs.lost = true
-					else if (!started) gs.started = true
+					if (cell.isMine) ngs.lost = true
+					else if (!started) ngs.started = true
 				}
 			})
 		})
-		if (!lost && gs?.lost) {
+		if (!lost && ngs?.lost) {
 			minesArr.forEach((m) => {
 				if (!m.isFlagged) m.isDug = true
 			})
 			setBoard([...board])
-		} else if (!gs.lost && gs.unopened === mines) {
-			gs.won = true
+		} else if (!ngs.lost && ngs.unopened === mines) {
+			ngs.won = true
 		}
-		if (gs.lost || gs.won) {
+		if (ngs.lost || ngs.won) {
 			pauseTimer()
 		}
-		setGameState((prev) => ({ ...prev, ...gs }))
+		if (ngs.unopened !== unopened || ngs.flags !== flags) {
+			setGameState((prev) => ({ ...prev, ...ngs }))
+		}
 	}
 
-	const refCheckGS = useUpdatedValRef(checkGameState)
-
 	useEffect(() => {
-		refCheckGS.current?.()
-	}, [gameBoard, refCheckGS])
+		checkGameStateRef.current?.()
+	}, [gameBoard, checkGameStateRef])
 
 	function genBlankBoard() {
-		board = new Array(rows).fill(null).map((r, i) =>
-			new Array(cols).fill(null).map((c, j) => ({
-				id: `${i},${j}`,
-				coords: [i, j],
-				isDug: false,
-				isFlagged: false,
-				isMine: false,
-				display: "",
-				surMines: 0,
-			}))
-		)
+		const { rows, cols } = gridRef.current
+		if (!isNaN(rows) && !isNaN(cols)) {
+			board = new Array(rows).fill(null).map((r, i) =>
+				new Array(cols).fill(null).map((c, j) => ({
+					id: `${i},${j}`,
+					coords: [i, j],
+					isDug: false,
+					isFlagged: false,
+					isMine: false,
+					surMines: 0,
+				}))
+			)
+		}
 		startedRef.current = false
 		return board
 	}
 
 	function fillBoard(coords) {
+		const { rows, cols } = gridRef.current
+		if (!rows || !cols) return
+
 		const skippedCells = getSurCells(coords, true)
-		for (let i = 0; i < dif.mines; i++) {
-			let r = Math.floor(Math.random() * rows)
-			let c = Math.floor(Math.random() * cols)
-			const cell = board[r][c]
-			const invalidCell = skippedCells.some((sc) => sc.id === cell.id)
-			if (!invalidCell && !cell.isMine) {
+		let fb = board.flat()
+		fb = fb.filter((c) => skippedCells.indexOf(c) < 0)
+		let m = gsRef.current.mines
+		while (m-- > 0) {
+			const i = getRandomIntInclusive(0, fb.length - 1)
+			const cell = fb?.[i]
+			if (cell) {
 				cell.isMine = true
 				getSurCells(cell.coords).forEach((sc) => sc.surMines++)
-			} else i--
+			}
+			fb.splice(i, 1)
 		}
 	}
 
 	function getSurCells(coords, includeOrigin = false) {
 		const [r, c] = coords
 		const surCells = []
-		for (let i = r - 1; i <= r + 1; i++) {
-			for (let j = c - 1; j <= c + 1; j++) {
-				const sameCell = i === r && j === c
-				const cell = board?.[i]?.[j]
-				if (!cell || (cell && sameCell && !includeOrigin)) continue
-				else surCells.push(cell)
+		if (!isNaN(r) && !isNaN(c)) {
+			for (let i = r - 1; i <= r + 1; i++) {
+				for (let j = c - 1; j <= c + 1; j++) {
+					const sameCell = i === r && j === c
+					const cell = board?.[i]?.[j]
+					if (!cell || (cell && sameCell && !includeOrigin)) continue
+					else surCells.push(cell)
+				}
 			}
 		}
 		return surCells
@@ -224,7 +255,6 @@ function Board({
 			startedRef.current = true
 			fillBoard(coords)
 		}
-
 		const [r, c] = coords
 		const cell = board?.[r]?.[c]
 		if (!cell || cell.isFlagged || cell.isDug) return
@@ -239,6 +269,7 @@ function Board({
 
 	function flag(coords) {
 		if (stop) return
+
 		const [r, c] = coords
 		const cell = board[r][c]
 		if (!cell || cell.isDug) return
@@ -250,9 +281,11 @@ function Board({
 
 	function digArea(coords) {
 		if (stop) return
+
 		const [r, c] = coords
 		const cell = board[r][c]
 		if (!cell || !cell.isDug || cell.surMines < 1) return
+
 		const surNotDugCells = getSurCells(coords).filter((sc) => !sc.isDug)
 		const flagsMatch = surNotDugCells.filter((sc) => sc.isFlagged).length === cell.surMines
 		const containsUnopened = surNotDugCells.some((sc) => !sc.isDug && !sc.isFlagged)
@@ -273,6 +306,7 @@ function Board({
 				const altPattern = j % 2 === flip
 				return acc.push(
 					<Cell
+						game_id={game_id}
 						key={c.id}
 						id={c.id}
 						data={{ ...c }}
@@ -289,7 +323,7 @@ function Board({
 			return acc
 		}, [])
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [gameBoard])
+	}, [isVert, gameBoard, isMobileSite])
 
 	return (
 		<BRoot

@@ -1,4 +1,4 @@
-import { memo, useState, useRef, useEffect, useCallback, Fragment, useMemo } from "react"
+import { memo, useState, useRef, useEffect, useLayoutEffect, Fragment, useMemo } from "react"
 import styled, { css, keyframes } from "styled-components/macro"
 import { DateTime, Interval } from "luxon"
 import Linkify from "react-linkify"
@@ -8,7 +8,7 @@ import Link from "../ui/Link"
 import { ReactComponent as SvgUser } from "../../shared/assets/material-icons/user.svg"
 import { ReactComponent as SvgArrowDownCircle } from "../../shared/assets/material-icons/arrow-down-circle.svg"
 import { ReactComponent as SvgBlock } from "../../shared/assets/material-icons/block.svg"
-import { useEventListener, usePrevious, useThrottle } from "../../shared/hooks"
+import { useEventListener, usePrevious, useThrottle, useUpdatedValRef } from "../../shared/hooks"
 import { Debug } from "../../shared/shared"
 
 /* --------------------------------- STYLES --------------------------------- */
@@ -180,40 +180,48 @@ function Logs({ data, user, openDM, roomsShown, inputSent, ban, ...props }) {
 	const logsLength = data?.[logType] ? Object.keys(data[logType]).length : 0
 	const totalUnread = data?.[logType]?.totalUnread
 
-	const throtScroll = useThrottle(() => {
+	const throtDetUserScrollBehav = useThrottle(() => {
 		const ele = rootRef.current
 		if (ele) {
 			const { height: rootHeight } = ele.getBoundingClientRect()
 			const pxFromBot = ele.scrollHeight % (Math.round(rootHeight) + ele.scrollTop)
-			setFollowLast(pxFromBot < 32)
+			const nextFL = pxFromBot < 48
+			if (followLast !== nextFL) setFollowLast(nextFL)
 		}
 	}, 1000)
-	useEventListener(rootRef, "scroll", throtScroll)
+	useEventListener(rootRef, "scroll", throtDetUserScrollBehav)
 
-	const scroll2end = useCallback(() => {
+	function scroll2end() {
 		const ele = rootRef.current
 		if (ele) {
 			ele.scrollTop = ele.scrollHeight
-			throtScroll()
+			if (!followLast) setFollowLast(true)
 		}
-		if (!followLast) setFollowLast(true)
-	}, [followLast, throtScroll])
+	}
+	const scroll2endRef = useUpdatedValRef(scroll2end)
 
 	// Determine where to scroll on fresh start or following updates.
-	useEffect(() => {
+	useLayoutEffect(() => {
 		if (followLast === null) {
 			const horizLine = document.getElementById("chat-unread-start")
-			if (horizLine) horizLine.scrollIntoView({ block: "center" })
-			else scroll2end()
-		} else if (followLast) scroll2end()
-	}, [logsLength, followLast, scroll2end])
+			if (horizLine) {
+				horizLine.scrollIntoView({ block: "center" })
+			} else {
+				scroll2endRef.current?.()
+			}
+		} else if (followLast) {
+			scroll2endRef.current?.()
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [logsLength, followLast])
 
 	// I want to scroll to the end if the user sends a message. Have to implement this w/ parent
 	// state change since <ChatInput /> is sibling.
 	const prevInputSent = usePrevious(inputSent)
 	useEffect(() => {
-		if (prevInputSent !== inputSent) scroll2end()
-	}, [inputSent, prevInputSent, scroll2end])
+		if (prevInputSent !== inputSent) scroll2endRef.current?.()
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [inputSent])
 
 	// Want to limit renders and prevent a bunch of logic inside the JSX of the hook.
 	const groupedData = useMemo(() => {

@@ -1,4 +1,4 @@
-import { memo, useEffect, useLayoutEffect, useRef, useState } from "react"
+import { memo, useEffect, useRef, useState } from "react"
 import styled, { css } from "styled-components/macro"
 import { darken } from "polished"
 
@@ -40,7 +40,7 @@ const CellBtn = styled(Button)`
 	margin: 0 !important;
 	font-size: var(--ms-size);
 	flex: 1 1;
-	${({ theme, isDisabled, mineColor, cellOpened }) => css`
+	${({ theme, isDisabled, mineColor }) => css`
 		cursor: ${isDisabled ? "default" : "pointer"};
 		color: ${mineColor ?? theme.backgroundContrast};
 	`}
@@ -69,9 +69,10 @@ const CellBtn = styled(Button)`
 const ActionsMenu = styled.div`
 	position: fixed;
 	z-index: 100;
-	${({ posOutput, cellOpened, theme }) => css`
+	${({ cellOpened, userOpened }) => css`
 		> div {
-			display: ${cellOpened ? "block" : "none"};
+			display: ${userOpened ? "block" : "none"};
+			visibility: ${cellOpened ? "visible" : "hidden"};
 		}
 	`}
 `
@@ -111,13 +112,13 @@ const RowBG = styled.div`
 	`}
 `
 
-/* -------------------------------- COMPONENT ------------------------------- */
+/* -------------------------------------------------------------------------- */
 
 function determineMenuPos(boundaryRef, menuRef, cellRef) {
 	const menu = menuRef?.current
 	const bdry = boundaryRef?.current
 	const cell = cellRef?.current
-	if (!bdry || !menu || !cell) return
+	if (!bdry || !menu || !cell) return false
 
 	let br = getRect(bdry)
 	let mr = getRect(menu)
@@ -137,7 +138,10 @@ function determineMenuPos(boundaryRef, menuRef, cellRef) {
 	if (ofLeft) menu.style.left = `${cr.right}px`
 	if (ofTop) menu.style.top = `${cr.bottom}px`
 	if (ofBottom) menu.style.top = `${br.height - mr.height - cr.height}px`
+	return true
 }
+
+/* -------------------------------- COMPONENT ------------------------------- */
 
 // Dumb way to easily reference other cell's open/close menu setState cb.
 let curCellSetCb = null
@@ -152,31 +156,33 @@ function Cell({
 	dig,
 	flag,
 	digArea,
+	game_id,
 	...props
 }) {
 	const { id, coords, isDug, isFlagged, isMine, surMines } = data
 
 	const cellRef = useRef()
 	const menuRef = useRef()
-	const [cellOpened, setCellOpened] = useState(false)
 
 	// Calculate menu position on initial opening
 	const [calcedCSS, setCalcedCSS] = useState(false)
+	const [userOpened, setUserOpened] = useState(false)
+	const cellOpened = calcedCSS && userOpened
 
 	// Remove reference to open/close menu setState call on cell unmount.
 	useEffect(() => {
-		setCellOpened(false)
+		setUserOpened(false)
 		setCalcedCSS(false)
 		return () => {
 			curCellSetCb = null
 		}
 	}, [data])
 
-	useLayoutEffect(() => {
-		if (!cellOpened || calcedCSS) return
-		determineMenuPos(boardRef, menuRef, cellRef)
-		setCalcedCSS(true)
-	}, [cellOpened, boardRef, calcedCSS])
+	useEffect(() => {
+		if (!userOpened || calcedCSS) return
+		let outcome = determineMenuPos(boardRef, menuRef, cellRef)
+		if (outcome) setCalcedCSS(true)
+	}, [userOpened, boardRef, calcedCSS])
 
 	function digAreaMobileWrap() {
 		if (isDug && surMines > 0) digArea(coords)
@@ -186,11 +192,10 @@ function Cell({
 	// Each cell has menu close/open state for mobile. Close open menus of other cells.
 	function handleClick(e) {
 		e.stopPropagation()
-		// console.log(`cell ${id} clicked`)
-		if (curCellSetCb && setCellOpened !== curCellSetCb) curCellSetCb?.(false)
+		if (curCellSetCb && setUserOpened !== curCellSetCb) curCellSetCb?.(false)
 		if (!isMobileSite) return
-		curCellSetCb = setCellOpened
-		setCellOpened((prev) => !prev)
+		curCellSetCb = setUserOpened
+		setUserOpened((prev) => !prev)
 	}
 
 	// Determine colors based on cell state.
@@ -213,16 +218,17 @@ function Cell({
 			<CellBtn
 				{...colors}
 				tag="div"
-				cellOpened={cellOpened}
 				mineColor={colorMap[surMines - 1]}
 				isDisabled={isDug}
 				onClick={handleClick}
-				onDrag={(e) => console.log(`cell ${id} onDrag`)}
-				onDragStart={(e) => console.log(`cell ${id} onDragStart`)}
-				onDragEnd={(e) => console.log(`cell ${id} onDragEnd`)}
 			>
 				{isMobileSite && (
-					<ActionsMenu ref={menuRef} cellOpened={cellOpened} calcedCSS={calcedCSS}>
+					<ActionsMenu
+						ref={menuRef}
+						userOpened={userOpened}
+						cellOpened={cellOpened}
+						calcedCSS={calcedCSS}
+					>
 						<MenuRow onClick={digAreaMobileWrap} isDisabled={isFlagged || (isDug && surMines < 1)}>
 							<RowBG />
 							<SvgShovel id="SvgShovel" />
@@ -246,7 +252,11 @@ function Cell({
 
 function cellCompareProps(prev, next) {
 	// Return true if nextProps change would render the same as before, false otherwise.
-	if (prev.data?.isDug !== next.data?.isDug || prev.data?.isFlagged !== next.data?.isFlagged) return false
+	const mobileDif = prev.isMobileSite !== next.isMobileSite
+	const gidDif = prev.game_id !== next.game_id
+	const digDif = prev.data?.isDug !== next.data?.isDug
+	const flagDif = prev.data?.isFlagged !== next.data?.isFlagged
+	if (mobileDif || gidDif || digDif || flagDif) return false
 	else return true
 }
 

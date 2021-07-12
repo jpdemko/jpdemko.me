@@ -147,7 +147,7 @@ export function useThrottle(cb, throttleMS = 200, depArr = []) {
 	return useCallback(
 		throttle((...args) => {
 			debug.log(`useThrottle()`, ...args)
-			cbRef.current(...args)
+			cbRef.current?.(...args)
 		}, throttleMS),
 		[...depArr, throttleMS]
 	)
@@ -213,6 +213,7 @@ export function useResizeObserver(cb, eleID, throttleMS = 200, depArr = []) {
 
 export function useEventListener(eleRef, eventName, cb) {
 	const cbRef = useRef(cb)
+
 	useEffect(() => {
 		cbRef.current?.cancel?.()
 		cbRef.current = cb

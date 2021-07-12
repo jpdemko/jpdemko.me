@@ -6,6 +6,7 @@ import { ReactComponent as SvgSmile } from "../../shared/assets/material-icons/s
 import imgPortfolioOS from "../../shared/assets/images/PortfolioOS.jpg"
 import imgWeather from "../../shared/assets/images/Weather.jpg"
 import imgChat from "../../shared/assets/images/Chat.jpg"
+import imgMinesweeper from "../../shared/assets/images/Minesweeper.jpg"
 import { ReactComponent as SvgGithub } from "../../shared/assets/brands-icons/github.svg"
 import { ReactComponent as SvgEmail } from "../../shared/assets/material-icons/email.svg"
 import Link from "../ui/Link"
@@ -130,6 +131,33 @@ function About({ title, ...props }) {
 							<li>
 								Make sure to validate data exchanged between the client and server so there is no
 								chance of misinterpreted data or bad hand-offs.
+							</li>
+						</ul>
+					</Project>
+					<Project
+						title="Minesweeper"
+						img={imgMinesweeper}
+						tech="HTML,CSS,JavaScript,React,Node,PostgreSQL"
+					>
+						<p>
+							When I was growing up in rural areas, we didn't have the best computers and internet, so
+							a lot of the times I played the default computer games that came with Windows. One of my
+							favorite games to play was Minesweeper, to this day I still occasionally play it over
+							other modern games when I have the time and the itch.
+						</p>
+						<p>
+							Fitting games into the React model is a little awkward, but it was a fun experience
+							putting it all together and dealing with performance. I also included a global
+							leaderboard, which is nice to see where you stand.
+						</p>
+						<div className="enpha">Takeaways</div>
+						<ul>
+							<li>
+								Really take a step back and think if the current design caters towards performance,
+								because nothing feels worse than a slow and laggy game. Figuring out the best way to
+								make the board/cells render as little as possible and dealing with related bugs, eg:
+								stale variables from closures due to memoization (for performance benefits) was a
+								great learning experience.
 							</li>
 						</ul>
 					</Project>
