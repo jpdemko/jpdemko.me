@@ -267,7 +267,7 @@ const Button = forwardRef(({ tag, variant, badge, gleam, children, ...props }, r
 	return (
 		<ThemeCheck {...props}>
 			<ButtonVariant {...props} as={tag} ref={ref}>
-				{badge && <Badge className="chLimit">{badge}</Badge>}
+				{badge && <Badge>{badge}</Badge>}
 				{gleam && <Gleam />}
 				{props.svg && <props.svg />}
 				{children && <BtnContent className="btn-content">{children}</BtnContent>}

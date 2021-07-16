@@ -152,7 +152,7 @@ function getInheritedBgColor(ele) {
 function useErrHandlerIO(error, clearError, clearTimerMS = 5000) {
 	useEffect(() => {
 		if (!error || !clearError) return
-		const timer = setTimeout(() => clearError(null), clearTimerMS)
+		const timer = setTimeout(() => clearError?.(null), clearTimerMS)
 		return () => clearTimeout(timer)
 	}, [error, clearError, clearTimerMS])
 }
@@ -187,14 +187,14 @@ export const Input = forwardRef(
 		})
 		const [localVal, setLocalVal] = useState(value)
 		function wrapOnChange(e) {
-			if (!error) {
-				const val = e.target.value
-				if (onChange) onChange(e)
-				else setLocalVal(val)
-				if (!stickyLabel) {
-					if (hasValue && val.length < 1) setHasValue(false)
-					else if (!hasValue && val.length > 0) setHasValue(true)
-				}
+			const val = e.target.value
+			if (onChange) {
+				onChange(e)
+				clearError?.(null)
+			} else setLocalVal(val)
+			if (!stickyLabel) {
+				if (hasValue && val.length < 1) setHasValue(false)
+				else if (!hasValue && val.length > 0) setHasValue(true)
 			}
 		}
 
@@ -295,10 +295,10 @@ export function MsgBox({ value, error, clearError, onChange, setTheme, defaultVa
 
 	const [localVal, setLocalVal] = useState(value ?? defaultValue)
 	function wrapOnChange(e) {
-		if (!error) {
-			if (onChange) onChange(e)
-			else setLocalVal(e.target.value)
-		}
+		if (onChange) {
+			onChange(e)
+			clearError?.(null)
+		} else setLocalVal(e.target.value)
 	}
 
 	return (

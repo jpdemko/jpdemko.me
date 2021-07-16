@@ -81,7 +81,7 @@ const Root = styled.div`
 
 const LocSearchInput = styled(Input)`
 	outline: none;
-	flex: 1 0 auto;
+	flex: 1 1 auto;
 	margin: var(--wnav-padding);
 	/* Fixing Bing elements; location search input... */
 	> input[style] {

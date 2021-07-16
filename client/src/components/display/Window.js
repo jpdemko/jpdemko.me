@@ -30,13 +30,15 @@ gsap.registerPlugin(Draggable)
 /* --------------------------------- STYLES --------------------------------- */
 
 const WindowDesktopDrawer = styled.div`
+	flex: 1 1;
 	min-width: 20ch;
-	max-width: 45ch;
+	max-width: 60ch;
 	height: 100%;
 	overflow: hidden;
 	> div {
 		height: 100%;
-		overflow: auto;
+		overflow-x: hidden;
+		overflow-y: auto;
 	}
 	${({ theme }) => css`
 		border-right: 1px solid ${theme.accent};
@@ -171,7 +173,7 @@ const AppContent = styled.div`
 	overflow-x: hidden;
 	overflow-y: auto;
 	position: relative;
-	flex: 3 1;
+	flex: 2 1;
 	${({ theme }) => css`
 		color: ${theme.backgroundContrast};
 	`}

@@ -334,7 +334,7 @@ module.exports = function (io) {
 						.to(recip.pid)
 						.emit("receiveData", { data: { dms: receiverDMS, recip_id: uid, recip_uname: uname } })
 				}
-				sender.syncDevices("receiveData", { dms: senderDMS, recip_id, recip_uname: recip.uname })
+				sender.syncDevices("receiveData", { dms: senderDMS, recip_id, recip_uname: uname })
 				clientCB({ success: "server success - socket sendDM()" })
 			} catch (error) {
 				debug("socket sendDM() error: ", error)
@@ -344,10 +344,13 @@ module.exports = function (io) {
 
 		socket.on("sendRoomMsg", async function ({ uid, rid, msg }, clientCB) {
 			try {
+				const room = Rooms.get(rid)
+				if (!room) throw Error("Room was not created on the server for some reason, please refresh.")
+
 				const insertMsgRes = await queries.chat.sendRoomMsg({ uid, rid, msg })
 				const emittedMsgs = shared.dataUnreadTransform(insertMsgRes.rows, { uniqKey: "mid" })
 				io.in(`${rid}`).emit("receiveData", {
-					data: { ...Rooms.get(rid).copyShareable(), msgs: emittedMsgs },
+					data: { ...room.copyShareable(), msgs: emittedMsgs },
 				})
 
 				clientCB({ success: "server success - socket sendRoomMsg()" })

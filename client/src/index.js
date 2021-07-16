@@ -83,12 +83,6 @@ const GlobalStyle = createGlobalStyle`
 	#root {
 		height: 100%;
 		overflow: hidden;
-
-		.chLimit {
-			white-space: nowrap;
-			overflow: hidden;
-			text-overflow: ellipsis;
-		}
 	}
 
 	${({ theme }) => css`

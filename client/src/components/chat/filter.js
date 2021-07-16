@@ -1,3 +1,5 @@
+import { Debug } from "../../shared/shared"
+
 const badWords = [
 	"[/]\\[/]",
 	"[/]\\[/]lg",
@@ -130,7 +132,6 @@ const badWords = [
 	"gyp",
 	"gypp",
 	"hamas",
-	"hang",
 	"handie",
 	"handjo",
 	"handy",
@@ -417,6 +418,8 @@ const mapL33tChars = {
 	"|": "i",
 }
 
+const debug = new Debug("Profanity filter", true)
+
 function replaceL33tChars(str) {
 	let s = str.split("")
 	for (let i = 0; i < str.length; i++) {
@@ -441,6 +444,7 @@ function isValidText(str) {
 		const bwRegex = new RegExp(`${badWord}`, "gmi")
 		const isProfane = bwRegex.test(alphabetOnly)
 		if (isProfane) {
+			debug.log(`String input: ${str}\n\tis profane due to matching: ${badWord}`)
 			res.isValidText = false
 			res.error = "Text contains or has the potential to contain offensive language."
 		}

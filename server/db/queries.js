@@ -38,7 +38,7 @@ const chat = {
 		const getLogsDMSSQL = `SELECT dms.dmid, dms.uid, dms.msg, dms.created_at, u.uname, u.pid FROM dms
 			INNER JOIN users u ON dms.uid = u.uid
 			WHERE ((dms.uid = $1 AND dms.recip = $2) OR (dms.uid = $2 AND dms.recip = $1))
-				AND dms.created_at > ${tsLogsFetched ? "$3" : "NOW() - INTERVAL '90 DAYS'"}
+				AND dms.created_at > ${tsLogsFetched ? "$3" : "NOW() - INTERVAL '180 DAYS'"}
 				AND u.access != 'banned'
 			ORDER BY dms.created_at ASC`
 		const dmsRes = await db.query(getLogsDMSSQL, [uid, recip_id, ...(tsLogsFetched ? [tsLogsFetched] : [])])
@@ -103,7 +103,7 @@ const chat = {
 		const getRoomMsgsSQL = `SELECT m.mid, m.msg, m.created_at, u.uid, u.uname, u.pid FROM msgs m
 			INNER JOIN users u ON m.uid = u.uid
 			WHERE rid = $1
-				AND m.created_at > ${lastMsgTS ? "$2" : "NOW() - INTERVAL '60 DAYS'"}
+				AND m.created_at > ${lastMsgTS ? "$2" : "NOW() - INTERVAL '180 DAYS'"}
 				AND u.access != 'banned'
 			ORDER BY m.created_at ASC`
 		const msgsRes = await db.query(getRoomMsgsSQL, [rid, ...(lastMsgTS ? [lastMsgTS] : [])])

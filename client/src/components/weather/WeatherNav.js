@@ -41,7 +41,7 @@ const Row = styled.div`
 `
 
 const Location = styled(Button)`
-	padding-top: 0.5em;
+	padding: 0.25em;
 	flex: 1 1 auto;
 	display: flex;
 	flex-direction: column;
@@ -54,6 +54,7 @@ const Location = styled(Button)`
 
 const LocationAddress = styled.div`
 	font-size: 0.8em;
+	white-space: break-spaces;
 `
 
 const LocationSummary = styled.div`
@@ -65,6 +66,10 @@ const LocationSummary = styled.div`
 	&& svg {
 		height: 2em;
 	}
+`
+
+const LocDelBtn = styled(Button)`
+	flex: 0 0 auto;
 `
 
 const Footer = styled.div`
@@ -123,16 +128,14 @@ function WeatherNav({
 					return (
 						<Row key={id} curWeatherBG={curWeatherBG}>
 							<Location tag="div" onClick={() => onLocationFound(mapData)} curWeatherBG={curWeatherBG}>
-								<LocationAddress className="chLimit">
-									{mapData.address.formattedAddress}
-								</LocationAddress>
+								<LocationAddress>{mapData.address.formattedAddress}</LocationAddress>
 								<LocationSummary>
 									<StyledTempHue temp={temp}>{getTemp(temp)}&deg;</StyledTempHue>
 									<WeatherIcon iconName={weatherData.currently.icon} />
 									<div>{date.setZone(weatherData.timezone).toFormat("t")}</div>
 								</LocationSummary>
 							</Location>
-							<Button
+							<LocDelBtn
 								svg={SvgClose}
 								setTheme="red"
 								setColor="primary"

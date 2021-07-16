@@ -15,7 +15,7 @@ import Button from "../ui/Button"
 /* --------------------------------- STYLES --------------------------------- */
 
 const Root = styled.div`
-	--chat-padding: 0.4em;
+	--chat-padding: 0.5em;
 	display: flex;
 	height: 100%;
 `

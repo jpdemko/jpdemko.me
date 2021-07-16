@@ -47,8 +47,7 @@ function ChatInput({ data, roomsShown, send, ...props }) {
 
 	function submit(e) {
 		e.preventDefault()
-		// const { isValidText, error: potError }
-		let curTextRes = filter.isValidText(text)
+		const curTextRes = filter.isValidText(text)
 		if (curTextRes?.isValidText) {
 			const combinedText = last3LogsRef.current?.concat([text]).join("")
 			const combinedTextRes = filter.isValidText(combinedText)
@@ -66,16 +65,13 @@ function ChatInput({ data, roomsShown, send, ...props }) {
 					"Current input + previous logs, contains or has the potential to contain offensive language."
 				)
 			}
-		} else if (curTextRes?.potError) {
-			setError(curTextRes?.potError)
+		} else if (curTextRes?.error) {
+			setError(curTextRes?.error)
 		}
 	}
 
 	function handleTextChange(e) {
-		if (error) {
-			setText(text)
-			setError(null)
-		} else setText(e.target.value)
+		setText(error ? text : e.target.value)
 	}
 
 	function checkKeys(e) {

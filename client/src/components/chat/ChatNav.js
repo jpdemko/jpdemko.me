@@ -24,6 +24,12 @@ const DrawerRoot = styled.div`
 	display: flex;
 	flex-direction: column;
 	font-size: 0.9em;
+
+	.chLimit {
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
 `
 
 const ChatNavAccord = styled(Accordion)`
@@ -49,6 +55,7 @@ const Title = styled.span`
 	font-weight: bold;
 	font-style: italic;
 	text-transform: uppercase;
+	white-space: nowrap;
 `
 
 const HeaderBtn = styled(Button)`

@@ -28,10 +28,7 @@ const LogsRoot = styled.div`
 	overflow-y: auto;
 	overflow-x: hidden;
 	> div {
-		margin-top: calc(var(--chat-padding) * 1.25);
-		&:last-child {
-			margin-bottom: calc(var(--chat-padding) * 1.25);
-		}
+		margin-top: var(--chat-padding);
 	}
 	${({ theme }) => css`
 		background: ${theme.backgroundAlt};
@@ -125,6 +122,12 @@ const HorizLine = styled.span`
 	`}
 `
 
+const LogsEnd = styled.span`
+	margin: var(--chat-padding) 0 0 0 !important;
+	height: 0;
+	width: 100%;
+`
+
 /* ------------------------------- COMPONENTS ------------------------------- */
 
 // eslint-disable-next-line no-unused-vars
@@ -174,6 +177,7 @@ const Log = memo(({ user, ban, data, authored, openDM, id, children }) => {
 
 function Logs({ data, user, openDM, roomsShown, inputSent, ban, ...props }) {
 	const rootRef = useRef()
+	const logsEndRef = useRef()
 	const [followLast, setFollowLast] = useState(null)
 
 	const logType = roomsShown ? "msgs" : "dms"
@@ -184,8 +188,9 @@ function Logs({ data, user, openDM, roomsShown, inputSent, ban, ...props }) {
 		const ele = rootRef.current
 		if (ele) {
 			const { height: rootHeight } = ele.getBoundingClientRect()
-			const pxFromBot = ele.scrollHeight % (Math.round(rootHeight) + ele.scrollTop)
-			const nextFL = pxFromBot < 48
+			const rootPlusScrollTOp = Math.round(rootHeight + ele.scrollTop)
+			const pxFromBot = rootPlusScrollTOp - ele.scrollHeight
+			const nextFL = pxFromBot > -48
 			if (followLast !== nextFL) setFollowLast(nextFL)
 		}
 	}, 1000)
@@ -194,23 +199,23 @@ function Logs({ data, user, openDM, roomsShown, inputSent, ban, ...props }) {
 	function scroll2end() {
 		const ele = rootRef.current
 		if (ele) {
-			ele.scrollTop = ele.scrollHeight
+			const { height } = ele.getBoundingClientRect(ele)
+			ele.scrollTop = ele.scrollHeight - height
 			if (!followLast) setFollowLast(true)
 		}
 	}
-	const scroll2endRef = useUpdatedValRef(scroll2end)
 
 	// Determine where to scroll on fresh start or following updates.
-	useLayoutEffect(() => {
+	useEffect(() => {
 		if (followLast === null) {
 			const horizLine = document.getElementById("chat-unread-start")
 			if (horizLine) {
 				horizLine.scrollIntoView({ block: "center" })
 			} else {
-				scroll2endRef.current?.()
+				scroll2end()
 			}
 		} else if (followLast) {
-			scroll2endRef.current?.()
+			scroll2end()
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [logsLength, followLast])
@@ -219,7 +224,7 @@ function Logs({ data, user, openDM, roomsShown, inputSent, ban, ...props }) {
 	// state change since <ChatInput /> is sibling.
 	const prevInputSent = usePrevious(inputSent)
 	useEffect(() => {
-		if (prevInputSent !== inputSent) scroll2endRef.current?.()
+		if (prevInputSent !== inputSent) scroll2end()
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [inputSent])
 
@@ -261,7 +266,7 @@ function Logs({ data, user, openDM, roomsShown, inputSent, ban, ...props }) {
 
 		let foundUnread = false
 		// Go through the mapped logs (array of arrays) and properly layout the JSX.
-		return allLogs.map((logGroup, i) => {
+		const logsJSX = allLogs.map((logGroup, i) => {
 			const lastLog = logGroup?.[logGroup.length - 1]
 			let HL = null
 			// QoL for returning users to make sure their focus is returned to their last read location.
@@ -275,7 +280,7 @@ function Logs({ data, user, openDM, roomsShown, inputSent, ban, ...props }) {
 					<Log
 						data={lastLog}
 						authored={user.uid == lastLog.uid}
-						id={i === allLogs.length - 1 ? "logs-end" : null}
+						// id={i === allLogs.length - 1 ? "logs-end" : null}
 						openDM={openDM}
 						user={user}
 						ban={ban}
@@ -287,6 +292,7 @@ function Logs({ data, user, openDM, roomsShown, inputSent, ban, ...props }) {
 				</Fragment>
 			)
 		})
+		return logsJSX
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [data, logType, logsLength, totalUnread])
 
@@ -294,6 +300,7 @@ function Logs({ data, user, openDM, roomsShown, inputSent, ban, ...props }) {
 		<>
 			<LogsRoot {...props} ref={rootRef} id="logs-root">
 				{groupedData}
+				<LogsEnd ref={logsEndRef} id="logs-end" />
 			</LogsRoot>
 			{!followLast && (
 				<CenterChildrenDiv>
