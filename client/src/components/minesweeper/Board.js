@@ -158,7 +158,7 @@ function Board({
 	// Whenever gameBoard gets updated go through the cells and determine current gameState in parent.
 	const checkGameStateRef = useUpdatedValRef(checkGameState)
 	function checkGameState() {
-		const ngs = {
+		const nextGS = {
 			unopened: 0,
 			flags: 0,
 		}
@@ -168,27 +168,27 @@ function Board({
 				const cell = board?.[i]?.[j]
 				if (!cell) return
 				if (cell.isMine) minesArr.push(cell)
-				if (cell.isFlagged) ngs.flags++
-				if (!cell.isDug) ngs.unopened++
+				if (cell.isFlagged) nextGS.flags++
+				if (!cell.isDug) nextGS.unopened++
 				else if (cell.isDug) {
-					if (cell.isMine) ngs.lost = true
-					else if (!started) ngs.started = true
+					if (cell.isMine) nextGS.lost = true
+					else if (!started) nextGS.started = true
 				}
 			})
 		})
-		if (!lost && ngs?.lost) {
+		if (!lost && nextGS?.lost) {
 			minesArr.forEach((m) => {
 				if (!m.isFlagged) m.isDug = true
 			})
 			setBoard([...board])
-		} else if (!ngs.lost && ngs.unopened === mines) {
-			ngs.won = true
+		} else if (!nextGS.lost && nextGS.unopened === mines) {
+			nextGS.won = true
 		}
-		if (ngs.lost || ngs.won) {
+		if (nextGS.lost || nextGS.won) {
 			pauseTimer()
 		}
-		if (ngs.unopened !== unopened || ngs.flags !== flags) {
-			setGameState((prev) => ({ ...prev, ...ngs }))
+		if (nextGS.unopened !== unopened || nextGS.flags !== flags) {
+			setGameState((prev) => ({ ...prev, ...nextGS }))
 		}
 	}
 

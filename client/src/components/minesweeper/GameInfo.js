@@ -96,6 +96,7 @@ export function useTimer(stepCB, errorCB, intervalMS = 1000) {
 	const resetTimer = useCallback(() => {
 		clearTimeout(timeoutRef.current)
 		if (startTimeRef.current !== 0) cbRef.current?.(null)
+		pausedRef.current = true
 		startTimeRef.current = 0
 	}, [cbRef])
 
