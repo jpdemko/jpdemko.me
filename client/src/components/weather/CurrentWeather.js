@@ -19,7 +19,7 @@ const Root = styled.div`
 	text-align: center;
 	${({ theme, curWeatherBG, isLandscape }) => css`
 		background-image: ${curWeatherBG ? curWeatherBG.gradient : theme.background};
-		color: ${curWeatherBG ? theme.readableColor(curWeatherBG.base) : theme.backgroundContrast};
+		color: ${theme.lightestColor};
 		border-${isLandscape ? "right" : "bottom"}: 1px solid ${theme.accent};
 	`}
 	> * {
@@ -57,8 +57,8 @@ const Temps = styled.div`
 	> * {
 		flex: 0 0 auto;
 	}
-	${({ theme, curWeatherBG }) => css`
-		border-left: 1px solid ${curWeatherBG ? theme.readableColor(curWeatherBG.base) : theme.primaryContrast};
+	${({ theme }) => css`
+		border-left: 1px solid ${theme.lightestColor};
 	`}
 `
 
@@ -71,7 +71,7 @@ const Icon = styled.div`
 	${({ theme }) => css`
 		svg {
 			height: 100%;
-			fill: ${theme.highlightContrast};
+			fill: ${theme.lightestColor};
 		}
 	`}
 `

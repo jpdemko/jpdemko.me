@@ -3,6 +3,7 @@ import styled, { css } from "styled-components/macro"
 
 import { Contexts, Styles } from "../../shared/shared"
 import Button from "../ui/Button"
+import { cgTitles } from "./Themes"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -43,33 +44,32 @@ const BtnLink = styled(Button)`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function ThemeNav({ cgTitles, children, focusedID, setFocusedID, ...props }) {
+function ThemeNav({ children, focusedID, setFocusedID, ...props }) {
 	const { setAppDrawerContent, setAppDrawerShown, isMobileWindow, isMobileSite } = useContext(
 		Contexts.Window
 	)
 
 	function scrollTo(id) {
-		const ele = document.getElementById(id)
-		const par = document.getElementById("app-content-Themes")
-		if (!ele || !par) return
-		const eleStyle = new Styles(ele)
+		const target = document.getElementById(id)
+		const overflowedPar = document.getElementById("themes-overflowed-section")
+		if (!target || !overflowedPar) return
+
+		const eleStyle = new Styles(target)
 		const eleMargins = eleStyle.get("margin")
-		par.scrollTop = ele.offsetTop - (eleMargins?.[0] ?? 0)
+		overflowedPar.scrollTop = target.offsetTop - (eleMargins?.[0] ?? 0)
 		setFocusedID(id)
 		setAppDrawerShown(false)
 	}
-
-	const genID = (t) => t.toLowerCase().split(" ").join("-")
 
 	const drawerContent = (
 		<Root {...props} isMobileSite={isMobileSite} isMobileWindow={isMobileWindow}>
 			<Descrip>UI Component Groups</Descrip>
 			<LinkList>
-				{Object.values(cgTitles).map((t) => {
-					const id = genID(t)
+				{Object.keys(cgTitles).map((t) => {
+					const id = `cg-${t}`
 					return (
-						<BtnLink key={id} onClick={() => scrollTo(id)} isFocused={id === focusedID}>
-							{t}
+						<BtnLink key={t} onClick={() => scrollTo(id)} isFocused={id === focusedID}>
+							{cgTitles[t]}
 						</BtnLink>
 					)
 				})}

@@ -223,7 +223,10 @@ export function useEventListener(eleRef, eventName, cb) {
 		() => {
 			const ele = eleRef.current
 			const curCb = cbRef.current
-			const handler = (...args) => curCb(...args)
+			const handler = (...args) => {
+				debug.log("useEventListener", { eventName, ele, curCb })
+				return curCb(...args)
+			}
 			// Add event listener.
 			ele?.addEventListener?.(eventName, handler)
 			// Remove event listener and possible throttle/debounce w/ cancel() on cleanup.

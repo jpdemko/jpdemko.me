@@ -57,7 +57,7 @@ export const ButtonBase = styled.button.attrs(({ svg, column, reverse, ...props 
 	position: relative;
 	border-radius: 0;
 	padding: 0;
-	${({ flexDirection, alignItems, theme, disabled, column, vertPad, horizPad, gleam }) => css`
+	${({ flexDirection, alignItems, theme, disabled, column, vertPad, horizPad }) => css`
 		flex-direction: ${flexDirection};
 		align-items: ${alignItems};
 		box-shadow: 0 0 0 0 ${theme.accent};

@@ -1,6 +1,7 @@
 import styled, { css } from "styled-components/macro"
 
 import { Banner } from "../ui/Misc"
+import { cgTitles } from "./Themes"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -27,11 +28,10 @@ export const ThemeBanner = styled(Banner)`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function CompGroup({ title, children, ...props }) {
-	const genID = title.toLowerCase().split(" ").join("-")
+function CompGroup({ banner, id, children, ...props }) {
 	return (
-		<Root {...props} id={genID} className="comp-group">
-			<ThemeBanner>{title}</ThemeBanner>
+		<Root {...props} id={`cg-${id}`} className="comp-group">
+			<ThemeBanner>{banner ?? cgTitles?.[id] ?? id}</ThemeBanner>
 			<ListOfSCGs>{children}</ListOfSCGs>
 		</Root>
 	)

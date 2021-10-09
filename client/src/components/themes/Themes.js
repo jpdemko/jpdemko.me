@@ -15,6 +15,7 @@ import { useEventListener, useThrottle, useUpdatedValRef } from "../../shared/ho
 const Root = styled.div`
 	--theme-spacing: calc(var(--content-spacing) / 2);
 	display: flex;
+	height: 100%;
 	${({ theme }) => css`
 		background: ${theme.backgroundAlt} !important;
 		pre {
@@ -56,9 +57,17 @@ const ThemeBtn = styled(Button)`
 
 const debug = new Debug("Themes: ", true)
 
+export const cgTitles = {
+	themes: "Decide Theme",
+	buttons: "Buttons",
+	io: "IO",
+	dataDisplay: "Data Display",
+	misc: "Misc",
+}
+
 function Themes({ title, ...props }) {
 	const { curTheme, setTheme } = useContext(Contexts.Index)
-	const [focusedID, setFocusedID] = useState("themes")
+	const [focusedID, setFocusedID] = useState("cg-themes")
 
 	function setID(id) {
 		if (id !== focusedID) {
@@ -113,22 +122,14 @@ function Themes({ title, ...props }) {
 			)
 		)
 
-	const cgTitles = {
-		themes: "Decide Theme",
-		buttons: "Buttons",
-		io: "IO",
-		dataDisplay: "Data Display",
-		misc: "Misc",
-	}
-
 	return (
 		<>
 			<Root {...props}>
-				<ThemeNav cgTitles={cgTitles} focusedID={focusedID} setFocusedID={setFocusedID} />
-				<SectionWrap ref={cgSectRef}>
+				<ThemeNav focusedID={focusedID} setFocusedID={setFocusedID} />
+				<SectionWrap ref={cgSectRef} id="themes-overflowed-section">
 					<CompGroupsSection>
-						<CompGroup title={cgTitles.themes}>
-							<SubCompGroup title="Light themes">
+						<CompGroup id="themes">
+							<SubCompGroup descrip="Light themes">
 								{lightNames.map((name) => (
 									<ThemeBtn
 										key={name}
@@ -141,7 +142,7 @@ function Themes({ title, ...props }) {
 									</ThemeBtn>
 								))}
 							</SubCompGroup>
-							<SubCompGroup title="Dark themes">
+							<SubCompGroup descrip="Dark themes">
 								{darkNames.map((name) => (
 									<ThemeBtn
 										key={name}
@@ -154,13 +155,13 @@ function Themes({ title, ...props }) {
 									</ThemeBtn>
 								))}
 							</SubCompGroup>
-							<SubCompGroup title="Currently selected theme">
+							<SubCompGroup descrip="Currently selected theme">
 								<pre>
 									<code>{themeJSON}</code>
 								</pre>
 							</SubCompGroup>
 						</CompGroup>
-						<ListOfCGs curTheme={curTheme} cgTitles={cgTitles} />
+						<ListOfCGs curTheme={curTheme} />
 					</CompGroupsSection>
 				</SectionWrap>
 			</Root>

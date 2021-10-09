@@ -4,7 +4,7 @@ import styled, { css } from "styled-components/macro"
 
 const Root = styled.div``
 
-const Title = styled.div`
+const Descrip = styled.div`
 	font-weight: bold;
 	text-transform: uppercase;
 	font-size: 1.1em;
@@ -39,10 +39,10 @@ const FlexGroup = styled.div`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function SubCompGroup({ title, children, column, block, ...props }) {
+function SubCompGroup({ descrip, children, column, block, ...props }) {
 	return (
 		<Root {...props}>
-			<Title>{title}</Title>
+			<Descrip>{descrip}</Descrip>
 			<Display block={block}>
 				<FlexGroup column={column}>{children}</FlexGroup>
 			</Display>

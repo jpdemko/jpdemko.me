@@ -47,8 +47,8 @@ const Location = styled(Button)`
 	flex-direction: column;
 	align-items: flex-start;
 	white-space: nowrap;
-	${({ theme, curWeatherBG }) => css`
-		color: ${curWeatherBG?.base && theme.readableColor(curWeatherBG.base)};
+	${({ theme }) => css`
+		color: ${theme.lightestColor};
 	`}
 `
 
@@ -63,9 +63,12 @@ const LocationSummary = styled.div`
 	> * {
 		margin-right: 0.3em;
 	}
-	&& svg {
-		height: 2em;
-	}
+	${({ theme }) => css`
+		&& svg {
+			height: 2em;
+			fill: ${theme.lightestColor};
+		}
+	`}
 `
 
 const LocDelBtn = styled(Button)`
@@ -127,7 +130,12 @@ function WeatherNav({
 					const temp = weatherData.currently.apparentTemperature
 					return (
 						<Row key={id} curWeatherBG={curWeatherBG}>
-							<Location tag="div" onClick={() => onLocationFound(mapData)} curWeatherBG={curWeatherBG}>
+							<Location
+								tag="div"
+								setColor="lightestColor"
+								onClick={() => onLocationFound(mapData)}
+								curWeatherBG={curWeatherBG}
+							>
 								<LocationAddress>{mapData.address.formattedAddress}</LocationAddress>
 								<LocationSummary>
 									<StyledTempHue temp={temp}>{getTemp(temp)}&deg;</StyledTempHue>

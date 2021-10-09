@@ -194,7 +194,7 @@ function ChatNav({
 	ban,
 	...props
 }) {
-	const { setAppDrawerContent, isMobileWindow } = useContext(Contexts.Window)
+	const { setAppDrawerContent } = useContext(Contexts.Window)
 
 	const [rname, setRName] = useState("")
 	const [password, setPassword] = useState("")
@@ -285,7 +285,7 @@ function ChatNav({
 							svg={SvgAdd}
 							variant="outline"
 							onClick={togCreateRoomModal}
-							setColor="primaryContrast"
+							setColor="highlightContrast"
 						>
 							Create
 						</HeaderBtn>
@@ -293,7 +293,7 @@ function ChatNav({
 							svg={SvgGroupAdd}
 							variant="outline"
 							onClick={togJoinRoomModal}
-							setColor="primaryContrast"
+							setColor="highlightContrast"
 						>
 							Join
 						</HeaderBtn>

@@ -98,7 +98,7 @@ const GlobalStyle = createGlobalStyle`
 function PortfolioOS() {
 	const isDesktop = useMediaQuery(`(min-width: ${mediaBreakpoints.desktop}px)`)
 
-	const [tName, setTheme] = useLocalStorage("PortfolioOS-Theme", "dark", true)
+	const [tName, setTheme] = useLocalStorage("PortfolioOS-Theme", "light", true)
 
 	const curTheme = useMemo(() => themes[tName], [tName])
 

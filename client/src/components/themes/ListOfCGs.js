@@ -30,7 +30,7 @@ const LoadingExample = styled.div`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-function ErrorCG({ complimTName, cgTitles }) {
+function ErrorCG({ complimTName }) {
 	// For showcasing components that deal with errors.
 	const errMsg = "Something happened and the user needs to know!"
 	const [error, setError] = useState(errMsg)
@@ -43,8 +43,8 @@ function ErrorCG({ complimTName, cgTitles }) {
 	const msgBoxPH = `resizeable={true}\nsetTheme="${complimTName}"`
 
 	return (
-		<CompGroup title={cgTitles.io}>
-			<SubCompGroup title={`Inputs Type="Text"`}>
+		<CompGroup id="io">
+			<SubCompGroup descrip={`Inputs Type="Text"`}>
 				<Input label="Base input" placeholder="Placeholder" />
 				<Input label="stickyLabel ex:" placeholder="stickyLabel={true}" stickyLabel />
 				<Input
@@ -61,7 +61,7 @@ function ErrorCG({ complimTName, cgTitles }) {
 					stickyLabel
 				/>
 			</SubCompGroup>
-			<SubCompGroup title="Text areas">
+			<SubCompGroup descrip="Text areas">
 				<MsgBox placeholder="This is a placeholder." />
 				<MsgBox setTheme={complimTName} placeholder={msgBoxPH} resizeable />
 				<MsgBox error={error} defaultValue="Here is something user has written before error." />
@@ -105,15 +105,15 @@ function ListOfCGs({ curTheme, cgTitles }) {
 
 	return (
 		<>
-			<CompGroup title={cgTitles.buttons}>
-				<SubCompGroup title="Base buttons">
+			<CompGroup id="buttons">
+				<SubCompGroup descrip="Base buttons">
 					<Button>Button</Button>
 					<Button setColor="highlight">setColor="highlight"</Button>
 					<Button setTheme={complimTName} setColor="highlight">
 						setTheme="{complimTName}" setColor="highlight"
 					</Button>
 				</SubCompGroup>
-				<SubCompGroup title="Outlined buttons">
+				<SubCompGroup descrip="Outlined buttons">
 					<Button variant="outline" gleam>
 						variant="outline" gleam={`{true}`}
 					</Button>
@@ -124,7 +124,7 @@ function ListOfCGs({ curTheme, cgTitles }) {
 						setTheme="{complimTName}" setColor="highlight"
 					</Button>
 				</SubCompGroup>
-				<SubCompGroup title="Solid buttons">
+				<SubCompGroup descrip="Solid buttons">
 					<Button variant="solid" gleam={false}>
 						variant="solid" gleam={`{false}`}
 					</Button>
@@ -136,22 +136,22 @@ function ListOfCGs({ curTheme, cgTitles }) {
 					</Button>
 				</SubCompGroup>
 			</CompGroup>
-			<ErrorCG complimTName={complimTName} cgTitles={cgTitles} />
-			<CompGroup title={cgTitles.dataDisplay}>
-				<SubCompGroup title="Accordion">
+			<ErrorCG complimTName={complimTName} />
+			<CompGroup id="dataDisplay">
+				<SubCompGroup descrip="Accordion">
 					<AccordionExample data={genData("Accordion")} />
 				</SubCompGroup>
-				<SubCompGroup title="Tabs">
+				<SubCompGroup descrip="Tabs">
 					<Tabs data={genData("Tabs")} />
 				</SubCompGroup>
 			</CompGroup>
-			<CompGroup title={cgTitles.misc}>
-				<SubCompGroup title="Anchor / Link">
+			<CompGroup id="misc">
+				<SubCompGroup descrip="Anchor / Link">
 					<Link openNewTab={false}>
 						<code>{`<Link href="" openNewTab={false} />`}</code>
 					</Link>
 				</SubCompGroup>
-				<SubCompGroup title="Loading" block>
+				<SubCompGroup descrip="Loading" block>
 					<LoadingExample>
 						<code>{`<LoadingSVG />`}</code>
 						<LoadingSVG />

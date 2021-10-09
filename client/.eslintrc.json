@@ -5,6 +5,6 @@
 		"semi": 0,
 		"react/jsx-filename-extension": [1, { "extensions": [".js", ".jsx"] }],
 		"eqeqeq": "off",
-		"no-unused-vars": "off"
+		"no-unused-vars": ["warn", { "vars": "all", "args": "none", "ignoreRestSiblings": true }]
 	}
 }

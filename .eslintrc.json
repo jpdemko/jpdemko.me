@@ -12,7 +12,7 @@
 	"rules": {
 		"semi": 0,
 		"eqeqeq": "off",
-		"no-unused-vars": ["warn", { "vars": "all", "args": "after-used", "ignoreRestSiblings": false }],
+		"no-unused-vars": ["warn", { "vars": "all", "args": "none", "ignoreRestSiblings": true }],
 		"no-extra-semi": "warn"
 	}
 }
