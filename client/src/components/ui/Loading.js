@@ -7,19 +7,15 @@ import { zOverlayGen } from "../../shared/shared"
 
 /* --------------------------------- STYLES --------------------------------- */
 
-const WrapSVG = styled.div`
-	flex: 1 1 auto;
+const WrapSvg = styled.div`
 	display: inline-block;
-	margin: 0.5em;
-	max-width: 50vmin !important;
-	max-height: 50vmin !important;
+	padding: 0.25em;
 `
 
-const StyledSVG = styled.svg`
+const StyledLoadingSvg = styled.svg`
 	animation: rotate 1s linear infinite;
 	${({ theme, animDuration, sideLength }) => css`
-		min-width: ${sideLength};
-		min-height: ${sideLength};
+		min-height: ${sideLength} !important;
 		transition: ${animDuration}s;
 		& .path {
 			stroke: ${theme.highlight};
@@ -57,45 +53,52 @@ const Center = styled.div`
 	align-items: center;
 	top: 0;
 	left: 0;
+	svg {
+		height: 50%;
+	}
 	${({ zIndex }) => css`
 		z-index: ${zIndex};
 	`}
 `
 
 const svgStyleStates = {
-	entering: { transform: "scale(1.2)", opacity: 1 },
-	entered: { transform: "scale(1)", opacity: 1 },
-	exiting: { transform: "scale(0)", opacity: 0 },
-	exited: { transform: "scale(0)", opacity: 0 },
+	entering: { opacity: 1 },
+	entered: { opacity: 1 },
+	exiting: { opacity: 0 },
+	exited: { opacity: 0 },
 }
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-export function LoadingSVG({ animDuration = 0.4, sideLength = "24px", strokeWidth = 3, ...props }) {
+export function LoadingSvg({ animDuration = 0.4, sideLength = "24px", strokeWidth = 4, ...props }) {
 	return (
-		<WrapSVG>
-			<StyledSVG {...props} sideLength={sideLength} viewBox="0 0 50 50" animDuration={animDuration}>
-				<circle className="path" cx="25" cy="25" r="20" fill="none" strokeWidth={`${strokeWidth}`} />
-			</StyledSVG>
-		</WrapSVG>
+		<StyledLoadingSvg {...props} sideLength={sideLength} viewBox="0 0 50 50" animDuration={animDuration}>
+			<circle className="path" cx="25" cy="25" r="20" fill="none" strokeWidth={`${strokeWidth}`} />
+		</StyledLoadingSvg>
 	)
 }
 
-function LoadingScreen({ isLoading = false, animDuration = 0.4, ...props }) {
+export function LoadingSvgInline(props) {
+	return (
+		<WrapSvg>
+			<LoadingSvg {...props} />
+		</WrapSvg>
+	)
+}
+
+export function LoadingOverlay({ isLoading = false, animDuration = 0.4, backdrop = false, ...props }) {
 	const zIndex = useMemo(() => zOverlayGen.get(), [])
 
 	return (
 		<>
-			<Backdrop isShown={isLoading} animDuration={animDuration} zIndex={zIndex} />
+			{backdrop && <Backdrop isShown={isLoading} animDuration={animDuration} zIndex={zIndex} />}
 			<Transition timeout={animDuration * 1000} in={isLoading} mountOnEnter unmountOnExit>
 				{(state) => (
 					<Center zIndex={zIndex}>
-						<LoadingSVG {...props} style={{ ...svgStyleStates[state] }} animDuration={animDuration} />
+						<LoadingSvg {...props} style={{ ...svgStyleStates[state] }} animDuration={animDuration} />
 					</Center>
 				)}
 			</Transition>
 		</>
 	)
 }
-
-export default LoadingScreen

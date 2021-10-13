@@ -38,7 +38,7 @@ const Root = styled.div`
 
 const CellBtn = styled(Button)`
 	margin: 0 !important;
-	font-size: var(--ms-size);
+	font-size: var(--cell-fs);
 	flex: 1 1;
 	${({ theme, isDisabled, mineColor }) => css`
 		cursor: ${isDisabled ? "default" : "pointer"};
@@ -58,11 +58,13 @@ const CellBtn = styled(Button)`
 	.btn-content {
 		display: flex;
 		align-items: center;
+		height: 100%;
+		width: 100%;
+		place-content: center;
 	}
 
 	svg {
-		height: var(--ms-size);
-		width: var(--ms-size);
+		height: 100%;
 	}
 `
 

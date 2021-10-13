@@ -1,10 +1,11 @@
 import { useContext, useEffect, useMemo, useRef, useState } from "react"
 import styled, { css, ThemeContext } from "styled-components/macro"
 
-import { useEventListener, usePrevious, useUpdatedValRef } from "../../shared/hooks"
+import { useEventListener, usePrevious, useResizeObserver, useUpdatedValRef } from "../../shared/hooks"
 import { themes } from "../../shared/shared"
 import { MsDifs } from "./Minesweeper"
 import Cell from "./Cell"
+import { LoadingOverlay } from "../ui/Loading"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -14,7 +15,8 @@ const BRoot = styled.div`
 	overflow-y: auto;
 	overflow-x: hidden;
 	user-select: none;
-	${({ rows, cols, isVert }) => css`
+	${({ rows, cols, isVert, fontSize = 16 }) => css`
+		--cell-fs: ${fontSize}px;
 		grid-template-columns: repeat(${isVert ? rows : cols}, 1fr);
 		grid-template-rows: repeat(${isVert ? cols : rows}, 1fr);
 	`}
@@ -107,12 +109,12 @@ let board = []
 function Board({
 	children,
 	isVert,
-	isDesktop,
 	title,
 	isMobileSite,
 	gameState: gs,
 	setGameState,
 	pauseTimer,
+	isAnimating,
 	...props
 }) {
 	const { game_id, started, lost, won, difficulty: difName, unopened, mines, flags } = gs
@@ -121,7 +123,6 @@ function Board({
 
 	const dif = MsDifs[difName]
 
-	// const firstGrid = getGrid(dif, isVert)
 	const gridRef = useRef()
 	useEffect(() => {
 		gridRef.current = getGrid(dif, isVert)
@@ -149,7 +150,7 @@ function Board({
 	// When to generate a new game.
 	const prevID = usePrevious(game_id)
 	useEffect(() => {
-		if (prevID !== game_id) {
+		if (prevID && prevID !== game_id) {
 			setBoard(genBlankBoard())
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -325,6 +326,17 @@ function Board({
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isVert, gameBoard, isMobileSite])
 
+	const handleResize = (eleRect) => {
+		let vals = [eleRect.height, eleRect.width]
+		let low = Math.min(...vals)
+		let high = Math.max(...vals)
+		let close = high / low < 1.2
+		const fs = Math.round(close ? low * 0.9 : low * 1.2)
+		return fs
+	}
+
+	let [_, fontSize] = useResizeObserver(handleResize, "0,0", 1500)
+
 	return (
 		<BRoot
 			{...props}
@@ -333,13 +345,16 @@ function Board({
 			rows={dif.rows}
 			cols={dif.cols}
 			isVert={isVert}
-			isDesktop={isDesktop}
+			fontSize={fontSize}
 			onContextMenu={(e) => {
 				e.preventDefault()
 				return false
 			}}
 		>
-			{flatBoard}
+			<>
+				{!isAnimating && flatBoard}
+				<LoadingOverlay isLoading={isAnimating} />
+			</>
 		</BRoot>
 	)
 }

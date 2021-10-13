@@ -14,8 +14,7 @@ import Leaderboard from "./Leaderboard"
 /* --------------------------------- STYLES --------------------------------- */
 
 const Root = styled.div`
-	${({ theme, isDesktop }) => css`
-		--ms-size: ${isDesktop ? 1.5 : 1}rem;
+	${({ theme }) => css`
 		height: 100%;
 		overflow: hidden;
 		background: ${theme.backgroundAlt};
@@ -128,7 +127,7 @@ export function getDisplayTime(timeMS = 0, showMS = false) {
 }
 
 function Minesweeper({ title, ...props }) {
-	const { setAppDrawerContent, isMobileWindow, isMobileSite } = useContext(Contexts.Window)
+	const { setAppDrawerContent, isMobileSite, isAnimating } = useContext(Contexts.Window)
 
 	const pages = ["Leaderboard", "Play"]
 	const [page, setPage] = useLocalStorage("MinesweeperCurPage", "Play")
@@ -136,7 +135,7 @@ function Minesweeper({ title, ...props }) {
 	const [difName, setDifName] = useState("Hard")
 
 	const [gameState, setGameState] = useState(() => getGameState())
-	const prevGS = usePrevious({ ...gameState })
+	const prevGS = usePrevious({ ...(gameState ?? {}) })
 
 	const [timeMS, setTimeMS] = useState()
 	const [startTimer, pauseTimer, resetTimer] = useTimer((ms) => setTimeMS(ms))
@@ -172,10 +171,8 @@ function Minesweeper({ title, ...props }) {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isVert, difName])
 
-	const isDesktop = !isMobileSite && !isMobileWindow
-
 	return (
-		<Root {...props} ref={rootRef} isDesktop={isDesktop}>
+		<Root {...props} ref={rootRef}>
 			<MinesweeperNav
 				setAppDrawerContent={setAppDrawerContent}
 				page={page}
@@ -218,13 +215,13 @@ function Minesweeper({ title, ...props }) {
 				</GameOverModal>
 				<Board
 					isVert={isVert}
-					isDesktop={isDesktop}
 					title={title}
 					isMobileSite={isMobileSite}
 					gameState={gameState}
 					setGameState={setGameState}
 					resetGame={resetGame}
 					pauseTimer={pauseTimer}
+					isAnimating={isAnimating}
 				/>
 				<GameInfo
 					difName={difName}

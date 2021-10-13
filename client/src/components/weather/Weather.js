@@ -1,6 +1,6 @@
 /* global Microsoft */
 
-import { useState, useEffect, useCallback, useContext } from "react"
+import { useState, useEffect, useCallback, useContext, useRef } from "react"
 import styled, { css } from "styled-components/macro"
 import { DateTime, Interval } from "luxon"
 import { gsap } from "gsap/all"
@@ -57,73 +57,73 @@ const radar = {
 	],
 }
 
+let globalModulesLoaded = false
+
 function Weather({ title, ...props }) {
+	const mountedRef = useRef(true)
+
 	const { setAppLoading, setAppDrawerShown } = useContext(Contexts.Window)
+
 	const [curLocation, setCurLocation] = useLocalStorage("curLocation")
 	const [locations, setLocations] = useLocalStorage("locations", [])
 
 	// Setup map and add radar data.
 	const [map, setMap] = useState()
-	function loadMap() {
-		if (gsap.isTweening(`#window-${title}`)) return
-		try {
-			const genMap = new Microsoft.Maps.Map("#BingMapRadar", {
-				navigationBarMode: Microsoft.Maps.NavigationBarMode.minified,
-				supportedMapTypes: [
-					Microsoft.Maps.MapTypeId.road,
-					Microsoft.Maps.MapTypeId.aerial,
-					Microsoft.Maps.MapTypeId.canvasLight,
-				],
-				zoom: 5,
-				...(curLocation && {
-					center: curLocation.mapData.location,
-					zoom: 8,
-				}),
-				enableClickableLogo: false,
-				showLogo: false,
-				showTermsLink: false,
-			})
-			if (genMap) {
-				if (curLocation) genMap.entities.push(new Microsoft.Maps.Pushpin(genMap.getCenter()))
-				updateRadar(genMap)
-				setMap(genMap)
-			}
-		} catch (error) {
-			console.error("<Weather /> loadMap() error: ", error)
-		}
-	}
+	const [modulesLoaded, setModulesLoaded] = useState(false)
+
 	useEffect(() => {
-		const localMap = map
+		mountedRef.current = true
+		let localMap = map
 		let interval = null
-		if (!localMap) interval = setInterval(() => loadMap(), 1000)
+		if (!localMap)
+			interval = setInterval(() => {
+				if (gsap.isTweening(`#window-${title}`) || localMap) return
+				try {
+					const genMap = new Microsoft.Maps.Map("#BingMapRadar", {
+						navigationBarMode: Microsoft.Maps.NavigationBarMode.minified,
+						supportedMapTypes: [
+							Microsoft.Maps.MapTypeId.road,
+							Microsoft.Maps.MapTypeId.aerial,
+							Microsoft.Maps.MapTypeId.canvasLight,
+						],
+						zoom: 5,
+						...(curLocation && {
+							center: curLocation.mapData.location,
+							zoom: 8,
+						}),
+						enableClickableLogo: false,
+						showLogo: false,
+						showTermsLink: false,
+					})
+					if (!globalModulesLoaded) {
+						Microsoft?.Maps.loadModule(["Microsoft.Maps.AutoSuggest", "Microsoft.Maps.Search"], {
+							callback: () => {
+								globalModulesLoaded = true
+								if (mountedRef.current) setModulesLoaded(true)
+							},
+							errorCallback: (error) => {
+								throw Error(error)
+							},
+						})
+					}
+					if (genMap && mountedRef.current) {
+						if (curLocation) genMap.entities.push(new Microsoft.Maps.Pushpin(genMap.getCenter()))
+						updateRadar(genMap)
+						setMap(genMap)
+						if (globalModulesLoaded && !modulesLoaded) setModulesLoaded(true)
+					}
+				} catch (error) {
+					console.error("<Weather /> loadMap() error: ", error)
+				}
+			}, 1000)
 
 		return () => {
+			mountedRef.current = false
 			if (localMap) localMap.dispose()
 			if (interval) clearInterval(interval)
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [map])
-
-	const [modulesLoaded, setModulesLoaded] = useState(false)
-	function loadMapModules() {
-		if (map && !modulesLoaded) {
-			try {
-				Microsoft.Maps.loadModule(["Microsoft.Maps.AutoSuggest", "Microsoft.Maps.Search"], {
-					callback: () => {
-						setModulesLoaded(true)
-					},
-					errorCallback: (error) => {
-						setModulesLoaded(false)
-						throw Error(error)
-					},
-				})
-			} catch (error) {
-				console.error("<Weather /> loadMapModules() error: ", error)
-			}
-		}
-	}
-	// eslint-disable-next-line react-hooks/exhaustive-deps
-	useEffect(() => loadMapModules(), [map, modulesLoaded])
 
 	function updateRadar(mapParam) {
 		const localMap = mapParam ?? map
@@ -152,7 +152,7 @@ function Weather({ title, ...props }) {
 		map.entities.clear()
 		if (mapData) {
 			map.setView({ center: mapData.location, zoom: 8 })
-			map.entities.push(new Microsoft.Maps.Pushpin(mapData.location))
+			map.entities.push(new Microsoft.Maps.Pushpin(mapData?.location))
 		}
 	}
 
@@ -234,8 +234,10 @@ function Weather({ title, ...props }) {
 		Promise.all(locPromises)
 			.then((nextLocations) => {
 				const nextCurLocation = nextLocations.find((loc) => loc.id === curLocation.id)
-				setCurLocation(nextCurLocation)
-				setLocations(nextLocations)
+				if (mountedRef.current) {
+					setCurLocation(nextCurLocation)
+					setLocations(nextLocations)
+				}
 			})
 			.catch((error) => console.error("<Weather /> updateLocations() error: ", error))
 			.finally(() => setAppLoading(false))
@@ -273,7 +275,7 @@ function Weather({ title, ...props }) {
 			/>
 			<Data ref={dataRef} isLandscape={isLandscape}>
 				<CurrentWeather curLocation={curLocation} getTemp={getTemp} isLandscape={isLandscape} />
-				<Forecast curLocation={curLocation} locations={locations} getTemp={getTemp} />
+				<Forecast map={map} curLocation={curLocation} locations={locations} getTemp={getTemp} />
 			</Data>
 		</Root>
 	)

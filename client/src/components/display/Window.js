@@ -23,7 +23,7 @@ import {
 } from "../../shared/shared"
 import Button from "../ui/Button"
 import Drawer from "../ui/Drawer"
-import LoadingScreen from "../ui/Loading"
+import { LoadingOverlay } from "../ui/Loading"
 
 gsap.registerPlugin(Draggable)
 
@@ -251,29 +251,32 @@ export default class Window extends Component {
 		this.rootRef = createRef()
 		this.handleResizeThrottled = throttle(this.handleResize, 200)
 
-		const wireframe = getRect("window-wireframe")
+		const wf = getRect("window-wireframe")
+		const wfVals = {
+			top: wf?.top ?? 0,
+			left: wf?.left ?? 0,
+			width: wf?.width ?? "75%",
+			height: wf?.height ?? "60%",
+		}
 		const prevData = ls.get(`Window-${props.title}`) ?? {}
 		const { window: loadedWdow } = prevData
 		this.data = loadedWdow?.data ?? {
 			closedProperly: true,
 			css: {
 				minimized: {
-					scale: 0,
+					scale: 0.75,
 					ease: "back.in(1.75)",
-					duration: 0.35,
+					duration: 0.4,
 					autoAlpha: 0,
 				},
 				windowed: {
-					top: wireframe?.top,
-					left: wireframe?.left,
-					width: wireframe?.width,
-					height: wireframe?.height,
+					...wfVals,
 					scale: 1,
 					x: 0,
 					y: 0,
 					autoAlpha: 1,
-					ease: "elastic.out(1.1, 0.5)",
-					duration: 1,
+					ease: "elastic.out(1, 0.4)",
+					duration: 1.25,
 				},
 				maximized: {
 					top: 0,
@@ -295,6 +298,7 @@ export default class Window extends Component {
 					isFocused: props.isFocused,
 					isMobileSite: props.isMobileSite,
 					isMobileWindow: props.isMobileSite,
+					isAnimating: true,
 					setAppDrawerContent: this.setAppDrawerContent,
 					setAppLoading: this.setAppLoading,
 					setAppDrawerShown: this.setAppDrawerShown,
@@ -308,8 +312,8 @@ export default class Window extends Component {
 	}
 
 	componentDidMount() {
-		this.genDraggables()
 		this.enterAnim()
+		this.genDraggables()
 		document.addEventListener("visibilitychange", this.save)
 		window.addEventListener("resize", this.handleResizeThrottled)
 		this.handleResizeThrottled()
@@ -550,6 +554,15 @@ export default class Window extends Component {
 		if (this.draggableWindow) this.draggableWindow[0].update(true)
 	}
 
+	setIsAnimating = (st) => {
+		this.setState((prev) => ({
+			context: {
+				...prev.context,
+				isAnimating: typeof st === "boolean" ? st : prev.context.isAnimating,
+			},
+		}))
+	}
+
 	animMinimize = (extraVars = {}) => {
 		this.animate({ ...this.data.css.minimized, ...extraVars })
 	}
@@ -603,6 +616,7 @@ export default class Window extends Component {
 			onStart: () => {
 				wdow.draggableWindow[0].disable()
 				wdow.dragInstances.forEach((i) => i[0].disable())
+				// this.setIsAnimating(true)
 			},
 			onComplete: () => {
 				if (!wdow.props.isMinimized) {
@@ -613,12 +627,12 @@ export default class Window extends Component {
 					wdow.dragInstances.forEach((i) => i[0].enable())
 				}
 				wdow.preventSubpixelValues()
+				if (wdow.state.context.isAnimating) this.setIsAnimating(false)
 			},
 			onUpdate: function () {
 				if (!wdow.props.isMinimized) wdow.handleResizeThrottled()
 			},
 		})
-		this.curAnim.play()
 	}
 
 	setLastWindowedCSS = () => {
@@ -659,21 +673,26 @@ export default class Window extends Component {
 	enterAnim = () => {
 		const { css } = this.data
 		const { isMinimized, isMaximized } = this.props
+		const root = this.rootRef.current
 
 		this.checkWindowedCSS()
-
 		if (this.data.closedProperly) {
-			const curStateOptions = isMaximized ? css.maximized : css.windowed
-			const animTime = css.minimized.duration + curStateOptions.duration
-			gsap.set(this.rootRef.current, { ...css.minimized })
-			const vars = { duration: animTime }
-			!isMaximized ? this.animWindowed(vars) : this.animMaximize(vars)
+			let vars = !isMaximized ? css.windowed : css.maximized
+			gsap.set(root, { ...vars, visibility: "visible", opacity: 0, scale: 0.75 })
+			vars.duration = vars.duration * 1
+			if (this.curAnim?.isActive()) this.curAnim.kill()
+			this.curAnim = gsap.to(root, {
+				...vars,
+				onUpdate: () => this.handleResizeThrottled(),
+				onComplete: () => this.setIsAnimating(false),
+			})
 		} else {
 			if (isMinimized) {
-				gsap.set(this.rootRef.current, { ...css.minimized })
+				gsap.set(root, { ...css.minimized })
 			} else {
-				gsap.set(this.rootRef.current, { ...(isMaximized ? css.maximized : css.windowed) })
+				gsap.set(root, { ...(isMaximized ? css.maximized : css.windowed) })
 			}
+			this.setIsAnimating(false)
 		}
 		this.data.closedProperly = false
 	}
@@ -709,7 +728,6 @@ export default class Window extends Component {
 				onExit={this.animMinimize}
 				mountOnEnter
 				unmountOnExit
-				appear
 			>
 				<Root
 					id={`window-${title}`}
@@ -762,7 +780,7 @@ export default class Window extends Component {
 							<Contexts.Window.Provider value={this.state.context}>
 								{drawer}
 								<AppContent id={`app-content-${title}`}>{this.props.children}</AppContent>
-								<LoadingScreen isLoading={this.state.appLoading} />
+								<LoadingOverlay isLoading={this.state.appLoading} backdrop={true} />
 							</Contexts.Window.Provider>
 						</AppContainer>
 					</OverflowGuard>

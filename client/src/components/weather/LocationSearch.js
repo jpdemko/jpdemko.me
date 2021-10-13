@@ -105,12 +105,12 @@ function LocationSearch({ map, modulesLoaded, onLocationFound }) {
 	const [input, setInput] = useState("")
 	const [error, setError] = useState(null)
 
-	const mapManagersRef = useRef()
-	const managersLoadedRef = useRef(false)
+	const mngsRef = useRef()
+	const mngsLoadedRef = useRef(false)
 	useEffect(() => {
-		if (map && modulesLoaded && !managersLoadedRef.current) {
+		if (map && modulesLoaded && !mngsLoadedRef.current) {
 			try {
-				mapManagersRef.current = {
+				mngsRef.current = {
 					autoSuggest: new Microsoft.Maps.AutosuggestManager({
 						maxResults: 5,
 						map,
@@ -118,36 +118,29 @@ function LocationSearch({ map, modulesLoaded, onLocationFound }) {
 					search: new Microsoft.Maps.Search.SearchManager(map),
 				}
 				// AutoSuggest callback when user clicks/activates current selection.
-				mapManagersRef.current.autoSuggest.attachAutosuggest("#searchInput", "#searchRoot", (mapData) => {
+				mngsRef.current.autoSuggest.attachAutosuggest("#searchInput", "#searchRoot", (mapData) => {
 					onLocationFoundRef.current(mapData)
-					setInput("")
 				})
-				if (mapManagersRef.current) {
-					managersLoadedRef.current = true
-				}
+				if (mngsRef.current) mngsLoadedRef.current = true
 			} catch (error) {
-				managersLoadedRef.current = false
+				mngsLoadedRef.current = false
 				console.error("<LocationSearch /> map managers load error: ", error)
 			}
 		}
 
 		return () => {
-			if (mapManagersRef.current) {
-				mapManagersRef.current.autoSuggest.dispose()
-			}
+			if (mngsRef.current) mngsRef.current.autoSuggest.dispose()
 		}
 	}, [map, modulesLoaded, onLocationFoundRef])
 
 	// Function for when user clicks on SvgLocation button to find their current location.
 	function onGeolocateCurrentPosition() {
-		if (!managersLoadedRef.current || !navigator) {
-			return
-		}
+		if (!mngsLoadedRef.current || !navigator) return
 
 		navigator.geolocation.getCurrentPosition(
 			({ coords }) => {
 				const location = new Microsoft.Maps.Location(coords.latitude, coords.longitude)
-				mapManagersRef.current?.search.reverseGeocode({
+				mngsRef.current?.search.reverseGeocode({
 					location,
 					callback: (mapData) => {
 						onLocationFoundRef.current(mapData)

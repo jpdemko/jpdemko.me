@@ -9,7 +9,7 @@ import { MsgBox, Input } from "../ui/IO"
 import Accordion from "../ui/Accordion"
 import Tabs from "../ui/Tabs"
 import Link from "../ui/Link"
-import { LoadingSVG } from "../ui/Loading"
+import { LoadingSvgInline } from "../ui/Loading"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -154,11 +154,11 @@ function ListOfCGs({ curTheme, cgTitles }) {
 				<SubCompGroup descrip="Loading" block>
 					<LoadingExample>
 						<code>{`<LoadingSVG />`}</code>
-						<LoadingSVG />
+						<LoadingSvgInline />
 					</LoadingExample>
 					<LoadingExample>
 						<code>{`<LoadingSVG sideLength="48px" />`}</code>
-						<LoadingSVG sideLength="48px" />
+						<LoadingSvgInline sideLength="48px" />
 					</LoadingExample>
 				</SubCompGroup>
 			</CompGroup>

@@ -329,7 +329,6 @@ const SRoot = styled.select`
 		&:focus {
 			outline: 0px solid ${theme.accent};
 			border: 1px solid ${theme.accent};
-			outline: 0;
 		}
 	`}
 

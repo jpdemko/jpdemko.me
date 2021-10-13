@@ -78,32 +78,28 @@ function Themes({ title, ...props }) {
 	const setRef = useUpdatedValRef(setID)
 
 	const cgSectRef = useRef()
-	const handleScrollThrottled = useThrottle(
-		() => {
-			const wrap = cgSectRef.current
-			if (!wrap) return
+	const handleScrollThrottled = useThrottle(() => {
+		const wrap = cgSectRef.current
+		if (!wrap) return
 
-			const cgs = wrap.getElementsByClassName("comp-group")
-			for (let i = 0; i < cgs.length; i++) {
-				const cg = cgs[i]
-				const nearBottom =
-					wrap.scrollHeight - wrap.scrollTop < wrap.clientHeight + cgs[cgs.length - 1].scrollHeight / 3
-				const offset = Math.round(cg.scrollHeight / 2.5)
-				const rMin = cg.offsetTop - offset
-				const rMax = cg.offsetTop + cg.scrollHeight - offset
-				const inRange = wrap.scrollTop > rMin && wrap.scrollTop < rMax
-				if (nearBottom) {
-					setRef.current?.(cgs[cgs.length - 1].id)
-					break
-				} else if (inRange) {
-					setRef.current?.(cg.id)
-					break
-				}
+		const cgs = wrap.getElementsByClassName("comp-group")
+		for (let i = 0; i < cgs.length; i++) {
+			const cg = cgs[i]
+			const nearBottom =
+				wrap.scrollHeight - wrap.scrollTop < wrap.clientHeight + cgs[cgs.length - 1].scrollHeight / 3
+			const offset = Math.round(cg.scrollHeight / 2.5)
+			const rMin = cg.offsetTop - offset
+			const rMax = cg.offsetTop + cg.scrollHeight - offset
+			const inRange = wrap.scrollTop > rMin && wrap.scrollTop < rMax
+			if (nearBottom) {
+				setRef.current?.(cgs[cgs.length - 1].id)
+				break
+			} else if (inRange) {
+				setRef.current?.(cg.id)
+				break
 			}
-		},
-		250,
-		[setRef, cgSectRef]
-	)
+		}
+	}, 250)
 	useEventListener(cgSectRef, "scroll", handleScrollThrottled)
 
 	const availThemes = Object.keys(themes).filter((name) => themes[name].public)

@@ -134,9 +134,18 @@ class Display extends Component {
 	}
 
 	componentDidMount() {
+		const { isMobileSite } = this.props
 		this.setGridDims()
 		document.addEventListener("visibilitychange", this.save)
 		window.addEventListener("resize", this.setGridDimsThrottled)
+		if (!ls.get("Display")) {
+			setTimeout(
+				() => {
+					this.openApp("About")
+				},
+				isMobileSite ? 1000 : 750
+			)
+		}
 	}
 
 	componentWillUnmount() {
@@ -315,6 +324,7 @@ class Display extends Component {
 							return (
 								<ShortcutButton
 									key={title}
+									id={`sc-btn-${title}`}
 									onClick={() => this.openApp(title)}
 									svg={logo}
 									column

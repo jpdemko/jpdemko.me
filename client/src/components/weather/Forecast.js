@@ -8,6 +8,7 @@ import WeatherIcon from "./WeatherIcon"
 import Tabs from "../ui/Tabs"
 import TempHue from "./TempHue"
 import { Table, THeader, TBody, TRow, TH, TD } from "../ui/Table"
+import { LoadingOverlay } from "../ui/Loading"
 
 /* --------------------------------- STYLES --------------------------------- */
 
@@ -200,7 +201,7 @@ const usaZones = [
 	"Pacific/Honolulu",
 ]
 
-const Forecast = memo(({ curLocation, getTemp }) => {
+const Forecast = memo(({ map, curLocation, getTemp }) => {
 	const [isValidZone, setIsValidZone] = useState(true)
 
 	useEffect(() => {
@@ -219,15 +220,18 @@ const Forecast = memo(({ curLocation, getTemp }) => {
 				</Card>
 			),
 			content: (
-				<MapEntry id="BingMapRadar">
-					<InfoMessage isValidZone={isValidZone}>
-						- <span>INFO</span> - Radar loop overlay is only for the USA. I don't have international
-						data.
-					</InfoMessage>
-				</MapEntry>
+				<>
+					<MapEntry id="BingMapRadar">
+						<InfoMessage isValidZone={isValidZone}>
+							- <span>INFO</span> - Radar loop overlay is only for the USA. I don't have international
+							data.
+						</InfoMessage>
+					</MapEntry>
+					<LoadingOverlay isLoading={!map} />
+				</>
 			),
 		}),
-		[isValidZone]
+		[map, isValidZone]
 	)
 
 	const tabsData = useMemo(() => {

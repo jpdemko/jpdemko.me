@@ -141,7 +141,7 @@ export function useUpdatedValRef(value) {
 
 /* -------------------------------------------------------------------------- */
 
-export function useThrottle(cb, throttleMS = 200, depArr = []) {
+export function useThrottle(cb, throttleMS = 200) {
 	const cbRef = useUpdatedValRef(cb)
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	return useCallback(
@@ -149,7 +149,7 @@ export function useThrottle(cb, throttleMS = 200, depArr = []) {
 			debug.log(`useThrottle()`, ...args)
 			cbRef.current?.(...args)
 		}, throttleMS),
-		[...depArr, throttleMS]
+		[throttleMS]
 	)
 }
 
@@ -168,45 +168,55 @@ export function useThrottle(cb, throttleMS = 200, depArr = []) {
  * @returns {[import("react").RefObject, *]}
  */
 export function useResizeObserver(cb, eleID, throttleMS = 200, depArr = []) {
-	const eleRef = useRef()
-	const cbRef = useUpdatedValRef(cb)
-	const isLoadedRef = useRef(true)
+	const [ele, setEle] = useState(null)
+	const eleRef = useUpdatedValRef(ele)
 
+	const cbRef = useUpdatedValRef(cb)
 	const [cbOutput, setCbOutput] = useState()
-	const cbOutputRef = useUpdatedValRef(cbOutput)
+	const prevCbOutputRef = useUpdatedValRef(cbOutput)
+
+	const cbThrottled = useThrottle((eleRect, ele) => {
+		const prevOutput = prevCbOutputRef.current
+		const nextOutput = cbRef.current(eleRect, ele, prevOutput)
+
+		if (prevOutput !== nextOutput) setCbOutput(nextOutput)
+	}, throttleMS)
 
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	const cbThrottled = useThrottle(
-		(eleRect, ele) => {
-			const prevOutput = cbOutputRef.current
-			const nextOutput = cbRef.current(eleRect, ele, prevOutput)
-			if (prevOutput !== nextOutput) setCbOutput(nextOutput)
-		},
-		throttleMS,
-		depArr
-	)
-
 	useEffect(() => {
-		if (!eleRef.current && eleID) eleRef.current = document.getElementById(eleID)
+		if (!eleRef.current && eleID) {
+			let e = document.getElementById(eleID)
+			if (e) {
+				eleRef.current = e
+				if (!ele) setEle(e)
+			}
+		}
+	})
+
+	const resizeObsRef = useRef()
+	useEffect(() => {
 		const ele = eleRef.current
-		let resizeObserver = null
+		let rso = resizeObsRef.current
 		if (ele) {
-			resizeObserver = new ResizeObserver((entries) => {
-				if (!Array.isArray(entries) || !entries.length || !isLoadedRef.current) return
+			rso?.unobserve?.(ele)
+			rso = new ResizeObserver((entries) => {
+				if (!Array.isArray(entries) || !entries.length) return
+				debug.log("useResizeObserver() - new ResizeObs() on ele: ", ele)
 				const entry = entries[0]
 				cbThrottled(entry.contentRect, entry.target)
 			})
-			resizeObserver.observe(ele)
+			resizeObsRef.current = rso
+			rso.observe(ele)
 		}
 
 		return () => {
 			cbThrottled?.cancel?.()
-			isLoadedRef.current = false
-			resizeObserver?.unobserve?.(ele)
+			rso?.unobserve?.(ele)
 		}
-	}, [cbThrottled, eleID])
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [cbThrottled, ele, ...depArr])
 
-	return [eleRef, cbOutput]
+	return [setEle, cbOutput]
 }
 
 /* -------------------------------------------------------------------------- */
@@ -224,7 +234,7 @@ export function useEventListener(eleRef, eventName, cb) {
 			const ele = eleRef.current
 			const curCb = cbRef.current
 			const handler = (...args) => {
-				debug.log("useEventListener", { eventName, ele, curCb })
+				debug.log("useEventListener", { eventName, ele })
 				return curCb(...args)
 			}
 			// Add event listener.

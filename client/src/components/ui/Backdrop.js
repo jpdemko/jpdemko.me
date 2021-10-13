@@ -10,7 +10,8 @@ const Root = styled.div`
 	height: 100%;
 	width: 100%;
 	${({ animDuration, theme, isShown, zIndex }) => css`
-		z-index: ${isShown ? zIndex : -1};
+		pointer-events: ${!isShown ? "none" : "auto"};
+		z-index: ${zIndex};
 		opacity: ${isShown ? 0.7 : 0};
 		background: ${theme.darkestColor};
 		transition: opacity ${animDuration}s;
@@ -19,10 +20,8 @@ const Root = styled.div`
 
 /* -------------------------------- COMPONENT ------------------------------- */
 
-const Backdrop = forwardRef(
-	({ isShown = false, animDuration = 0.4, interactFn, zIndex = 250000, ...props }, ref) => {
-		return <Root {...props} ref={ref} animDuration={animDuration} isShown={isShown} zIndex={zIndex - 1} />
-	}
-)
+const Backdrop = forwardRef(({ isShown = false, animDuration = 0.4, zIndex = 250000, ...props }, ref) => {
+	return <Root {...props} ref={ref} animDuration={animDuration} isShown={isShown} zIndex={zIndex - 1} />
+})
 
 export default Backdrop
