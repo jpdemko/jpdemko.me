@@ -326,13 +326,12 @@ function Board({
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isVert, gameBoard, isMobileSite])
 
-	const handleResize = (eleRect) => {
-		let vals = [eleRect.height, eleRect.width]
-		let low = Math.min(...vals)
-		let high = Math.max(...vals)
-		let close = high / low < 1.2
-		const fs = Math.round(close ? low * 0.9 : low * 1.2)
-		return fs
+	const handleResize = ({ width, height }) => {
+		let fs = 16
+		if (width > height) fs = height * 0.8
+		else if (height / width < 1.2) fs = height * 0.8
+		else fs = width * 1.25
+		return Math.round(fs)
 	}
 
 	let [_, fontSize] = useResizeObserver(handleResize, "0,0", 1500)

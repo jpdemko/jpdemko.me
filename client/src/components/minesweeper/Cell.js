@@ -6,7 +6,7 @@ import { ReactComponent as SvgFlag } from "../../shared/assets/material-icons/fl
 import { ReactComponent as SvgBomb } from "../../shared/assets/material-icons/bomb.svg"
 import { ReactComponent as SvgShovel } from "../../shared/assets/misc-icons/shovel.svg"
 import { ReactComponent as SvgClose } from "../../shared/assets/material-icons/close.svg"
-import { getRect, opac, themes } from "../../shared/shared"
+import { getRect, themes } from "../../shared/shared"
 import Button, { BadgeAnim } from "../ui/Button"
 
 /* --------------------------------- STYLES --------------------------------- */
@@ -16,8 +16,8 @@ const Root = styled.div`
 	font-weight: bold;
 	font-family: monospace;
 	position: relative;
-	min-height: 1rem;
-	min-width: 1rem;
+	min-height: 0.75rem;
+	min-width: 0.75rem;
 	display: flex;
 	${({ theme, altPattern, isDug, cellOpened }) => {
 		let color = theme.background
@@ -40,6 +40,7 @@ const CellBtn = styled(Button)`
 	margin: 0 !important;
 	font-size: var(--cell-fs);
 	flex: 1 1;
+	filter: none;
 	${({ theme, isDisabled, mineColor }) => css`
 		cursor: ${isDisabled ? "default" : "pointer"};
 		color: ${mineColor ?? theme.backgroundContrast};
@@ -49,6 +50,11 @@ const CellBtn = styled(Button)`
 	&:focus,
 	&:active {
 		z-index: 100;
+		filter: none;
+	}
+
+	* {
+		filter: none !important;
 	}
 
 	> * {
@@ -80,25 +86,25 @@ const ActionsMenu = styled.div`
 `
 
 const MenuRow = styled.div`
-	margin: 0.75em;
+	margin: 0.75rem;
 	position: relative;
-	height: 2.75em;
-	width: 2.75em;
+	height: 2.75rem;
+	width: 2.75rem;
 	transition: transform 0.2s;
 	&:active {
 		transform: scale(1.2);
 	}
-	${({ theme }) => css`
-		svg {
-			height: 100%;
-			fill: ${themes.red.highlight};
-			filter: drop-shadow(0px 0px 1px ${opac(0.5, theme.lightestColor)});
+	svg {
+		position: absolute;
+		top: 0;
+		left: 0;
+		height: 100%;
+		fill: ${themes.red.highlight};
 
-			#SvgShovel {
-				transform: scale(0.9);
-			}
+		#SvgShovel {
+			transform: scale(0.9);
 		}
-	`}
+	}
 `
 
 const RowBG = styled.div`

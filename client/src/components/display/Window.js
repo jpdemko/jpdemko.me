@@ -65,6 +65,7 @@ const Root = styled.div`
 			? `1px solid ${theme.accent}`
 			: `1px solid ${opac(0.6, theme.accent)}`};
 		${isFocused &&
+		!isMobileSite &&
 		css`
 			filter: drop-shadow(0px -1px 5px ${opac(0.6, desaturate(0.1, theme.accent))});
 		`}
